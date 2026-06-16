@@ -1,0 +1,187 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{bm}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+
+\newcommand{\R}{\mathbf{R}}
+\newcommand{\D}{\mathbf{D}}
+\newcommand{\bet}{\bm{\beta}}
+\newcommand{\Ai}{A_i}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Var}{\operatorname{Var}}
+\newcommand{\Cov}{\operatorname{Cov}}
+
+\title{\textbf{Spatially continuous (raster) covariates by intensity-scale
+aggregation}\\[4pt]
+\large Why averaging predictors over polygons is biased, and the
+\texttt{SDALGCP2\_raster} fix}
+\author{SDALGCP2 development notes}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+When a covariate varies \emph{within} an areal unit it is usually summarised by its
+areal mean and entered into a Poisson model. Under the nonlinear log link this is
+biased. We derive the statistically coherent alternative used by
+\texttt{SDALGCP2\_raster}: covariates supplied as rasters enter the log-Gaussian
+Cox process intensity at the candidate-point level and are aggregated on the
+\emph{intensity} (exponential) scale through a log-sum-exp offset. We give the
+exact discretised model, the factorisation that isolates the covariate
+contribution, the Gauss--Newton fixed point used to fit it (which reuses the
+ordinary SDA-LGCP machinery), and a simulation in which areal averaging is biased
+by $+67\%$ while the intensity-scale fit recovers the truth.
+\end{abstract}
+
+\section{The aggregated LGCP mean}
+
+Let the LGCP intensity be $\lambda(x)=\rho(x)\exp\{z(x)^\top\bet+S(x)\}$, with
+$\rho(x)$ the population (at-risk) density, $z(x)$ a vector of covariates available
+as rasters, and $S$ a zero-mean Gaussian process with
+$\Cov\{S(x),S(x')\}=\sigma^2\rho_\phi(\|x-x'\|)$. The count in region $\Ai$ is
+conditionally Poisson with mean $\int_{\Ai}\lambda(x)\,dx$. Writing
+$m_i=\int_{\Ai}\rho(x)\,dx$ for the population at risk and
+$w_i(x)=\rho(x)/m_i$ (so $\int_{\Ai}w_i=1$),
+\begin{equation}
+\E[Y_i\mid S]=m_i\int_{\Ai} w_i(x)\,\exp\!\big\{z(x)^\top\bet+S(x)\big\}\,dx .
+\label{eq:mean}
+\end{equation}
+With the same candidate points $x_{ik}$ and quadrature weights $w_{ik}$ used to
+build the aggregated correlation (companion note on the scale parameter),
+\begin{equation}
+\E[Y_i\mid S]\ \approx\ m_i\sum_{k=1}^{n_i} w_{ik}\,
+   \exp\!\big\{z(x_{ik})^\top\bet + S(x_{ik})\big\}.
+\label{eq:disc}
+\end{equation}
+
+\section{Why averaging the predictor over polygons is biased}
+
+The conventional ``areal'' model replaces $z(x)$ by its within-region mean
+$\bar z_i=\sum_k w_{ik}z(x_{ik})$ and sets the region linear predictor to
+$\bar z_i^\top\bet$. But by Jensen's inequality, for the covariate part alone,
+\begin{equation}
+\sum_k w_{ik}\exp\{z(x_{ik})^\top\bet\}
+\ \ge\ \exp\{\bar z_i^\top\bet\},
+\end{equation}
+with equality only if $z$ is constant on $\Ai$. The gap is governed by the
+\emph{within-region} variance of $z^\top\bet$. Crucially, a regression of $Y_i$ on
+$\bar z_i$ is biased \emph{for the coefficient} $\bet$ precisely when that
+within-region variance is correlated with $\bar z_i$ across regions --- for example
+when the covariate has sharp localised peaks (point exposure sources): regions
+containing a peak have a moderate mean but a large intensity aggregate. Averaging
+washes the peaks out; the exponential does not.
+
+\section{Intensity-scale factorisation}
+
+Factor the covariate out of \eqref{eq:disc}:
+\begin{equation}
+\boxed{\;
+\E[Y_i\mid S]= m_i\,e^{\,b_i(\bet)}\sum_k c_{ik}(\bet)\,e^{S(x_{ik})},
+\qquad
+b_i(\bet)=\log\!\sum_k w_{ik}\,e^{\,z(x_{ik})^\top\bet}\;}
+\label{eq:factor}
+\end{equation}
+where the \emph{intensity-tilted} weights
+\begin{equation}
+c_{ik}(\bet)=\frac{w_{ik}\,e^{\,z(x_{ik})^\top\bet}}{\sum_l w_{il}\,e^{\,z(x_{il})^\top\bet}},
+\qquad \sum_k c_{ik}=1,
+\label{eq:tilt}
+\end{equation}
+upweight high-intensity sub-areas. The term $b_i(\bet)$ is the \textbf{log-sum-exp}
+of the within-region covariate surface; it equals $\bar z_i^\top\bet$ only when $z$
+is constant on $\Ai$, and is the correct region-level covariate contribution.
+
+\section{Reducing the spatial part}
+
+Let $T_i=\sum_k c_{ik}S(x_{ik})$, a Gaussian linear functional, and write
+$S(x_{ik})=T_i+\delta_{ik}$ with $\sum_k c_{ik}\delta_{ik}=0$. A second-order
+expansion gives
+\begin{equation}
+\sum_k c_{ik}e^{S(x_{ik})}=e^{T_i}\sum_k c_{ik}e^{\delta_{ik}}
+\approx e^{T_i}\Big(1+\tfrac12\sum_k c_{ik}\delta_{ik}^2\Big)
+\approx \exp\!\big(T_i+\tfrac12 v_i\big),
+\end{equation}
+with $v_i=\E\sum_k c_{ik}\delta_{ik}^2=\sigma^2\big(1-\sum_{k,l}c_{ik}c_{il}\rho_\phi(d_{kl})\big)
+=\sigma^2\big(1-\R^c_{ii}\big)$, the variance lost to spatial averaging. Hence the
+\emph{full} (covariate-tilted) model is
+\begin{equation}
+\E[Y_i\mid T_i]= m_i\exp\!\big(b_i(\bet)+\tfrac12 v_i(\bet)+T_i\big),
+\quad
+\mathbf{T}\sim\mathcal N\!\big(\mathbf 0,\ \sigma^2\R^c(\phi,\bet)\big),
+\quad
+\R^c_{ij}=\sum_{k,l}c_{ik}c_{jl}\rho_\phi(d_{kl}).
+\label{eq:full}
+\end{equation}
+
+\paragraph{Offset-only model (the default implementation).}
+Because the dominant correction is the covariate term $b_i$, the implemented
+default keeps the spatial aggregation at the population weights
+($\R^c\!\to\!\R^w$, $\tfrac12 v_i$ absorbed), so the correlation matrix does
+\emph{not} depend on $\bet$ and is precomputed once:
+\begin{equation}
+\E[Y_i\mid T_i]= m_i\exp\!\big(b_i(\bet)+T_i\big),
+\qquad
+\mathbf T\sim\mathcal N\!\big(\mathbf 0,\ \sigma^2\R^w(\phi)\big).
+\label{eq:offset}
+\end{equation}
+This captures the covariate Jensen bias \emph{exactly} through $b_i(\bet)$ and
+treats the covariate tilting of the latent field as second order. The fully tilted
+model \eqref{eq:full} is available as a refinement (it rebuilds $\R^c(\bet)$ each
+outer iteration).
+
+\section{Estimation: a Gauss--Newton fixed point}
+
+The only nonlinearity in $\bet$ is through $b_i(\bet)$, whose gradient is the
+\emph{intensity-tilted (``effective'') covariate}
+\begin{equation}
+\frac{\partial b_i}{\partial \bet}
+=\frac{\sum_k w_{ik}e^{z_{ik}^\top\bet}z_{ik}}{\sum_k w_{ik}e^{z_{ik}^\top\bet}}
+=\sum_k c_{ik}(\bet)\,z(x_{ik})\ \equiv\ \D^c_i(\bet).
+\label{eq:effdesign}
+\end{equation}
+At iteration $t$ we linearise $b_i(\bet)\approx b_i(\bet^{(t)})
++\D^c_i(\bet^{(t)})^\top(\bet-\bet^{(t)})$ and fit the ordinary SDA-LGCP MCML with
+\emph{effective design} $\D^c(\bet^{(t)})$ and offset
+$o_i^{(t)}=\log m_i+b_i(\bet^{(t)})-\D^c_i(\bet^{(t)})^\top\bet^{(t)}$, obtaining
+$\bet^{(t+1)}$ (and $\sigma^2,\phi$). At a fixed point $\bet^\star$ the offset
+reproduces $b_i(\bet^\star)$ exactly and, by \eqref{eq:effdesign}, the linear score
+$\sum_i\D^c_i(\cdot)$ equals the nonlinear score $\sum_i(\partial b_i/\partial\bet)(\cdot)$,
+so $\bet^\star$ solves the likelihood equations of the nonlinear model. The scheme
+therefore reuses \texttt{mcml\_fit()} unchanged and is exactly Gauss--Newton on the
+$b_i(\bet)$ term. (\texttt{SDALGCP2\_raster}; the iteration converges in a handful
+of steps.)
+
+\section{Numerical demonstration}
+
+A covariate with $14$ sharp Gaussian peaks (width $\sim0.5$, region width $2.5$) on
+an $8\times8$ lattice; counts simulated from \eqref{eq:disc} with $\beta_z=1$.
+
+\begin{center}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+method & $\widehat{\beta_z}$ & bias \\
+\midrule
+truth & $1.00$ & --- \\
+naive (areal-mean covariate, Poisson GLM) & $1.67$ & $+67\%$ \\
+exact nonlinear MLE of \eqref{eq:disc} & $1.01$ & $+1\%$ \\
+\texttt{SDALGCP2\_raster} (offset model) & $1.06$ & $+6\%$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Areal averaging is badly biased; intensity-scale aggregation recovers the truth and
+matches the exact MLE. The bias is large only when the within-region covariate
+variance correlates with the region mean (sharp sub-region features); for smooth
+covariates the two approaches nearly agree, as expected from
+$b_i(\bet)\approx\bar z_i^\top\bet+\tfrac12\bet^\top\widehat{\Var}_i(z)\bet$.
+
+\paragraph{Reference.}
+Johnson, O., Diggle, P., Giorgi, E. (2019). A spatially discrete approximation to
+log-Gaussian Cox processes for aggregated disease count data. \emph{Statistics in
+Medicine} 38, 4871--4887.
+
+\end{document}
