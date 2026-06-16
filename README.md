@@ -101,6 +101,40 @@ grid-discretisation error and returns a proper **standard error for `phi`** from
 the joint Hessian. Full, numerically-verified derivation:
 [`math/continuous-phi-derivation.pdf`](math/continuous-phi-derivation.pdf).
 
+## Spatially continuous (raster) covariates
+
+Covariates supplied as **rasters** enter the model at the candidate-point level,
+inside the exponential, and are aggregated on the *intensity* scale through a
+log-sum-exp offset
+
+```
+b_i(beta) = log sum_k w_ik exp( z(x_ik)' beta )      # NOT (mean of z over region)' beta
+```
+
+This is the statistically correct alternative to averaging the predictor over each
+polygon, which is biased under the nonlinear log link whenever the covariate varies
+within regions. `SDALGCP2_raster()` fits it by a Gauss-Newton fixed point that
+reuses the standard machinery.
+
+```r
+fit <- SDALGCP2_raster(y ~ z + offset(log(pop)), data = dat, my_shp = shp,
+                       delta = 0.5, rasters = z_raster, phi = phi_grid)
+```
+
+With a covariate that has sharp sub-region features (e.g. point exposure sources,
+below), averaging over polygons is badly biased while intensity-scale aggregation
+recovers the truth:
+
+![](man/figures/raster_covariate.png)
+
+```
+True z effect:        1.00
+NAIVE areal-average:  1.67   (bias +67%)
+SDALGCP2_raster:      1.06   (bias  +6%)
+```
+
+See `scripts/raster_covariates_demo.R` and `DESIGN.md` §3b.
+
 ## Speed vs SDALGCP
 
 Identical estimates, full pipeline (`scripts/compare_vs_SDALGCP.R`):
