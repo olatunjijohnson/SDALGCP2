@@ -2,6 +2,15 @@
 
 First development version — a faster, modernised successor to SDALGCP.
 
+* **Kronecker-free spatio-temporal model** (`SDALGCP2_ST()`): separable space-time
+  SDA-LGCP for counts over the same regions at several times. The likelihood never
+  forms the `(N*T)x(N*T)` covariance, using `tr(Rs^-1 M Rt^-1 M')` for the
+  quadratic form and `N log|Rt| + T log|Rs|` for the log-determinant (both verified
+  vs the brute-force Kronecker product). Spatial scale on a grid, temporal Matern
+  range estimated continuously (analytic gradient verified vs numDeriv). No `geoR`.
+* **Covariate-tilted raster model** (`SDALGCP2_raster(tilt_spatial = TRUE)`):
+  rebuilds the correlation from intensity-tilted weights with a log-normal
+  aggregation correction.
 * **General Matern smoothness for the direct method**: `corr_and_grad_cpp` now
   provides closed-form phi-derivatives for Matern `kappa` in {0.5, 1.5, 2.5}, so
   continuous-phi (`phi_method = "direct"`) estimation works for all three (was
