@@ -1,0 +1,88 @@
+# Getting started with SDALGCP2 (simulated example)
+
+`SDALGCP2` fits a spatially discrete approximation to a log-Gaussian Cox
+process (SDA-LGCP) to spatially aggregated disease counts. It is a
+faster, modernised successor to `SDALGCP`: the heavy steps (aggregated
+correlation assembly, the MALA sampler, the Monte Carlo likelihood) run
+in C++.
+
+This vignette uses **entirely simulated data**, so it is fully
+reproducible without any external files.
+
+## 1. Simulate a lattice of regions and aggregated counts
+
+``` r
+
+library(SDALGCP2)
+library(sf)
+
+set.seed(1)
+bound <- st_as_sfc(st_bbox(c(xmin = 0, ymin = 0, xmax = 20, ymax = 20)))
+shp   <- st_sf(geometry = st_make_grid(bound, n = c(8, 8)))   # 64 square regions
+N     <- nrow(shp)
+
+# candidate points inside each region (regular grid)
+pts      <- sda_points(shp, delta = 1.2, method = 3)
+phi_grid <- seq(1, 5, length.out = 8)
+corr     <- precompute_corr(pts, phi_grid)
+
+# true parameters and a latent field drawn at phi = 2.5
+Sig   <- 0.5 * corr$R[, , which.min(abs(phi_grid - 2.5))]
+x1    <- as.numeric(scale(st_coordinates(st_centroid(shp))[, 1]))
+pop   <- round(runif(N, 500, 3000))
+y     <- rpois(N, pop * exp(cbind(1, x1) %*% c(-6, 0.5) +
+                            as.numeric(t(chol(Sig)) %*% rnorm(N))))
+dat   <- data.frame(y = y, x1 = x1, pop = pop)
+```
+
+## 2. Fit the model
+
+A single call generates points, builds the correlation array and runs
+MCML:
+
+``` r
+
+ctrl <- control_mcmc(n.sim = 6000, burnin = 1500, thin = 6, h = 1.65 / N^(1/6))
+fit  <- SDALGCP2(y ~ x1 + offset(log(pop)), dat, shp,
+                 delta = 1.2, phi = phi_grid, method = 3, control.mcmc = ctrl)
+
+summary(fit)
+confint(fit)
+```
+
+## 3. Predict relative risk
+
+Discrete (region-level) and continuous (change-of-support) prediction.
+The `sampler = "laplace"` option skips MCMC for a near-instant
+approximation.
+
+``` r
+
+pred_d <- predict(fit, type = "discrete",   sampler = "mcmc",    control.mcmc = ctrl)
+pred_c <- predict(fit, type = "continuous", sampler = "laplace", cellsize = 1,
+                  control.mcmc = ctrl)
+
+# exceedance probability of covariate-adjusted relative risk above 1.5
+exc <- exceedance(pred_d, thresholds = 1.5)
+```
+
+## 4. Speed vs the original SDALGCP
+
+On this 64-region example the full pipeline (points + correlation +
+MCML) is several times faster than `SDALGCP::SDALGCPMCML` while
+returning the same estimates. The reproducible benchmark lives in
+`scripts/compare_vs_SDALGCP.R`:
+
+``` r
+
+# source(system.file("..", "scripts", "compare_vs_SDALGCP.R", package = "SDALGCP2"))
+```
+
+Representative output (your timings will vary):
+
+    True:      beta=(-6, 0.5)      sigma2=0.5    phi=2.5
+    SDALGCP2:  beta=(-5.738,0.474) sigma2=0.687  phi=1     [1.0s]
+    SDALGCP:   beta=(-5.738,0.474) sigma2=0.687  phi=1     [8.4s]
+    Full-pipeline speedup: ~8x
+
+\`\`\`

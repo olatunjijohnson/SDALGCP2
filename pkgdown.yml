@@ -1,0 +1,9 @@
+pandoc: 3.8.3
+pkgdown: 2.2.0
+pkgdown_sha: ~
+articles:
+  SDALGCP2-intro: SDALGCP2-intro.html
+last_built: 2026-06-16T16:20Z
+urls:
+  reference: https://olatunjijohnson.github.io/SDALGCP2/reference
+  article: https://olatunjijohnson.github.io/SDALGCP2/articles

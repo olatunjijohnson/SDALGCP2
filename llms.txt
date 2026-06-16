@@ -1,0 +1,238 @@
+# SDALGCP2
+
+A faster, modernised successor to
+[**SDALGCP**](https://github.com/olatunjijohnson/SDALGCP) for fitting a
+**S**patially **D**iscrete **A**pproximation to a **L**og-**G**aussian
+**C**ox **P**rocess (SDA-LGCP) to spatially aggregated disease counts
+(Johnson, Diggle & Giorgi, 2019).
+
+SDALGCP2 keeps the statistical method but
+
+- moves the performance-critical kernels (aggregated correlation
+  assembly, the Newton Laplace mode + MALA sampler, and the Monte Carlo
+  likelihood) into **C++ via RcppArmadillo + OpenMP** — **~8–10×
+  faster** end-to-end on a 64-region example, returning the *same*
+  estimates as `SDALGCP`;
+- drops orphaned/legacy dependencies (`geoR`, `sp`, `raster`,
+  `spacetime`, `mapview`, `splancs`, `pdist`, `maxLik`) for a lean
+  `sf`/`terra`/`stars` stack;
+- ships a proper **post-fit mapping & diagnostics** layer (relative-risk
+  and uncertainty maps, exceedance probabilities, φ-profile CI,
+  coefficient plots, residual Moran’s I checking);
+- adds a no-MCMC **Laplace fast path** for prediction.
+
+See [`DESIGN.md`](https://olatunjijohnson.github.io/SDALGCP2/DESIGN.md)
+for the full analysis, bottleneck ranking and roadmap.
+
+> **Status:** active development. The spatial fit, prediction and
+> visualisation are working and parity-verified against `SDALGCP`.
+> Planned next: continuous-φ (grid-free) estimation, raster/continuous
+> predictors via intensity-scale aggregation, a nugget term,
+> importance-sampling diagnostics, and a Kronecker-free spatio-temporal
+> path.
+
+## Install
+
+``` r
+
+# install.packages("remotes")
+remotes::install_github("olatunjijohnson/SDALGCP2")
+```
+
+## Quick start (fully simulated, reproducible)
+
+``` r
+
+library(SDALGCP2)
+library(sf)
+
+set.seed(1)
+shp <- st_sf(geometry = st_make_grid(
+  st_as_sfc(st_bbox(c(xmin = 0, ymin = 0, xmax = 20, ymax = 20))), n = c(10, 10)))
+N <- nrow(shp)
+
+# simulate aggregated counts with a spatial signal + covariate
+pts  <- sda_points(shp, delta = 1, method = 3)
+corr <- precompute_corr(pts, seq(1, 6, length.out = 10))
+Sig  <- 0.6 * corr$R[, , 5]
+x1   <- as.numeric(scale(rowSums(st_coordinates(st_centroid(shp)))))
+pop  <- round(runif(N, 500, 3000))
+y    <- rpois(N, pop * exp(cbind(1, x1) %*% c(-6, 0.4) +
+                           as.numeric(t(chol(Sig)) %*% rnorm(N))))
+dat  <- data.frame(y = y, x1 = x1, pop = pop)
+
+# fit (points -> correlation -> Monte Carlo ML), all in one call
+ctrl <- control_mcmc(n.sim = 6000, burnin = 1500, thin = 6, h = 1.65 / N^(1/6))
+fit  <- SDALGCP2(y ~ x1 + offset(log(pop)), dat, shp,
+                 delta = 1, phi = seq(1, 6, length.out = 10), control.mcmc = ctrl)
+summary(fit)
+
+# predict and map
+pred_d <- predict(fit, type = "discrete")
+pred_c <- predict(fit, type = "continuous", sampler = "laplace", cellsize = 0.7)
+
+plot(pred_d, "ARR", midpoint = 1)        # covariate-adjusted relative risk
+plot(pred_c, "RR", bound = shp)          # continuous relative-risk surface
+map_exceedance(pred_d, threshold = 1.5)  # hotspot probabilities
+phi_profile(fit)                         # profile-deviance CI for phi
+coef_plot(fit)                           # estimates with CIs
+model_check(fit, pred_d)                 # observed vs fitted + residual Moran's I
+```
+
+## What you get after fitting
+
+| Adjusted relative risk | Exceedance P(RR \> 1.5) | Profile deviance for φ |
+|:--:|:--:|:--:|
+| ![](reference/figures/map_rr_discrete.png) | ![](reference/figures/map_exceedance.png) | ![](reference/figures/phi_profile.png) |
+
+## Estimating the spatial scale: grid vs direct
+
+The scale `phi` enters only through a **double integral** of the
+correlation function over each pair of regions,
+`R_ij(phi) = ∫∫ w_i(x) w_j(y) exp(-||x-y||/phi) dx dy`, approximated by
+a weighted sum over candidate points. `SDALGCP2` offers two ways to
+estimate it:
+
+``` r
+
+fit_grid   <- SDALGCP2(..., phi_method = "grid")    # profile over the phi grid (default)
+fit_direct <- SDALGCP2(..., phi_method = "direct")  # optimise phi continuously
+```
+
+The **direct** method differentiates *through* the integral (closed-form
+`dR/dphi`, `d²R/dphi²`) and optimises `(beta, sigma², phi)` jointly, so
+it avoids grid-discretisation error and returns a proper **standard
+error for `phi`** from the joint Hessian. Full, numerically-verified
+derivation:
+[`math/continuous-phi-derivation.pdf`](https://olatunjijohnson.github.io/SDALGCP2/math/continuous-phi-derivation.pdf).
+
+## Spatially continuous (raster) covariates
+
+Covariates supplied as **rasters** enter the model at the
+candidate-point level, inside the exponential, and are aggregated on the
+*intensity* scale through a log-sum-exp offset
+
+    b_i(beta) = log sum_k w_ik exp( z(x_ik)' beta )      # NOT (mean of z over region)' beta
+
+This is the statistically correct alternative to averaging the predictor
+over each polygon, which is biased under the nonlinear log link whenever
+the covariate varies within regions.
+[`SDALGCP2_raster()`](https://olatunjijohnson.github.io/SDALGCP2/reference/SDALGCP2_raster.md)
+fits it by a Gauss-Newton fixed point that reuses the standard
+machinery.
+
+``` r
+
+fit <- SDALGCP2_raster(y ~ z + offset(log(pop)), data = dat, my_shp = shp,
+                       delta = 0.5, rasters = z_raster, phi = phi_grid)
+```
+
+With a covariate that has sharp sub-region features (e.g. point exposure
+sources, below), averaging over polygons is badly biased while
+intensity-scale aggregation recovers the truth:
+
+![](reference/figures/raster_covariate.png)
+
+    True z effect:        1.00
+    NAIVE areal-average:  1.67   (bias +67%)
+    SDALGCP2_raster:      1.06   (bias  +6%)
+
+See `scripts/raster_covariates_demo.R` and `DESIGN.md` §3b.
+
+## Speed vs SDALGCP
+
+Identical estimates, full pipeline (`scripts/compare_vs_SDALGCP.R`):
+
+    True:      beta=(-6, 0.5)       sigma2=0.5    phi=2.5
+    SDALGCP2:  beta=(-5.738,0.474)  sigma2=0.687  phi=1     [1.0s]
+    SDALGCP:   beta=(-5.738,0.474)  sigma2=0.687  phi=1     [8.4s]
+
+## References
+
+Johnson, O., Diggle, P. & Giorgi, E. (2019). A spatially discrete
+approximation to log-Gaussian Cox processes for modelling aggregated
+disease count data. *Statistics in Medicine* 38, 4871–4887.
+
+# Package index
+
+## Model fitting
+
+User entry points for fitting SDA-LGCP models.
+
+- [`SDALGCP2()`](https://olatunjijohnson.github.io/SDALGCP2/reference/SDALGCP2.md)
+  : Fit a spatial SDA-LGCP model
+- [`SDALGCP2_raster()`](https://olatunjijohnson.github.io/SDALGCP2/reference/SDALGCP2_raster.md)
+  : Fit an SDA-LGCP with spatially continuous (raster) covariates
+- [`SDALGCP2_ST()`](https://olatunjijohnson.github.io/SDALGCP2/reference/SDALGCP2_ST.md)
+  : Fit a spatio-temporal SDA-LGCP model (Kronecker-free)
+- [`mcml_fit()`](https://olatunjijohnson.github.io/SDALGCP2/reference/mcml_fit.md)
+  : Monte Carlo maximum likelihood estimation for the spatial SDA-LGCP
+
+## Candidate points and correlation
+
+Discretisation and the aggregated correlation assembly.
+
+- [`sda_points()`](https://olatunjijohnson.github.io/SDALGCP2/reference/sda_points.md)
+  : Generate candidate sampling points inside each region
+- [`precompute_corr()`](https://olatunjijohnson.github.io/SDALGCP2/reference/precompute_corr.md)
+  : Precompute aggregated region-level correlation matrices
+
+## Sampling and control
+
+- [`control_mcmc()`](https://olatunjijohnson.github.io/SDALGCP2/reference/control_mcmc.md)
+  : MCMC control settings for the MALA sampler
+- [`laplace_sampling()`](https://olatunjijohnson.github.io/SDALGCP2/reference/laplace_sampling.md)
+  : Sample the latent field \[S \| Y\] (Poisson, non-nested) via C++
+  MALA
+
+## Prediction
+
+- [`predict(`*`<SDALGCP2>`*`)`](https://olatunjijohnson.github.io/SDALGCP2/reference/predict.SDALGCP2.md)
+  : Predict relative risk from a fitted SDALGCP2 model
+- [`predict(`*`<SDALGCP2_ST>`*`)`](https://olatunjijohnson.github.io/SDALGCP2/reference/predict.SDALGCP2_ST.md)
+  : Discrete (region x time) prediction for a spatio-temporal fit
+- [`exceedance()`](https://olatunjijohnson.github.io/SDALGCP2/reference/exceedance.md)
+  : Exceedance probabilities P(relative risk \> threshold)
+
+## Visualisation
+
+Maps and post-fit graphics.
+
+- [`plot(`*`<SDALGCP2_pred>`*`)`](https://olatunjijohnson.github.io/SDALGCP2/reference/plot.SDALGCP2_pred.md)
+  : Map a fitted SDALGCP2 prediction
+- [`plot(`*`<SDALGCP2>`*`)`](https://olatunjijohnson.github.io/SDALGCP2/reference/plot.SDALGCP2.md)
+  : Plot an SDALGCP2 fit (the phi profile deviance)
+- [`map_exceedance()`](https://olatunjijohnson.github.io/SDALGCP2/reference/map_exceedance.md)
+  : Map exceedance probabilities P(relative risk \> threshold)
+- [`phi_profile()`](https://olatunjijohnson.github.io/SDALGCP2/reference/phi_profile.md)
+  : Profile likelihood and confidence interval for the spatial scale phi
+- [`coef_plot()`](https://olatunjijohnson.github.io/SDALGCP2/reference/coef_plot.md)
+  : Coefficient plot of fixed effects (and sigma^2) with confidence
+  intervals
+- [`report()`](https://olatunjijohnson.github.io/SDALGCP2/reference/report.md)
+  : One-call panel of post-fit graphics
+
+## Diagnostics
+
+- [`mc_diagnostics()`](https://olatunjijohnson.github.io/SDALGCP2/reference/mc_diagnostics.md)
+  : Importance-sampling diagnostics for an MCML fit
+- [`model_check()`](https://olatunjijohnson.github.io/SDALGCP2/reference/model_check.md)
+  : Posterior-predictive model checking for an SDALGCP2 fit
+
+## Methods
+
+- [`summary(`*`<SDALGCP2>`*`)`](https://olatunjijohnson.github.io/SDALGCP2/reference/summary.SDALGCP2.md)
+  : Summary of an SDALGCP2 fit
+- [`confint(`*`<SDALGCP2>`*`)`](https://olatunjijohnson.github.io/SDALGCP2/reference/confint.SDALGCP2.md)
+  : Wald confidence intervals for an SDALGCP2 fit
+- [`print(`*`<SDALGCP2>`*`)`](https://olatunjijohnson.github.io/SDALGCP2/reference/print.SDALGCP2.md)
+  : Print an SDALGCP2 fit
+- [`print(`*`<summary.SDALGCP2>`*`)`](https://olatunjijohnson.github.io/SDALGCP2/reference/print.summary.SDALGCP2.md)
+  : Print a summary of an SDALGCP2 fit
+
+# Articles
+
+### Get started
+
+- [Getting started with SDALGCP2 (simulated
+  example)](https://olatunjijohnson.github.io/SDALGCP2/articles/SDALGCP2-intro.md):
