@@ -2,6 +2,11 @@
 
 First development version — a faster, modernised successor to SDALGCP.
 
+* **Nugget / overdispersion term** (`nugget = TRUE`, with `phi_method = "direct"`):
+  fits covariance `sigma2 (R(phi) + nu I)` and estimates the relative nugget
+  `nu = tau2/sigma2` with a standard error, absorbing region-level overdispersion
+  beyond the spatial structure. Analytic gradient and Hessian (including the nugget
+  and all cross terms) verified against numerical differentiation.
 * **Re-anchored (iterated) MCML** (`reanchor =`): re-simulates the latent field at
   the current optimum and refits, keeping the importance weights near-uniform. On a
   64-region example it lifts the effective sample size from ~0% to ~96% and cuts the

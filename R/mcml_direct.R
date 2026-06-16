@@ -33,6 +33,108 @@
   out
 }
 
+# Continuous-(phi, nu) direct fit WITH a relative nugget: covariance
+# C(phi, nu) = R(phi) + nu I (so the full covariance is sigma2 (R + nu I)).
+# Parameters xi = (beta, log sigma2, log phi, log nu); dC/dphi = R'(phi),
+# dC/dnu = I, d2C/dnu2 = d2C/dphi dnu = 0. Analytic gradient + Hessian, gated by
+# numerical differentiation (test-nugget.R).
+.mcml_direct_nugget_fit <- function(y, D, m, coords, wts, weighted, S.sim, data_ll,
+                                    par0_opt, phi0, nu0, n, p, messages = FALSE) {
+  B <- nrow(S.sim); s2idx <- p + 1; pidx <- p + 2; nidx <- p + 3
+
+  pieces <- function(phi, nu) {
+    cg <- corr_and_grad_cpp(coords, wts, phi, weighted, 0L)
+    Rp <- cg$dR; Rpp <- cg$d2R
+    C <- cg$R; diag(C) <- diag(C) + nu
+    ch <- chol(C); Cinv <- chol2inv(ch); ldetC <- 2 * sum(log(diag(ch)))
+    Aphi <- Cinv %*% Rp; m2phi <- Aphi %*% Cinv
+    Cinv2 <- Cinv %*% Cinv
+    n2phi <- Cinv %*% (2 * Rp %*% Cinv %*% Rp - Rpp) %*% Cinv
+    list(C = C, Cinv = Cinv, ldetC = ldetC, Rp = Rp,
+         Aphi = Aphi, m2phi = m2phi, trAphi = sum(diag(Aphi)),
+         tr_m2phi = sum(diag(m2phi)),
+         t2phi = -0.5 * (sum(Cinv * Rpp) - sum(Aphi * t(Aphi))),
+         n2phi = n2phi, Cinv2 = Cinv2, trCinv = sum(diag(Cinv)),
+         trCinv2 = sum(Cinv * Cinv), RpCinv = Rp %*% Cinv)
+  }
+
+  num_at <- function(beta, s2, pc) {
+    mu <- as.numeric(D %*% beta)
+    U <- S.sim - rep(mu, each = B)
+    Q <- rowSums((U %*% pc$Cinv) * U)
+    list(num = data_ll - 0.5 * (n * log(s2) + pc$ldetC + Q / s2), U = U, Q = Q)
+  }
+
+  pc0 <- pieces(phi0, nu0)
+  Den <- num_at(par0_opt[1:p], exp(par0_opt[p + 1]), pc0)$num
+  unpack <- function(xi) list(beta = xi[1:p], s2 = exp(xi[s2idx]),
+                              phi = exp(xi[pidx]), nu = exp(xi[nidx]))
+
+  negMCL <- function(xi) {
+    th <- unpack(xi); pc <- pieces(th$phi, th$nu); cp <- num_at(th$beta, th$s2, pc)
+    -log(mean(exp(cp$num - Den)))
+  }
+
+  grad_parts <- function(th, pc, cp) {
+    s2 <- th$s2; phi <- th$phi; nu <- th$nu
+    U <- cp$U; W <- U %*% pc$Cinv
+    GB  <- (W %*% D) / s2
+    gs  <- -n / 2 + cp$Q / (2 * s2)
+    qm2phi <- rowSums((U %*% pc$m2phi) * U)
+    qm2nu  <- rowSums(W * W)                       # u' Cinv^2 u
+    gphi <- phi * (-0.5 * pc$trAphi + 0.5 * qm2phi / s2)
+    gnu  <- nu  * (-0.5 * pc$trCinv + 0.5 * qm2nu  / s2)
+    list(W = W, GB = GB, gs = gs, qm2phi = qm2phi, qm2nu = qm2nu,
+         gphi = gphi, gnu = gnu)
+  }
+
+  negGrad <- function(xi) {
+    th <- unpack(xi); pc <- pieces(th$phi, th$nu); cp <- num_at(th$beta, th$s2, pc)
+    w <- exp(cp$num - Den); w <- w / sum(w)
+    gpz <- grad_parts(th, pc, cp)
+    -colSums(w * cbind(gpz$GB, gpz$gs, gpz$gphi, gpz$gnu))
+  }
+
+  negHess <- function(xi) {
+    th <- unpack(xi); pc <- pieces(th$phi, th$nu); cp <- num_at(th$beta, th$s2, pc)
+    w <- exp(cp$num - Den); w <- w / sum(w)
+    s2 <- th$s2; phi <- th$phi; nu <- th$nu
+    U <- cp$U; gpz <- grad_parts(th, pc, cp); W <- gpz$W
+    grad_i <- cbind(gpz$GB, gpz$gs, gpz$gphi, gpz$gnu)
+    gbar <- colSums(w * grad_i); GG <- crossprod(grad_i * w, grad_i)
+
+    qn2phi <- rowSums((U %*% pc$n2phi) * U)
+    qn2nu  <- 2 * rowSums((W %*% pc$Cinv) * W)     # u' (2 Cinv^3) u
+    qphinu <- rowSums((W %*% pc$RpCinv) * W)       # w' R' Cinv w,  w = Cinv u
+    DtCinvD <- crossprod(D, pc$Cinv) %*% D
+    Bphi <- (U %*% pc$m2phi) %*% D                 # rows (D' m2phi u_b)'
+    Bnu  <- (W %*% pc$Cinv) %*% D                  # rows (D' Cinv^2 u_b)'
+
+    P <- p + 3; mH <- matrix(0, P, P)
+    mH[1:p, 1:p] <- -DtCinvD / s2
+    hbs <- -colSums(w * gpz$GB);             mH[1:p, s2idx] <- mH[s2idx, 1:p] <- hbs
+    hbp <- -phi * colSums(w * Bphi) / s2;    mH[1:p, pidx]  <- mH[pidx, 1:p]  <- hbp
+    hbn <- -nu  * colSums(w * Bnu)  / s2;    mH[1:p, nidx]  <- mH[nidx, 1:p]  <- hbn
+    mH[s2idx, s2idx] <- -sum(w * cp$Q) / (2 * s2)
+    mH[s2idx, pidx]  <- mH[pidx, s2idx] <- -phi * sum(w * gpz$qm2phi) / (2 * s2)
+    mH[s2idx, nidx]  <- mH[nidx, s2idx] <- -nu  * sum(w * gpz$qm2nu)  / (2 * s2)
+    mH[pidx, pidx] <- sum(w * (phi^2 * (pc$t2phi - 0.5 * qn2phi / s2) + gpz$gphi))
+    mH[nidx, nidx] <- sum(w * (nu^2  * (0.5 * pc$trCinv2 - 0.5 * qn2nu / s2) + gpz$gnu))
+    mH[pidx, nidx] <- mH[nidx, pidx] <-
+      phi * nu * (0.5 * pc$tr_m2phi - sum(w * qphinu) / s2)
+    -(mH + GG - tcrossprod(gbar))
+  }
+
+  xi0 <- c(par0_opt[1:p], par0_opt[p + 1], log(phi0), log(nu0))
+  opt <- stats::nlminb(xi0, negMCL, negGrad, negHess, control = list(trace = as.integer(messages)))
+  H <- negHess(opt$par); cov <- solve(H)
+  est <- c(opt$par[1:p], exp(opt$par[s2idx]), exp(opt$par[pidx]), exp(opt$par[nidx]))
+  pnames <- c(colnames(D), "sigma^2", "phi", "nu")
+  dimnames(cov) <- list(pnames, pnames)
+  list(estimate = est, value = -opt$objective, cov = cov,
+       obj = negMCL, grad = negGrad, hess = negHess)
+}
+
 # One direct fit: returns estimate c(beta, sigma2, phi), value, covariance.
 .mcml_direct_fit <- function(y, D, m, coords, wts, weighted, S.sim, data_ll,
                              par0_opt, phi0, n, p, messages = FALSE) {

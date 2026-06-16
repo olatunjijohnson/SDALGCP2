@@ -82,9 +82,11 @@
 #'   latent samples and metadata).
 #' @export
 mcml_fit <- function(formula, data, corr, par0 = NULL, control.mcmc = NULL,
-                     phi_method = c("grid", "direct"), reanchor = 0L,
-                     reanchor_tol = 1e-2, messages = FALSE) {
+                     phi_method = c("grid", "direct"), nugget = FALSE,
+                     reanchor = 0L, reanchor_tol = 1e-2, messages = FALSE) {
   phi_method <- match.arg(phi_method)
+  if (nugget && phi_method != "direct")
+    stop("nugget = TRUE requires phi_method = 'direct'.")
   mf <- stats::model.frame(formula, data)
   y <- as.numeric(stats::model.response(mf))
   D <- stats::model.matrix(attr(mf, "terms"), data)
@@ -103,12 +105,14 @@ mcml_fit <- function(formula, data, corr, par0 = NULL, control.mcmc = NULL,
 
   # A single MCML pass: draw the latent field at the supplied anchor and fit.
   # Wrapped so re-anchoring can re-run it with the previous optimum as the anchor.
-  .pass <- function(par0) {
+  .pass <- function(par0, nu_anchor = 0.1) {
   beta0 <- par0[1:p]; sigma2_0 <- par0[p + 1]; phi0 <- par0[p + 2]
 
-  # Anchor correlation = grid entry nearest phi0.
+  # Anchor correlation = grid entry nearest phi0 (plus the nugget, so the latent
+  # field is drawn from the full covariance the importance sampler reweights to).
   i0 <- which.min(abs(phi - phi0))
   R0 <- R[, , i0]
+  if (nugget) diag(R0) <- diag(R0) + nu_anchor
   Sigma0 <- sigma2_0 * R0
   mu0 <- as.numeric(D %*% beta0)
 
@@ -125,23 +129,34 @@ mcml_fit <- function(formula, data, corr, par0 = NULL, control.mcmc = NULL,
     weighted <- isTRUE(attr(R, "weighted"))
     coords <- lapply(pts, function(z) as.matrix(z$xy)[, 1:2, drop = FALSE])
     wts <- if (weighted) lapply(pts, function(z) as.numeric(z$weight)) else list()
-    df <- .mcml_direct_fit(y, D, m, coords, wts, weighted, S.sim, data_ll,
-                           par0_opt = c(beta0, log(sigma2_0)), phi0 = phi0,
-                           n = n, p = p, messages = messages)
-    beta_opt <- df$estimate[1:p]; sigma2_opt <- df$estimate[p + 1]; phi_opt <- df$estimate[p + 2]
-    cgopt <- corr_and_grad_cpp(coords, wts, phi_opt, weighted, 0L)
-    pnames <- c(colnames(D), "sigma^2", "phi")
+    if (nugget) {
+      df <- .mcml_direct_nugget_fit(y, D, m, coords, wts, weighted, S.sim, data_ll,
+                                    par0_opt = c(beta0, log(sigma2_0)), phi0 = phi0,
+                                    nu0 = nu_anchor, n = n, p = p, messages = messages)
+      pnames <- c(colnames(D), "sigma^2", "phi", "nu")
+      phi_opt <- df$estimate[p + 2]; nu_opt <- df$estimate[p + 3]
+      Cm <- corr_and_grad_cpp(coords, wts, phi_opt, weighted, 0L)$R
+      diag(Cm) <- diag(Cm) + nu_opt
+    } else {
+      df <- .mcml_direct_fit(y, D, m, coords, wts, weighted, S.sim, data_ll,
+                             par0_opt = c(beta0, log(sigma2_0)), phi0 = phi0,
+                             n = n, p = p, messages = messages)
+      pnames <- c(colnames(D), "sigma^2", "phi")
+      phi_opt <- df$estimate[p + 2]; nu_opt <- NULL
+      Cm <- corr_and_grad_cpp(coords, wts, phi_opt, weighted, 0L)$R
+    }
+    beta_opt <- df$estimate[1:p]; sigma2_opt <- df$estimate[p + 1]
     out <- list(
       D = D, y = y, m = m,
-      beta_opt = beta_opt, sigma2_opt = sigma2_opt, phi_opt = phi_opt,
+      beta_opt = beta_opt, sigma2_opt = sigma2_opt, phi_opt = phi_opt, nu_opt = nu_opt,
       estimates = stats::setNames(df$estimate, pnames),
-      cov = df$cov, Sigma_mat_opt = sigma2_opt * cgopt$R,
+      cov = df$cov, Sigma_mat_opt = sigma2_opt * Cm,
       llike_val_opt = df$value, mu = as.numeric(D %*% beta_opt),
       all_para = data.frame(phi = phi_opt, value = df$value),
       all_cov = list(df$cov), par0 = par0, control.mcmc = control.mcmc,
       S = S.sim, S.coord = pts,
       kappa = if (!is.null(corr$kappa)) corr$kappa else 0.5,
-      phi_method = "direct", call = NULL
+      phi_method = "direct", nugget = nugget, call = NULL
     )
     attr(out, "weighted") <- weighted
     attr(out, "my_shp") <- attr(R, "my_shp")
@@ -202,9 +217,9 @@ mcml_fit <- function(formula, data, corr, par0 = NULL, control.mcmc = NULL,
 
   # Re-anchoring loop: refit using the previous optimum as the new anchor so the
   # importance weights stay near-uniform (raises the MC effective sample size).
-  cur <- par0; fit <- NULL; done <- 0L
+  cur <- par0; nu_cur <- 0.1; fit <- NULL; done <- 0L
   for (k in 0:reanchor) {
-    fit_new <- .pass(cur)
+    fit_new <- .pass(cur, nu_anchor = nu_cur)
     conv <- FALSE
     if (k > 0) {
       prev <- c(fit$beta_opt, fit$sigma2_opt, fit$phi_opt)
@@ -213,6 +228,7 @@ mcml_fit <- function(formula, data, corr, par0 = NULL, control.mcmc = NULL,
     }
     fit <- fit_new; done <- k
     cur <- c(fit$beta_opt, fit$sigma2_opt, fit$phi_opt)
+    if (nugget && !is.null(fit$nu_opt)) nu_cur <- max(fit$nu_opt, 1e-3)
     if (messages && reanchor > 0) cat(sprintf("  re-anchor pass %d done\n", k))
     if (conv) break
   }
