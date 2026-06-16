@@ -81,3 +81,5 @@ articles:
   - raster-covariates
   - spatio-temporal
   - scale-grid-vs-continuous
+  - spatial-confounding
+  - misaligned-covariates
