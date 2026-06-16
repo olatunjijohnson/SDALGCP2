@@ -1,0 +1,194 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{bm}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+
+\newcommand{\R}{\mathbf{R}}
+\newcommand{\D}{\mathbf{D}}
+\newcommand{\K}{\mathbf{K}}
+\newcommand{\I}{\mathbf{I}}
+\newcommand{\bet}{{\bm{\beta}}}
+\newcommand{\al}{{\bm{\alpha}}}
+\newcommand{\Sal}{{\bm{\Sigma}_{\bm{\alpha}}}}
+\newcommand{\Ai}{A_i}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Var}{\operatorname{Var}}
+\newcommand{\Cov}{\operatorname{Cov}}
+\newcommand{\N}{\mathcal{N}}
+
+\title{\textbf{Spatial confounding and misaligned covariates in SDALGCP2}\\[4pt]
+\large Restricted spatial regression, and covariates measured on a different
+support from the outcome}
+\author{SDALGCP2 development notes}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Two practical problems in areal disease mapping with spatially structured
+predictors. First, a spatially smooth covariate is collinear with the spatial
+random effect, which absorbs its signal and biases the regression coefficient
+(\emph{spatial confounding}); we describe the restricted spatial regression
+implemented in \texttt{SDALGCP2}. Second, the covariate may be observed on a
+\emph{different spatial support} from the outcome -- other polygons, point
+monitors, or a coarser grid; we derive a change-of-support treatment that predicts
+the covariate to the candidate points feeding the intensity-scale offset and
+propagates the prediction uncertainty through a Berkson correction.
+\end{abstract}
+
+\section{Background: the SDA-LGCP model}
+
+For aggregated counts $Y_i$ over regions $\Ai$, $i=1,\dots,N$, the SDA-LGCP sets
+\begin{equation}
+Y_i \mid \bm\eta \sim \operatorname{Poisson}(m_i e^{\eta_i}),
+\qquad \bm\eta = \D\bet + \mathbf{Z},
+\qquad \mathbf{Z}\sim\N(\mathbf 0,\ \sigma^2\R(\phi)),
+\label{eq:model}
+\end{equation}
+where $\D$ ($N\times p$) is the region-level design, $m_i$ an offset, and
+$\R(\phi)$ the aggregated spatial correlation built from candidate points inside
+each region.
+
+\section{Part I: spatial confounding}
+
+\subsection{The problem}
+When a covariate column of $\D$ is spatially smooth, it lies close to the span of
+the leading modes of $\R(\phi)$. The random effect $\mathbf Z$ can then reproduce
+much of that column, so the data are equally well explained by ``covariate effect''
+or by ``spatial noise''. The fitted $\widehat\bet$ is pulled away from the value a
+non-spatial GLM would give, usually \emph{attenuated} toward zero, with inflated
+variance. In \texttt{SDALGCP2} on a simulated gradient covariate (true
+$\beta=0.5$) the standard fit returns $\widehat\beta\approx0.28$ while a Poisson GLM
+returns $\approx0.42$ -- the spatial term has eaten the signal.
+
+\subsection{Restricted spatial regression (RSR)}
+Following Reich, Hodges \& Zadnik (2006) and Hughes \& Haran (2013), constrain the
+random effect to the orthogonal complement of the fixed-effect design. Let $\K$
+($N\times r$, $r=N-p$) be an orthonormal basis of $\operatorname{null}(\D^\top)$, so
+\begin{equation}
+\K^\top\K=\I_r,\qquad \D^\top\K=\mathbf 0 .
+\end{equation}
+(\texttt{SDALGCP2} takes $\K$ from the trailing columns of a complete QR of $\D$.)
+Replace the unrestricted random effect by $\K\al$:
+\begin{equation}
+\boxed{\;
+Y_i\mid\al\sim\operatorname{Poisson}(m_i e^{\eta_i}),\quad
+\bm\eta=\D\bet+\K\al,\quad
+\al\sim\N\!\big(\mathbf 0,\ \sigma^2\,\K^\top\R(\phi)\K\big).\;}
+\label{eq:rsr}
+\end{equation}
+Because $\K\al\in\operatorname{col}(\D)^\perp$, the random effect \emph{cannot}
+reproduce any column of $\D$; $\bet$ is identified by the data, not by the spatial
+structure, and the spatial term only smooths the residual. RSR removes the
+confounding by construction; in the Gaussian case $\widehat\bet$ equals the OLS
+estimate, and for the Poisson model it is close to the GLM estimate.
+
+\subsection{Estimation: Laplace-approximate marginal likelihood}
+Rather than Monte Carlo, \eqref{eq:rsr} is fitted by integrating $\al$ out at its
+mode. With $\Sal(\phi)=\K^\top\R(\phi)\K$ and
+$g(\al)=\sum_i\{y_i\eta_i-m_i e^{\eta_i}\}-\tfrac1{2\sigma^2}\al^\top\Sal^{-1}\al$,
+let $\widehat\al=\arg\max_\al g(\al)$ (a few Newton steps; the negative Hessian is
+$\mathbf H=\K^\top\operatorname{diag}(m_i e^{\eta_i})\K+\Sal^{-1}/\sigma^2$).
+The Laplace-approximate marginal log-likelihood is
+\begin{equation}
+\ell(\bet,\sigma^2,\phi)=
+\sum_i\{y_i\widehat\eta_i-m_i e^{\widehat\eta_i}\}
+-\tfrac12\Big(r\log\sigma^2+\log|\Sal|
++\tfrac{\widehat\al^\top\Sal^{-1}\widehat\al}{\sigma^2}\Big)
+-\tfrac12\log|\mathbf H| + \text{const},
+\label{eq:laplace}
+\end{equation}
+maximised over $(\bet,\log\sigma^2)$ for each $\phi$ on a grid, with standard errors
+from the Hessian of \eqref{eq:laplace}. On the simulation above RSR returns
+$\widehat\beta\approx0.44$ (SE $0.07$) -- de-confounded -- while still estimating the
+spatial parameters. Use \texttt{sdalgcp(..., control = sdalgcp\_control(confounding
+= "restricted"))}.
+
+\section{Part II: covariates on a different support}
+
+\subsection{The problem}
+The intensity-scale treatment of a continuous covariate needs its value
+$z(x_{ik})$ at the candidate points $x_{ik}$ inside each outcome region, entering
+the offset
+$b_i(\bet)=\log\sum_k w_{ik}\exp\{z(x_{ik})^\top\bet\}$
+(companion note on raster covariates). A raster gives $z$ everywhere, so this is
+immediate. But often the covariate is observed on a \emph{different support}:
+\begin{enumerate}
+\item \textbf{point} locations $s_1,\dots,s_L$ (air-quality monitors, weather
+  stations);
+\item \textbf{other polygons} $B_1,\dots,B_M$ (census tracts, catchments) that do
+  not nest with the outcome regions $\Ai$;
+\item a \textbf{coarser/finer grid} than the candidate points.
+\end{enumerate}
+All three are \emph{spatial misalignment} (change-of-support) problems
+(Gotway \& Young, 2002; Gelfand, 2010): we must transfer $z$ to the points
+$x_{ik}$.
+
+\subsection{Predict the covariate, then aggregate}
+Model the covariate as a latent spatial process $z(\cdot)$ and predict it to the
+candidate points from the observed data $\mathbf z^{\mathrm{obs}}$.
+
+\paragraph{Point support.} Fit a geostatistical (Gaussian-process) model to
+$\{z(s_l)\}$ and krige to each $x_{ik}$, giving a predictive mean and variance
+\begin{equation}
+\mu_z(x_{ik})=\E[z(x_{ik})\mid \mathbf z^{\mathrm{obs}}],
+\qquad
+v_z(x_{ik})=\Var[z(x_{ik})\mid \mathbf z^{\mathrm{obs}}].
+\end{equation}
+
+\paragraph{Areal support.} If $z$ is observed as averages over polygons $B_j$,
+$z^{\mathrm{obs}}_j=|B_j|^{-1}\!\int_{B_j} z(u)\,du$, model the underlying surface
+$z(\cdot)$ and use \emph{areal kriging}: the observations are linear (integral)
+functionals of $z$, so the joint Gaussian model gives the same predictive
+$\mu_z,v_z$ at the points $x_{ik}$ -- exactly the discrete-aggregation machinery
+\texttt{SDALGCP2} already uses, applied to the covariate.
+
+\paragraph{Grid support.} A special case of point/areal kriging; bilinear
+interpolation is the cheap plug-in.
+
+\subsection{Berkson correction: propagate the prediction uncertainty}
+Plugging the kriged mean $\mu_z(x_{ik})$ straight into $b_i(\bet)$ ignores that
+$z(x_{ik})$ is \emph{predicted}, not observed -- a classic errors-in-variables
+problem that attenuates $\bet$. Because the kriging predictive distribution is
+Gaussian, $z(x_{ik})\mid\mathbf z^{\mathrm{obs}}\sim\N(\mu_z,v_z)$, we can integrate
+it out in closed form. Using $\E[e^{a^\top X}]=\exp(a^\top\mu+\tfrac12 a^\top V a)$
+for $X\sim\N(\mu,V)$,
+\begin{equation}
+\E\big[\exp\{z(x_{ik})^\top\bet\}\,\big|\,\mathbf z^{\mathrm{obs}}\big]
+=\exp\!\Big\{\mu_z(x_{ik})^\top\bet+\tfrac12\,\bet^\top V_z(x_{ik})\,\bet\Big\},
+\end{equation}
+so the offset that correctly accounts for the misalignment uncertainty is
+\begin{equation}
+\boxed{\;
+b_i(\bet)=\log\sum_k w_{ik}\,
+\exp\!\Big\{\mu_z(x_{ik})^\top\bet+\tfrac12\,\bet^\top V_z(x_{ik})\,\bet\Big\}.\;}
+\label{eq:berkson}
+\end{equation}
+Equation \eqref{eq:berkson} is the ordinary intensity-scale offset evaluated at the
+predicted covariate mean, \emph{plus} a $\tfrac12\bet^\top V_z\bet$ term that inflates
+the contribution of poorly-observed locations -- the Berkson correction. It reduces
+to the raster case when $V_z\to 0$ (the covariate is known), and it is fitted by
+the same Gauss--Newton scheme as the raster model, with the effective covariate
+gradient $\partial b_i/\partial\bet$ now including the $V_z\bet$ term. Full
+propagation of the covariate model's own parameter uncertainty (a two-stage or
+joint model) is a natural further step.
+
+\paragraph{Summary.} Misaligned covariates are handled in two steps that reuse the
+existing machinery: (i) predict $z$ to the candidate points by (areal) kriging,
+obtaining $\mu_z,v_z$; (ii) feed them into the Berkson-corrected offset
+\eqref{eq:berkson}. The candidate-point grid that already discretises the outcome
+regions doubles as the common support on which outcome and covariate are aligned.
+
+\paragraph{References.}
+Reich, B.J., Hodges, J.S., Zadnik, V. (2006). Effects of residual smoothing on the
+posterior of the fixed effects in disease-mapping models. \emph{Biometrics} 62,
+1197--1206.\\
+Hughes, J., Haran, M. (2013). Dimension reduction and alleviation of confounding
+for spatial generalized linear mixed models. \emph{JRSS-B} 75, 139--159.\\
+Gotway, C.A., Young, L.J. (2002). Combining incompatible spatial data.
+\emph{JASA} 97, 632--648.
+\end{document}

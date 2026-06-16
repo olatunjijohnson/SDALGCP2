@@ -28,6 +28,8 @@ navbar:
           href: https://github.com/olatunjijohnson/SDALGCP2/blob/main/math/continuous-phi-derivation.pdf
         - text: Raster covariates (intensity-scale)
           href: https://github.com/olatunjijohnson/SDALGCP2/blob/main/math/raster-covariates-derivation.pdf
+        - text: Confounding & misaligned covariates
+          href: https://github.com/olatunjijohnson/SDALGCP2/blob/main/math/confounding-and-misalignment.pdf
 
 reference:
 - title: Model fitting
