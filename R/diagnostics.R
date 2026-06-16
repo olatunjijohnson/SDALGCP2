@@ -87,9 +87,19 @@ mc_diagnostics <- function(object, warn_frac = 0.1) {
   n <- length(y); p <- ncol(D); B <- nrow(S)
   data_ll <- as.numeric(S %*% y) - as.numeric(exp(S) %*% m)
 
-  par0 <- object$par0; beta0 <- par0[1:p]; s20 <- par0[p + 1]; phi0 <- par0[p + 2]
+  # Use the anchor at which the *retained* latent field was actually drawn
+  # (after re-anchoring this differs from the original par0).
+  anchor <- if (!is.null(object$anchor)) object$anchor else object$par0
+  beta0 <- anchor[1:p]; s20 <- anchor[p + 1]; phi0 <- anchor[p + 2]
   corr <- attr(object, "prematrix")
-  R0 <- corr$R[, , which.min(abs(corr$phi - phi0))]
+  if (identical(object$phi_method, "direct")) {
+    pts <- attr(object, "S_coord"); wtd <- isTRUE(attr(object, "weighted"))
+    cds <- lapply(pts, function(z) as.matrix(z$xy)[, 1:2, drop = FALSE])
+    wts <- if (wtd) lapply(pts, function(z) as.numeric(z$weight)) else list()
+    R0 <- corr_and_grad_cpp(cds, wts, phi0, object$kappa, wtd, 0L)$R
+  } else {
+    R0 <- corr$R[, , which.min(abs(corr$phi - phi0))]
+  }
   c0 <- chol(R0); Den <- .mc_num_loglik(c(beta0, log(s20)), D, chol2inv(c0),
                                         2 * sum(log(diag(c0))), S, data_ll, n, p)$num
 

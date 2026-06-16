@@ -15,6 +15,7 @@ package source for the full design and statistical roadmap.
 Useful links:
 \itemize{
   \item \url{https://github.com/olatunjijohnson/SDALGCP2}
+  \item \url{https://olatunjijohnson.github.io/SDALGCP2/}
   \item Report bugs at \url{https://github.com/olatunjijohnson/SDALGCP2/issues}
 }
 

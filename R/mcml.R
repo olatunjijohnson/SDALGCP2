@@ -112,13 +112,24 @@ mcml_fit <- function(formula, data, corr, par0 = NULL, control.mcmc = NULL,
 
   # A single MCML pass: draw the latent field at the supplied anchor and fit.
   # Wrapped so re-anchoring can re-run it with the previous optimum as the anchor.
+  direct_kappa <- if (!is.null(corr$kappa)) corr$kappa else 0.5
+  direct_pts <- attr(R, "S_coord")
+  direct_weighted <- isTRUE(attr(R, "weighted"))
+  direct_coords <- lapply(direct_pts, function(z) as.matrix(z$xy)[, 1:2, drop = FALSE])
+  direct_wts <- if (direct_weighted) lapply(direct_pts, function(z) as.numeric(z$weight)) else list()
+
   .pass <- function(par0, nu_anchor = 0.1) {
   beta0 <- par0[1:p]; sigma2_0 <- par0[p + 1]; phi0 <- par0[p + 2]
 
-  # Anchor correlation = grid entry nearest phi0 (plus the nugget, so the latent
-  # field is drawn from the full covariance the importance sampler reweights to).
-  i0 <- which.min(abs(phi - phi0))
-  R0 <- R[, , i0]
+  # Anchor correlation. The grid path snaps to the nearest grid phi; the direct
+  # path builds R at the *continuous* anchor phi (so re-anchoring tracks a phi that
+  # may sit outside the grid). The nugget is added so the latent field is drawn
+  # from the full covariance the importance sampler reweights to.
+  if (phi_method == "direct") {
+    R0 <- corr_and_grad_cpp(direct_coords, direct_wts, phi0, direct_kappa, direct_weighted, 0L)$R
+  } else {
+    R0 <- R[, , which.min(abs(phi - phi0))]
+  }
   if (nugget) diag(R0) <- diag(R0) + nu_anchor
   Sigma0 <- sigma2_0 * R0
   mu0 <- as.numeric(D %*% beta0)
@@ -130,13 +141,13 @@ mcml_fit <- function(formula, data, corr, par0 = NULL, control.mcmc = NULL,
 
   ## ---- continuous-phi ("direct") path: optimise (beta, sigma2, phi) jointly ----
   if (phi_method == "direct") {
-    kap <- if (!is.null(corr$kappa)) corr$kappa else 0.5
+    kap <- direct_kappa
     if (!kap %in% c(0.5, 1.5, 2.5))
       stop("phi_method = 'direct' supports Matern kappa in {0.5, 1.5, 2.5}.")
-    pts <- attr(R, "S_coord")
-    weighted <- isTRUE(attr(R, "weighted"))
-    coords <- lapply(pts, function(z) as.matrix(z$xy)[, 1:2, drop = FALSE])
-    wts <- if (weighted) lapply(pts, function(z) as.numeric(z$weight)) else list()
+    pts <- direct_pts
+    weighted <- direct_weighted
+    coords <- direct_coords
+    wts <- direct_wts
     if (nugget) {
       df <- .mcml_direct_nugget_fit(y, D, m, coords, wts, weighted, S.sim, data_ll,
                                     par0_opt = c(beta0, log(sigma2_0)), phi0 = phi0,
@@ -229,6 +240,7 @@ mcml_fit <- function(formula, data, corr, par0 = NULL, control.mcmc = NULL,
   cur <- par0; nu_cur <- 0.1; fit <- NULL; done <- 0L
   for (k in 0:reanchor) {
     fit_new <- .pass(cur, nu_anchor = nu_cur)
+    fit_new$anchor <- cur     # params at which this pass's latent field was drawn
     conv <- FALSE
     if (k > 0) {
       prev <- c(fit$beta_opt, fit$sigma2_opt, fit$phi_opt)
