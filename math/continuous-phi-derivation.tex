@@ -1,0 +1,272 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{bm}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+
+\newcommand{\R}{\mathbf{R}}
+\newcommand{\Rp}{\dot{\mathbf{R}}}
+\newcommand{\Rpp}{\ddot{\mathbf{R}}}
+\newcommand{\D}{\mathbf{D}}
+\newcommand{\Sv}{\mathbf{S}}
+\newcommand{\bet}{\bm{\beta}}
+\newcommand{\Ai}{A_i}
+\newcommand{\Aj}{A_j}
+\newcommand{\tr}{\operatorname{tr}}
+\newcommand{\E}{\mathbb{E}}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\title{\textbf{Discretising the aggregated covariance and differentiating through
+the scale parameter}\\[4pt]
+\large The \texttt{SDALGCP2} continuous-$\phi$ (``direct'') Monte Carlo likelihood}
+\author{SDALGCP2 development notes}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+The spatially discrete approximation to a log-Gaussian Cox process (SDA-LGCP)
+replaces the intractable areal integral of an LGCP by a finite sum over candidate
+points inside each region. The spatial \emph{scale} parameter $\phi$ enters the
+model only through a \emph{double integral} of the correlation function over pairs
+of regions. The original \texttt{SDALGCP} discretises $\phi$ on a grid and profiles
+over it. Here we (i) make explicit the double integral and the quadrature used to
+approximate it, (ii) differentiate \emph{through} the integral so that $\phi$ can
+be estimated \emph{continuously} inside the Monte Carlo maximum likelihood (MCML)
+objective, and (iii) record the gradient and Hessian that \texttt{SDALGCP2} uses
+for the ``direct'' method. All derivatives are verified numerically.
+\end{abstract}
+
+\section{Model and the aggregated random effect}
+
+Let $S(\cdot)$ be a zero-mean stationary Gaussian process on $\mathbb{R}^2$ with
+\begin{equation}
+\operatorname{Cov}\{S(x),S(x')\} = \sigma^2\,\rho(\|x-x'\|;\phi),
+\qquad \rho(u;\phi)=\exp(-u/\phi),
+\label{eq:gp}
+\end{equation}
+the exponential (Mat\'ern $\kappa=\tfrac12$) correlation with scale $\phi>0$.
+For an LGCP with intensity $\lambda(x)=\exp\{d(x)^\top\bet + S(x)\}$, the SDA-LGCP
+models the count $Y_i$ in region $\Ai$ ($i=1,\dots,N$) as conditionally Poisson
+with a region-level linear predictor that is a \emph{spatial average} of $S$,
+\begin{equation}
+T_i(S) \;=\; \int_{\Ai} S(x)\,w_i(x)\,dx,
+\qquad w_i(x)\ge 0,\quad \int_{\Ai} w_i(x)\,dx = 1 .
+\label{eq:Ti}
+\end{equation}
+Two weightings are used: the \emph{uniform} average $w_i(x)=1/|\Ai|$, and the
+\emph{population-weighted} average $w_i(x)=p(x)\big/\!\int_{\Ai}p(u)\,du$, where
+$p(\cdot)$ is population density. Because \eqref{eq:Ti} is a linear functional of
+the Gaussian field, the vector $\Sv^\ast=(T_1,\dots,T_N)^\top$ is Gaussian,
+\begin{equation}
+\Sv^\ast \sim \mathcal{N}\!\big(\D\bet,\ \sigma^2\,\R(\phi)\big),
+\qquad Y_i\mid \Sv^\ast \sim \operatorname{Poisson}\!\big(m_i\,e^{S^\ast_i}\big),
+\label{eq:model}
+\end{equation}
+with $\D$ the design matrix and $m_i$ an offset. Everything downstream operates on
+the $N\times N$ matrix $\R(\phi)$.
+
+\section{The scale parameter lives inside a double integral}
+
+By bilinearity of covariance and \eqref{eq:gp}--\eqref{eq:Ti},
+\begin{equation}
+\boxed{\;
+\R_{ij}(\phi)
+= \operatorname{Cov}\!\big\{T_i(S),T_j(S)\big\}\big/\sigma^2
+= \int_{\Ai}\!\int_{\Aj} w_i(x)\,w_j(y)\,
+   \exp\!\Big(-\frac{\|x-y\|}{\phi}\Big)\,dx\,dy \; }
+\label{eq:double}
+\end{equation}
+This is the object of interest: $\phi$ appears \emph{inside} a four-dimensional
+integral over the pair of regions $\Ai\times\Aj$, which has no closed form for
+general polygons. The diagonal term $\R_{ii}(\phi)$ is the same integral over
+$\Ai\times\Ai$ and is $<1$ (it averages correlations $\le 1$, equalling $1$ only in
+the degenerate point-region limit).
+
+\section{Quadrature: discretising the double integral}
+
+Place candidate points $x_{i1},\dots,x_{i,n_i}\in\Ai$ with quadrature weights
+$\omega_{ik}\ge 0$, $\sum_{k}\omega_{ik}=1$, chosen so that
+\begin{equation}
+\int_{\Ai} f(x)\,w_i(x)\,dx \;\approx\; \sum_{k=1}^{n_i}\omega_{ik}\,f(x_{ik}).
+\label{eq:quad}
+\end{equation}
+For the uniform average with points drawn uniformly (or on a regular lattice),
+$\omega_{ik}=1/n_i$; this is plain Monte Carlo / product-midpoint cubature. For the
+population-weighted average, the natural plug-in is the \emph{ratio estimator}
+\begin{equation}
+\omega_{ik} \;=\; \frac{p(x_{ik})}{\sum_{l=1}^{n_i} p(x_{il})},
+\label{eq:popw}
+\end{equation}
+evaluated from the population raster. Substituting \eqref{eq:quad} into
+\eqref{eq:double} for both regions gives the computable approximation
+\begin{equation}
+\R_{ij}(\phi)\ \approx\ \widehat{\R}_{ij}(\phi)
+= \sum_{k=1}^{n_i}\sum_{l=1}^{n_j}
+  \omega_{ik}\,\omega_{jl}\,
+  \exp\!\Big(-\frac{d_{ik,jl}}{\phi}\Big),
+\qquad d_{ik,jl}=\|x_{ik}-x_{jl}\|.
+\label{eq:Rhat}
+\end{equation}
+Equation \eqref{eq:Rhat} is exactly what the C++ kernel
+\texttt{corr\_aggregate\_cpp} evaluates (each distance computed once, all of
+$\phi$ reduced in an inner loop, parallel over region pairs).
+
+\paragraph{Accuracy.} For uniform weights and $n$ i.i.d.\ uniform points per
+region, $\widehat{\R}_{ij}$ is an unbiased Monte Carlo estimator of $\R_{ij}$ with
+variance $O(1/n)$; for a regular lattice of spacing $\delta$ it is a product
+cubature with bias $O(\delta^2)$ away from the diagonal. The integrand
+$\exp(-\|x-y\|/\phi)$ is Lipschitz in its argument with constant $1/\phi$, so the
+approximation is accurate provided the point spacing satisfies $\delta \ll \phi$;
+the only non-smoothness is the cusp of $\|x-y\|$ at $x=y$, which affects the
+diagonal blocks ($i=j$) alone. This is the formal reason the candidate-point
+spacing $\delta$ must be chosen small relative to the spatial range.
+
+\section{Differentiating through the integral}
+
+Because $\phi\mapsto \exp(-u/\phi)$ is smooth on $(0,\infty)$ and, for $u$ in a
+bounded region, is dominated together with its $\phi$-derivatives by an integrable
+function, the Leibniz rule (dominated convergence) permits differentiation under
+the integral sign in \eqref{eq:double}. With
+\[
+\frac{\partial}{\partial\phi}e^{-u/\phi}=e^{-u/\phi}\,\frac{u}{\phi^2},
+\qquad
+\frac{\partial^2}{\partial\phi^2}e^{-u/\phi}
+   =e^{-u/\phi}\Big(\frac{u^2}{\phi^4}-\frac{2u}{\phi^3}\Big),
+\]
+we obtain, writing $u=\|x-y\|$,
+\begin{align}
+\Rp_{ij}(\phi)\equiv\frac{\partial \R_{ij}}{\partial\phi}
+&= \int_{\Ai}\!\int_{\Aj} w_i w_j\, e^{-u/\phi}\,\frac{u}{\phi^2}\,dx\,dy,
+\label{eq:dR}\\[2pt]
+\Rpp_{ij}(\phi)\equiv\frac{\partial^2 \R_{ij}}{\partial\phi^2}
+&= \int_{\Ai}\!\int_{\Aj} w_i w_j\, e^{-u/\phi}
+   \Big(\frac{u^2}{\phi^4}-\frac{2u}{\phi^3}\Big)\,dx\,dy,
+\label{eq:d2R}
+\end{align}
+each discretised by the same double sum \eqref{eq:Rhat} over candidate points.
+These are returned (alongside $\widehat{\R}$) by \texttt{corr\_and\_grad\_cpp}.
+Numerically, $\widehat{\Rp}$ and $\widehat{\Rpp}$ agree with central finite
+differences of $\widehat{\R}$ to $2\times10^{-11}$ and $8\times10^{-6}$
+respectively.
+
+\section{MCML with continuous $\phi$}
+
+Let $\bm\theta=(\bet,\sigma^2,\phi)$. From \eqref{eq:model}, the joint
+log-density of $(\Sv^\ast,\mathbf{Y})$ splits into a data term (free of
+$\bm\theta$) and the Gaussian prior term
+\begin{equation}
+g(\Sv;\bm\theta)= -\tfrac12\Big[\,n\log\sigma^2 + \log|\R(\phi)|
+   + \sigma^{-2}\,(\Sv-\D\bet)^\top \R(\phi)^{-1}(\Sv-\D\bet)\Big].
+\label{eq:g}
+\end{equation}
+Following Christensen (2004), draw $\Sv^{(1)},\dots,\Sv^{(B)}$ from the conditional
+$[\Sv^\ast\mid \mathbf{Y};\bm\theta_0]$ at an anchor $\bm\theta_0$ (here via the
+Laplace-preconditioned MALA sampler). Since the data term cancels in the ratio,
+the Monte Carlo log-likelihood (up to an additive constant) is
+\begin{equation}
+\ell_{\mathrm{MC}}(\bm\theta)=\log\!\Big\{\tfrac1B\sum_{b=1}^{B}
+   \exp\!\big[g(\Sv^{(b)};\bm\theta)-g(\Sv^{(b)};\bm\theta_0)\big]\Big\}.
+\label{eq:mcl}
+\end{equation}
+The \emph{grid} method fixes $\phi$ at grid values and maximises \eqref{eq:mcl}
+over $(\bet,\sigma^2)$ at each; the \emph{direct} method maximises \eqref{eq:mcl}
+over all of $(\bet,\log\sigma^2,\log\phi)$ jointly. We use the log
+parameterisation $\psi_s=\log\sigma^2,\ \psi_p=\log\phi$ to keep the variances
+positive.
+
+\subsection{Gradient}
+Write $\mathbf{u}_b=\Sv^{(b)}-\D\bet$, $q_b=\mathbf{u}_b^\top\R^{-1}\mathbf{u}_b$,
+$\R^{-1}=\R(\phi)^{-1}$, $\Rp=\Rp(\phi)$, and the self-normalised importance
+weights $W_b=\exp\{a_b\}/\sum_c\exp\{a_c\}$ with
+$a_b=g(\Sv^{(b)};\bm\theta)-g(\Sv^{(b)};\bm\theta_0)$. Then
+$\nabla\ell_{\mathrm{MC}}=\sum_b W_b\,\nabla g(\Sv^{(b)};\bm\theta)$, and from
+\eqref{eq:g},
+\begin{align}
+\frac{\partial g_b}{\partial \bet} &= \sigma^{-2}\,\D^\top\R^{-1}\mathbf{u}_b,\\
+\frac{\partial g_b}{\partial \psi_s} &= -\tfrac{n}{2}+\frac{q_b}{2\sigma^2},\\
+\frac{\partial g_b}{\partial \psi_p} &=
+  \phi\Big[-\tfrac12\tr(\R^{-1}\Rp)
+  +\tfrac{1}{2\sigma^2}\,\mathbf{u}_b^\top\R^{-1}\Rp\R^{-1}\mathbf{u}_b\Big].
+\label{eq:gphi}
+\end{align}
+The first two reproduce the fixed-$\phi$ gradient; \eqref{eq:gphi} is the new term,
+obtained from $\partial_\phi\log|\R|=\tr(\R^{-1}\Rp)$ and
+$\partial_\phi(\mathbf{u}^\top\R^{-1}\mathbf{u})
+=-\mathbf{u}^\top\R^{-1}\Rp\R^{-1}\mathbf{u}$, times $\phi$ for the
+$\log$-chain rule.
+
+\subsection{Hessian}
+With $a_b=g_b(\bm\theta)-g_b(\bm\theta_0)$,
+\begin{equation}
+\nabla^2\ell_{\mathrm{MC}}
+=\sum_b W_b\big(\nabla^2 g_b+\nabla g_b\nabla g_b^\top\big)
+ -\Big(\sum_b W_b\nabla g_b\Big)\Big(\sum_b W_b\nabla g_b\Big)^\top .
+\label{eq:hess}
+\end{equation}
+The blocks of $\nabla^2 g_b$, writing $\mathbf{A}=\R^{-1}\Rp$,
+$\mathbf{M}=\R^{-1}\Rp\R^{-1}$ and
+$\mathbf{n}=\R^{-1}\!\big(2\Rp\R^{-1}\Rp-\Rpp\big)\R^{-1}$, are
+\begin{align*}
+\partial_{\bet\bet} &= -\sigma^{-2}\D^\top\R^{-1}\D, &
+\partial_{\bet\psi_s} &= -\sigma^{-2}\D^\top\R^{-1}\mathbf{u}_b, \\
+\partial_{\bet\psi_p} &= -\phi\,\sigma^{-2}\D^\top\mathbf{M}\,\mathbf{u}_b, &
+\partial_{\psi_s\psi_s} &= -\frac{q_b}{2\sigma^2}, \\
+\partial_{\psi_s\psi_p} &= -\frac{\phi}{2\sigma^2}\,
+   \mathbf{u}_b^\top\mathbf{M}\,\mathbf{u}_b, &
+\partial_{\psi_p\psi_p} &= \phi^2\Big[t_2-\tfrac{1}{2\sigma^2}
+   \mathbf{u}_b^\top\mathbf{n}\,\mathbf{u}_b\Big]
+   +\frac{\partial g_b}{\partial\psi_p},
+\end{align*}
+with $t_2=-\tfrac12\big[\tr(\R^{-1}\Rpp)-\tr(\mathbf{A}^2)\big]$. The
+$(\psi_p,\psi_p)$ entry follows from differentiating \eqref{eq:gphi} once more,
+using $\partial_\phi\tr(\R^{-1}\Rp)=\tr(\R^{-1}\Rpp)-\tr(\mathbf{A}^2)$ and
+$\partial_\phi(\R^{-1}\Rp\R^{-1})=\R^{-1}(\Rpp-2\Rp\R^{-1}\Rp)\R^{-1}$. These match
+exactly the temporal-range derivatives already used in the spatio-temporal code of
+\texttt{SDALGCP}, with $\phi$ in place of the Mat\'ern range. The asymptotic
+covariance of $\widehat{\bm\theta}$ is $\big(-\nabla^2\ell_{\mathrm{MC}}\big)^{-1}$
+at the maximiser, so the direct method yields a genuine standard error for $\phi$.
+
+\subsection{Numerical verification}
+At an off-optimum test point the analytic gradient and Hessian of
+\eqref{eq:mcl} agree with \texttt{numDeriv} to
+$8\times10^{-9}$ and $5\times10^{-8}$ respectively; the Hessian is symmetric to
+machine precision. These checks run as unit tests
+(\texttt{tests/testthat/test-direct.R}).
+
+\section{Grid versus direct: practical guidance}
+
+\begin{center}
+\begin{tabular}{@{}lll@{}}
+\toprule
+ & \textbf{grid (profile)} & \textbf{direct (continuous)}\\
+\midrule
+$\phi$ estimate & restricted to grid nodes & continuous (no discretisation error)\\
+SE for $\phi$ & not available & from the joint Hessian\\
+profile shape & fully visible (good for multimodality) & not traced\\
+cost & one MCML fit per grid node & one joint optimisation\\
+kernel & any $\kappa$ & exponential ($\kappa=\tfrac12$) for now\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+On a $9\times9$ simulated lattice the two agree on $(\bet,\sigma^2)$ and on $\phi$
+to within the direct method's standard error, while \texttt{direct} is faster than
+even a $15$-node grid and removes the grid-boundary artefact in $\widehat\phi$. We
+keep \textbf{both}: \texttt{grid} as the robust default (it exposes the whole
+profile and supports any $\kappa$), \texttt{direct} for speed and an honest
+$\phi$ standard error. They are selected by
+\texttt{phi\_method = c("grid","direct")} in \texttt{SDALGCP2()} / \texttt{mcml\_fit()}.
+
+\paragraph{References.}
+Christensen, O.F. (2004). Monte Carlo maximum likelihood in model-based
+geostatistics. \emph{JCGS} 13(3), 702--718.\\
+Johnson, O., Diggle, P., Giorgi, E. (2019). A spatially discrete approximation to
+log-Gaussian Cox processes for aggregated disease count data. \emph{Statistics in
+Medicine} 38, 4871--4887.
+
+\end{document}

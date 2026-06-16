@@ -82,7 +82,8 @@
 #'   latent samples and metadata).
 #' @export
 mcml_fit <- function(formula, data, corr, par0 = NULL, control.mcmc = NULL,
-                     messages = FALSE) {
+                     phi_method = c("grid", "direct"), messages = FALSE) {
+  phi_method <- match.arg(phi_method)
   mf <- stats::model.frame(formula, data)
   y <- as.numeric(stats::model.response(mf))
   D <- stats::model.matrix(attr(mf, "terms"), data)
@@ -110,6 +111,40 @@ mcml_fit <- function(formula, data, corr, par0 = NULL, control.mcmc = NULL,
 
   # Pieces independent of phi/par.
   data_ll <- as.numeric(S.sim %*% y) - as.numeric(exp(S.sim) %*% m)
+
+  ## ---- continuous-phi ("direct") path: optimise (beta, sigma2, phi) jointly ----
+  if (phi_method == "direct") {
+    if (!is.null(corr$kappa) && corr$kappa != 0.5)
+      stop("phi_method = 'direct' currently supports the exponential kernel (kappa = 0.5).")
+    pts <- attr(R, "S_coord")
+    weighted <- isTRUE(attr(R, "weighted"))
+    coords <- lapply(pts, function(z) as.matrix(z$xy)[, 1:2, drop = FALSE])
+    wts <- if (weighted) lapply(pts, function(z) as.numeric(z$weight)) else list()
+    df <- .mcml_direct_fit(y, D, m, coords, wts, weighted, S.sim, data_ll,
+                           par0_opt = c(beta0, log(sigma2_0)), phi0 = phi0,
+                           n = n, p = p, messages = messages)
+    beta_opt <- df$estimate[1:p]; sigma2_opt <- df$estimate[p + 1]; phi_opt <- df$estimate[p + 2]
+    cgopt <- corr_and_grad_cpp(coords, wts, phi_opt, weighted, 0L)
+    pnames <- c(colnames(D), "sigma^2", "phi")
+    out <- list(
+      D = D, y = y, m = m,
+      beta_opt = beta_opt, sigma2_opt = sigma2_opt, phi_opt = phi_opt,
+      estimates = stats::setNames(df$estimate, pnames),
+      cov = df$cov, Sigma_mat_opt = sigma2_opt * cgopt$R,
+      llike_val_opt = df$value, mu = as.numeric(D %*% beta_opt),
+      all_para = data.frame(phi = phi_opt, value = df$value),
+      all_cov = list(df$cov), par0 = par0, control.mcmc = control.mcmc,
+      S = S.sim, S.coord = pts,
+      kappa = if (!is.null(corr$kappa)) corr$kappa else 0.5,
+      phi_method = "direct", call = match.call()
+    )
+    attr(out, "weighted") <- weighted
+    attr(out, "my_shp") <- attr(R, "my_shp")
+    attr(out, "S_coord") <- pts
+    attr(out, "prematrix") <- corr
+    class(out) <- "SDALGCP2"
+    return(out)
+  }
 
   # Denominator (importance anchor): per-sample log joint at (beta0, sigma2_0, R0).
   ch0 <- chol(R0); R0inv <- chol2inv(ch0); ldetR0 <- 2 * sum(log(diag(ch0)))
@@ -142,6 +177,7 @@ mcml_fit <- function(formula, data, corr, par0 = NULL, control.mcmc = NULL,
   out <- list(
     D = D, y = y, m = m,
     beta_opt = beta_opt, sigma2_opt = sigma2_opt, phi_opt = phi[best],
+    estimates = stats::setNames(c(beta_opt, sigma2_opt), pnames),
     cov = res[[best]]$cov,
     Sigma_mat_opt = sigma2_opt * R[, , best],
     llike_val_opt = vals[best],
@@ -149,7 +185,7 @@ mcml_fit <- function(formula, data, corr, par0 = NULL, control.mcmc = NULL,
     all_para = all_para, all_cov = lapply(res, `[[`, "cov"),
     par0 = par0, control.mcmc = control.mcmc, S = S.sim,
     S.coord = attr(R, "S_coord"), kappa = if (!is.null(corr$kappa)) corr$kappa else 0.5,
-    call = match.call()
+    phi_method = "grid", call = match.call()
   )
   attr(out, "weighted") <- attr(R, "weighted")
   attr(out, "my_shp") <- attr(R, "my_shp")

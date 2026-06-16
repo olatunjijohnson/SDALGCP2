@@ -115,6 +115,15 @@ map_exceedance <- function(x, threshold = 1, bound = NULL, ...) {
 #' @export
 phi_profile <- function(object, coverage = 0.95, plot = TRUE) {
   stopifnot(inherits(object, "SDALGCP2"))
+  # Direct fits estimate phi continuously: report a Wald interval from the Hessian.
+  if (identical(object$phi_method, "direct")) {
+    se <- sqrt(object$cov["phi", "phi"])
+    z <- stats::qnorm(1 - (1 - coverage) / 2)
+    ci <- object$phi_opt + c(-1, 1) * z * se
+    if (plot) message(sprintf("Direct phi estimate: %.3g, %d%% Wald CI [%.3g, %.3g]",
+                              object$phi_opt, round(100 * coverage), ci[1], ci[2]))
+    return(invisible(list(ci = ci, phi = object$phi_opt, se = se)))
+  }
   phi <- object$all_para$phi; ll <- object$all_para$value
   if (length(unique(phi)) < 4) {
     grid <- phi; dev <- -2 * (ll - max(ll)); ci <- range(phi)
@@ -155,7 +164,7 @@ phi_profile <- function(object, coverage = 0.95, plot = TRUE) {
 #' @export
 coef_plot <- function(object, level = 0.95, intercept = FALSE) {
   ci <- confint(object, level = level)
-  est <- c(object$beta_opt, object$sigma2_opt)
+  est <- .sda_estimates(object)
   nm <- rownames(object$cov)
   df <- data.frame(term = factor(nm, levels = rev(nm)),
                    est = est, lo = ci[, 1], hi = ci[, 2])

@@ -44,6 +44,21 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// corr_and_grad_cpp
+Rcpp::List corr_and_grad_cpp(const Rcpp::List& coords, const Rcpp::List& weights, double phi, bool weighted, int nthreads);
+RcppExport SEXP _SDALGCP2_corr_and_grad_cpp(SEXP coordsSEXP, SEXP weightsSEXP, SEXP phiSEXP, SEXP weightedSEXP, SEXP nthreadsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type coords(coordsSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List& >::type weights(weightsSEXP);
+    Rcpp::traits::input_parameter< double >::type phi(phiSEXP);
+    Rcpp::traits::input_parameter< bool >::type weighted(weightedSEXP);
+    Rcpp::traits::input_parameter< int >::type nthreads(nthreadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(corr_and_grad_cpp(coords, weights, phi, weighted, nthreads));
+    return rcpp_result_gen;
+END_RCPP
+}
 // laplace_mode_poisson_cpp
 Rcpp::List laplace_mode_poisson_cpp(const arma::vec& y, const arma::vec& m, const arma::vec& mu, const arma::mat& Sigma, double tol, int maxit);
 RcppExport SEXP _SDALGCP2_laplace_mode_poisson_cpp(SEXP ySEXP, SEXP mSEXP, SEXP muSEXP, SEXP SigmaSEXP, SEXP tolSEXP, SEXP maxitSEXP) {
@@ -86,6 +101,7 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_SDALGCP2_corr_aggregate_cpp", (DL_FUNC) &_SDALGCP2_corr_aggregate_cpp, 6},
     {"_SDALGCP2_cross_cov_cpp", (DL_FUNC) &_SDALGCP2_cross_cov_cpp, 7},
+    {"_SDALGCP2_corr_and_grad_cpp", (DL_FUNC) &_SDALGCP2_corr_and_grad_cpp, 5},
     {"_SDALGCP2_laplace_mode_poisson_cpp", (DL_FUNC) &_SDALGCP2_laplace_mode_poisson_cpp, 6},
     {"_SDALGCP2_mala_poisson_cpp", (DL_FUNC) &_SDALGCP2_mala_poisson_cpp, 12},
     {NULL, NULL, 0}

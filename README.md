@@ -83,6 +83,24 @@ model_check(fit, pred_d)                 # observed vs fitted + residual Moran's
 |:---:|:---:|:---:|
 | ![](man/figures/map_rr_discrete.png) | ![](man/figures/map_exceedance.png) | ![](man/figures/phi_profile.png) |
 
+## Estimating the spatial scale: grid vs direct
+
+The scale `phi` enters only through a **double integral** of the correlation
+function over each pair of regions,
+`R_ij(phi) = ∫∫ w_i(x) w_j(y) exp(-||x-y||/phi) dx dy`, approximated by a weighted
+sum over candidate points. `SDALGCP2` offers two ways to estimate it:
+
+```r
+fit_grid   <- SDALGCP2(..., phi_method = "grid")    # profile over the phi grid (default)
+fit_direct <- SDALGCP2(..., phi_method = "direct")  # optimise phi continuously
+```
+
+The **direct** method differentiates *through* the integral (closed-form
+`dR/dphi`, `d²R/dphi²`) and optimises `(beta, sigma², phi)` jointly, so it avoids
+grid-discretisation error and returns a proper **standard error for `phi`** from
+the joint Hessian. Full, numerically-verified derivation:
+[`math/continuous-phi-derivation.pdf`](math/continuous-phi-derivation.pdf).
+
 ## Speed vs SDALGCP
 
 Identical estimates, full pipeline (`scripts/compare_vs_SDALGCP.R`):

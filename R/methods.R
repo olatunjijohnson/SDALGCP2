@@ -2,12 +2,19 @@
 print.SDALGCP2 <- function(x, ...) {
   cat("SDA-LGCP fit (SDALGCP2)\n")
   cat("Call: "); print(x$call)
-  cf <- c(x$beta_opt, x$sigma2_opt)
-  names(cf) <- rownames(x$cov)
+  cf <- if (!is.null(x$estimates)) x$estimates else stats::setNames(
+    c(x$beta_opt, x$sigma2_opt), rownames(x$cov))
   cat("\nCoefficients:\n"); print(round(cf, 4))
-  cat(sprintf("Spatial scale phi: %g\n", x$phi_opt))
+  cat(sprintf("Spatial scale phi: %g (%s)\n", x$phi_opt,
+              if (!is.null(x$phi_method)) x$phi_method else "grid"))
   cat(sprintf("Log-likelihood:   %g\n", x$llike_val_opt))
   invisible(x)
+}
+
+# Coefficient vector aligned to the rows/cols of the covariance matrix.
+.sda_estimates <- function(object) {
+  if (!is.null(object$estimates)) return(object$estimates)
+  stats::setNames(c(object$beta_opt, object$sigma2_opt), rownames(object$cov))
 }
 
 #' Summary of an SDALGCP2 fit
@@ -17,7 +24,7 @@ print.SDALGCP2 <- function(x, ...) {
 #' @return an object of class \code{"summary.SDALGCP2"} with a coefficient table.
 #' @export
 summary.SDALGCP2 <- function(object, ...) {
-  est <- c(object$beta_opt, object$sigma2_opt)
+  est <- .sda_estimates(object)
   se  <- sqrt(diag(object$cov))
   z   <- est / se
   tab <- cbind(Estimate = est, Std.Err = se, `z value` = z,
@@ -48,7 +55,7 @@ print.summary.SDALGCP2 <- function(x, ...) {
 #' @return a matrix of lower/upper confidence limits.
 #' @export
 confint.SDALGCP2 <- function(object, parm, level = 0.95, ...) {
-  est <- c(object$beta_opt, object$sigma2_opt)
+  est <- .sda_estimates(object)
   nm  <- rownames(object$cov)
   names(est) <- nm
   se <- sqrt(diag(object$cov))
