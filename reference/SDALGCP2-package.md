@@ -12,6 +12,8 @@ Useful links:
 
 - <https://github.com/olatunjijohnson/SDALGCP2>
 
+- <https://olatunjijohnson.github.io/SDALGCP2/>
+
 - Report bugs at <https://github.com/olatunjijohnson/SDALGCP2/issues>
 
 ## Author

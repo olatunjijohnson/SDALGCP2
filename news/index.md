@@ -35,7 +35,8 @@ First development version — a faster, modernised successor to SDALGCP.
   error ~100x, correcting the variance estimate.
 - **Importance-sampling diagnostics**
   ([`mc_diagnostics()`](https://olatunjijohnson.github.io/SDALGCP2/reference/mc_diagnostics.md),
-  shown in [`summary()`](https://rdrr.io/r/base/summary.html)):
+  shown in
+  [`summary()`](https://rspatial.github.io/terra/reference/summary.html)):
   effective sample size of the importance weights at the optimum and a
   Monte Carlo SE for the maximised log-likelihood; warns on collapse.
 - **Spatially continuous (raster) covariates**

@@ -1,13 +1,27 @@
 # Package index
 
-## Model fitting
+## Fitting
 
-User entry points for fitting SDA-LGCP models.
+The main interface and its controls.
+
+- [`sdalgcp()`](https://olatunjijohnson.github.io/SDALGCP2/reference/sdalgcp.md)
+  : Fit a spatially discrete LGCP model for aggregated counts
+
+- [`sdalgcp_control()`](https://olatunjijohnson.github.io/SDALGCP2/reference/sdalgcp_control.md)
+  :
+
+  Control settings for `sdalgcp`
+
+## Specialised fitting engines
+
+Lower-level fitters used by sdalgcp() for specific settings.
 
 - [`SDALGCP2()`](https://olatunjijohnson.github.io/SDALGCP2/reference/SDALGCP2.md)
   : Fit a spatial SDA-LGCP model
 - [`SDALGCP2_raster()`](https://olatunjijohnson.github.io/SDALGCP2/reference/SDALGCP2_raster.md)
   : Fit an SDA-LGCP with spatially continuous (raster) covariates
+- [`SDALGCP2_misaligned()`](https://olatunjijohnson.github.io/SDALGCP2/reference/SDALGCP2_misaligned.md)
+  : Fit an SDA-LGCP with covariates measured on a different support
 - [`SDALGCP2_ST()`](https://olatunjijohnson.github.io/SDALGCP2/reference/SDALGCP2_ST.md)
   : Fit a spatio-temporal SDA-LGCP model (Kronecker-free)
 - [`mcml_fit()`](https://olatunjijohnson.github.io/SDALGCP2/reference/mcml_fit.md)
@@ -32,6 +46,8 @@ Discretisation and the aggregated correlation assembly.
 
 ## Prediction
 
+- [`predict(`*`<sdalgcp>`*`)`](https://olatunjijohnson.github.io/SDALGCP2/reference/predict.sdalgcp.md)
+  : Predict relative risk from an sdalgcp fit
 - [`predict(`*`<SDALGCP2>`*`)`](https://olatunjijohnson.github.io/SDALGCP2/reference/predict.SDALGCP2.md)
   : Predict relative risk from a fitted SDALGCP2 model
 - [`predict(`*`<SDALGCP2_ST>`*`)`](https://olatunjijohnson.github.io/SDALGCP2/reference/predict.SDALGCP2_ST.md)
@@ -43,6 +59,8 @@ Discretisation and the aggregated correlation assembly.
 
 Maps and post-fit graphics.
 
+- [`plot(`*`<sdalgcp>`*`)`](https://olatunjijohnson.github.io/SDALGCP2/reference/plot.sdalgcp.md)
+  : Map an sdalgcp fit
 - [`plot(`*`<SDALGCP2_pred>`*`)`](https://olatunjijohnson.github.io/SDALGCP2/reference/plot.SDALGCP2_pred.md)
   : Map a fitted SDALGCP2 prediction
 - [`plot(`*`<SDALGCP2>`*`)`](https://olatunjijohnson.github.io/SDALGCP2/reference/plot.SDALGCP2.md)

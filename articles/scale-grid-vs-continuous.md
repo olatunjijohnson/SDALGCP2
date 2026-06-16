@@ -1,0 +1,64 @@
+# 4. Estimating the spatial scale: grid vs continuous
+
+The spatial scale $`\phi`$ controls how quickly correlation decays with
+distance. It enters the model only through a **double integral** of the
+correlation function over each pair of regions,
+$`R_{ij}(\phi)=\int_{A_i}\!\int_{A_j} w_i(x)w_j(y)\exp(-\|x-y\|/\phi)\,dx\,dy`$,
+approximated by a sum over candidate points. `SDALGCP2` offers two ways
+to estimate it.
+
+## Grid (profile)
+
+The classic approach (and that of the original `SDALGCP`): evaluate the
+model on a **grid** of $`\phi`$ values and take the profile maximum.
+
+``` r
+
+library(SDALGCP2)
+fit_grid <- sdalgcp(cases ~ x1 + offset(log(pop)), data = regions,
+                    control = sdalgcp_control(scale = "grid",
+                                              phi = seq(1.5, 6, length.out = 12)))
+```
+
+## Continuous (direct) — the default
+
+The aggregated correlation is differentiable in $`\phi`$, so we can
+optimise it **directly**, with no grid. This removes the discretisation
+error, is faster (no wasted grid points), and yields a proper **standard
+error** for $`\phi`$ from the joint Hessian (derivation in
+`math/continuous-phi-derivation.pdf`).
+
+``` r
+
+fit_dir <- sdalgcp(cases ~ x1 + offset(log(pop)), data = regions)  # scale = "continuous"
+```
+
+## They agree — and continuous is faster, with an SE
+
+On a 9×9 simulated lattice (true $`\phi = 3`$):
+
+    #> GRID:       phi = 2.73            beta = 0.437   [6.5s]
+    #> CONTINUOUS: phi = 2.86 (SE 0.35)  beta = 0.449   [3.4s]
+
+![](phi_compare.png)
+
+The blue curve is the grid profile deviance; its minimum (the grid
+$`\hat\phi`$) lands between grid nodes. The red line is the continuous
+estimate with its 95% confidence band — close to the grid optimum,
+obtained in half the time, and with an honest standard error that the
+grid cannot provide.
+
+## Which to use?
+
+|  | grid | continuous (default) |
+|----|----|----|
+| $`\hat\phi`$ | restricted to grid nodes | exact, no discretisation error |
+| SE for $`\phi`$ | not available | from the joint Hessian |
+| profile shape | fully visible (good for multimodality) | not traced |
+| Matern smoothness | any | 0.5, 1.5, 2.5 |
+| speed | one fit per node | one optimisation |
+
+Use **continuous** for speed and a standard error; use **grid** when you
+want to see the whole profile (e.g. to check for a flat or multimodal
+likelihood). Both are available via `sdalgcp_control(scale = ...)`.
+\`\`\`

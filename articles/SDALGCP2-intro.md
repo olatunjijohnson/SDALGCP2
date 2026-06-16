@@ -1,88 +1,110 @@
-# Getting started with SDALGCP2 (simulated example)
+# 1. Spatial disease mapping with SDALGCP2
 
 `SDALGCP2` fits a spatially discrete approximation to a log-Gaussian Cox
-process (SDA-LGCP) to spatially aggregated disease counts. It is a
-faster, modernised successor to `SDALGCP`: the heavy steps (aggregated
-correlation assembly, the MALA sampler, the Monte Carlo likelihood) run
-in C++.
+process (SDA-LGCP) to **aggregated disease counts** — counts observed
+over administrative areas. The interface is deliberately close to
+[`glm()`](https://rdrr.io/r/stats/glm.html): give a formula and an `sf`
+object and you are done.
 
-This vignette uses **entirely simulated data**, so it is fully
-reproducible without any external files.
+## The data
 
-## 1. Simulate a lattice of regions and aggregated counts
+[`sdalgcp()`](https://olatunjijohnson.github.io/SDALGCP2/reference/sdalgcp.md)
+expects an `sf` object whose columns hold the response, covariates and
+offset (population at risk). Here we simulate a 10×10 lattice with a
+spatial signal; in practice this would be your shapefile joined to a
+counts table.
 
 ``` r
 
 library(SDALGCP2)
 library(sf)
 
-set.seed(1)
-bound <- st_as_sfc(st_bbox(c(xmin = 0, ymin = 0, xmax = 20, ymax = 20)))
-shp   <- st_sf(geometry = st_make_grid(bound, n = c(8, 8)))   # 64 square regions
-N     <- nrow(shp)
+set.seed(42)
+regions <- st_sf(geometry = st_make_grid(
+  st_as_sfc(st_bbox(c(xmin = 0, ymin = 0, xmax = 20, ymax = 20))), n = c(10, 10)))
+N <- nrow(regions)
 
-# candidate points inside each region (regular grid)
-pts      <- sda_points(shp, delta = 1.2, method = 3)
-phi_grid <- seq(1, 5, length.out = 8)
-corr     <- precompute_corr(pts, phi_grid)
-
-# true parameters and a latent field drawn at phi = 2.5
-Sig   <- 0.5 * corr$R[, , which.min(abs(phi_grid - 2.5))]
-x1    <- as.numeric(scale(st_coordinates(st_centroid(shp))[, 1]))
-pop   <- round(runif(N, 500, 3000))
-y     <- rpois(N, pop * exp(cbind(1, x1) %*% c(-6, 0.5) +
-                            as.numeric(t(chol(Sig)) %*% rnorm(N))))
-dat   <- data.frame(y = y, x1 = x1, pop = pop)
+# a covariate, a population offset, and simulated counts with a spatial hotspot
+pts <- sda_points(regions, delta = 0.9, method = 3)
+S   <- as.numeric(t(chol(0.5 * precompute_corr(pts, 4)$R[, , 1])) %*% rnorm(N))
+regions$x1    <- rnorm(N)
+regions$pop   <- round(runif(N, 800, 5000))
+regions$cases <- rpois(N, regions$pop * exp(-6 + 0.6 * regions$x1 + S))
 ```
 
-## 2. Fit the model
-
-A single call generates points, builds the correlation array and runs
-MCML:
+## Fit — one line
 
 ``` r
 
-ctrl <- control_mcmc(n.sim = 6000, burnin = 1500, thin = 6, h = 1.65 / N^(1/6))
-fit  <- SDALGCP2(y ~ x1 + offset(log(pop)), dat, shp,
-                 delta = 1.2, phi = phi_grid, method = 3, control.mcmc = ctrl)
-
+fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = regions)
 summary(fit)
-confint(fit)
 ```
 
-## 3. Predict relative risk
+No `delta`, no `phi`, no MCMC settings: the candidate-point spacing is
+chosen from the region size, the spatial scale is optimised
+continuously, and the latent field is re-anchored for reliable
+variances. To change any of this, pass `control = sdalgcp_control(...)`.
 
-Discrete (region-level) and continuous (change-of-support) prediction.
-The `sampler = "laplace"` option skips MCMC for a near-instant
-approximation.
+    #> Coefficients:
+    #>             Estimate Std.Err z value Pr(>|z|)
+    #> (Intercept)  -6.05     0.10   -60.0   <2e-16 ***
+    #> x1            0.58     0.08     7.2   5e-13  ***
+    #> sigma^2       0.46     0.18     2.6   0.009  **
+    #> phi           3.49     0.74     4.7   2e-06  ***
+
+## Map the relative risk
+
+[`predict()`](https://rspatial.github.io/terra/reference/predict.html)
+returns an `sf` you can map directly;
+[`plot()`](https://rspatial.github.io/terra/reference/plot.html) gives
+sensible defaults.
 
 ``` r
 
-pred_d <- predict(fit, type = "discrete",   sampler = "mcmc",    control.mcmc = ctrl)
-pred_c <- predict(fit, type = "continuous", sampler = "laplace", cellsize = 1,
-                  control.mcmc = ctrl)
-
-# exceedance probability of covariate-adjusted relative risk above 1.5
-exc <- exceedance(pred_d, thresholds = 1.5)
+rr <- predict(fit)             # sf with relative_risk, relative_risk_se, incidence
+plot(fit)                      # covariate-adjusted relative risk
+plot(fit, "risk_se")           # its uncertainty
+plot(fit, "exceedance", threshold = 1.5)   # P(relative risk > 1.5)
 ```
 
-## 4. Speed vs the original SDALGCP
+| Relative risk | Uncertainty | Exceedance P(RR \> 1.5) |
+|:--:|:--:|:--:|
+| ![](showcase_risk.png) | ![](showcase_uncertainty.png) | ![](showcase_exceedance.png) |
 
-On this 64-region example the full pipeline (points + correlation +
-MCML) is several times faster than `SDALGCP::SDALGCPMCML` while
-returning the same estimates. The reproducible benchmark lives in
-`scripts/compare_vs_SDALGCP.R`:
+The **exceedance map** answers the question public-health users usually
+care about: *where is the relative risk confidently above a threshold?*
+
+## A continuous surface
+
+Relative risk can also be predicted on a fine grid (change-of-support),
+giving a smooth surface rather than a choropleth:
 
 ``` r
 
-# source(system.file("..", "scripts", "compare_vs_SDALGCP.R", package = "SDALGCP2"))
+pc <- predict(fit, type = "continuous", cellsize = 0.6)  # via the engine
+plot(pc, "RR", bound = st_union(regions))
 ```
 
-Representative output (your timings will vary):
+![](showcase_continuous.png)
 
-    True:      beta=(-6, 0.5)      sigma2=0.5    phi=2.5
-    SDALGCP2:  beta=(-5.738,0.474) sigma2=0.687  phi=1     [1.0s]
-    SDALGCP:   beta=(-5.738,0.474) sigma2=0.687  phi=1     [8.4s]
-    Full-pipeline speedup: ~8x
+## Model checking
 
-\`\`\`
+``` r
+
+model_check(fit)        # observed vs fitted + residual Moran's I
+mc_diagnostics(fit)     # importance-sampling effective sample size
+```
+
+A non-significant residual Moran’s I indicates the spatial random effect
+has absorbed the spatial structure.
+
+## Where next
+
+- [Raster
+  predictors](https://olatunjijohnson.github.io/SDALGCP2/articles/raster-covariates.md)
+  — continuous covariates done right.
+- [Spatio-temporal](https://olatunjijohnson.github.io/SDALGCP2/articles/spatio-temporal.md)
+  — space-time relative risk.
+- [Estimating the
+  scale](https://olatunjijohnson.github.io/SDALGCP2/articles/scale-grid-vs-continuous.md)
+  — grid vs continuous `phi`. \`\`\`

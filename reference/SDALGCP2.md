@@ -23,6 +23,7 @@ SDALGCP2(
   control.mcmc = NULL,
   phi_method = c("grid", "direct"),
   nugget = FALSE,
+  confounding = c("none", "restricted"),
   reanchor = 0L,
   rho = 0.55,
   giveup = 1000L,
@@ -93,6 +94,12 @@ SDALGCP2(
   \\\sigma^2(R(\phi)+\nu I)\\ and estimating the relative nugget
   \\\nu=\tau^2/\sigma^2\\ with a standard error. Absorbs overdispersion
   not explained by the spatial structure.
+
+- confounding:
+
+  `"none"` (default) or `"restricted"` for restricted spatial regression
+  (constrains the spatial random effect orthogonal to the fixed-effect
+  design; fitted by a Laplace-approximate marginal likelihood).
 
 - reanchor:
 
