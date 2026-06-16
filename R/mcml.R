@@ -82,7 +82,8 @@
 #'   latent samples and metadata).
 #' @export
 mcml_fit <- function(formula, data, corr, par0 = NULL, control.mcmc = NULL,
-                     phi_method = c("grid", "direct"), messages = FALSE) {
+                     phi_method = c("grid", "direct"), reanchor = 0L,
+                     reanchor_tol = 1e-2, messages = FALSE) {
   phi_method <- match.arg(phi_method)
   mf <- stats::model.frame(formula, data)
   y <- as.numeric(stats::model.response(mf))
@@ -99,6 +100,10 @@ mcml_fit <- function(formula, data, corr, par0 = NULL, control.mcmc = NULL,
     par0 <- c(stats::coef(g), mean(stats::residuals(g)^2), stats::median(phi))
   }
   if (any(par0[-(1:p)] <= 0)) stop("Covariance parameters in 'par0' must be positive.")
+
+  # A single MCML pass: draw the latent field at the supplied anchor and fit.
+  # Wrapped so re-anchoring can re-run it with the previous optimum as the anchor.
+  .pass <- function(par0) {
   beta0 <- par0[1:p]; sigma2_0 <- par0[p + 1]; phi0 <- par0[p + 2]
 
   # Anchor correlation = grid entry nearest phi0.
@@ -136,7 +141,7 @@ mcml_fit <- function(formula, data, corr, par0 = NULL, control.mcmc = NULL,
       all_cov = list(df$cov), par0 = par0, control.mcmc = control.mcmc,
       S = S.sim, S.coord = pts,
       kappa = if (!is.null(corr$kappa)) corr$kappa else 0.5,
-      phi_method = "direct", call = match.call()
+      phi_method = "direct", call = NULL
     )
     attr(out, "weighted") <- weighted
     attr(out, "my_shp") <- attr(R, "my_shp")
@@ -185,7 +190,7 @@ mcml_fit <- function(formula, data, corr, par0 = NULL, control.mcmc = NULL,
     all_para = all_para, all_cov = lapply(res, `[[`, "cov"),
     par0 = par0, control.mcmc = control.mcmc, S = S.sim,
     S.coord = attr(R, "S_coord"), kappa = if (!is.null(corr$kappa)) corr$kappa else 0.5,
-    phi_method = "grid", call = match.call()
+    phi_method = "grid", call = NULL
   )
   attr(out, "weighted") <- attr(R, "weighted")
   attr(out, "my_shp") <- attr(R, "my_shp")
@@ -193,4 +198,25 @@ mcml_fit <- function(formula, data, corr, par0 = NULL, control.mcmc = NULL,
   attr(out, "prematrix") <- corr
   class(out) <- "SDALGCP2"
   out
+  }  # end .pass
+
+  # Re-anchoring loop: refit using the previous optimum as the new anchor so the
+  # importance weights stay near-uniform (raises the MC effective sample size).
+  cur <- par0; fit <- NULL; done <- 0L
+  for (k in 0:reanchor) {
+    fit_new <- .pass(cur)
+    conv <- FALSE
+    if (k > 0) {
+      prev <- c(fit$beta_opt, fit$sigma2_opt, fit$phi_opt)
+      neww <- c(fit_new$beta_opt, fit_new$sigma2_opt, fit_new$phi_opt)
+      conv <- max(abs(neww - prev) / pmax(abs(prev), 1e-6)) < reanchor_tol
+    }
+    fit <- fit_new; done <- k
+    cur <- c(fit$beta_opt, fit$sigma2_opt, fit$phi_opt)
+    if (messages && reanchor > 0) cat(sprintf("  re-anchor pass %d done\n", k))
+    if (conv) break
+  }
+  fit$n_reanchor <- done
+  fit$call <- match.call()
+  fit
 }

@@ -2,6 +2,13 @@
 
 First development version — a faster, modernised successor to SDALGCP.
 
+* **Re-anchored (iterated) MCML** (`reanchor =`): re-simulates the latent field at
+  the current optimum and refits, keeping the importance weights near-uniform. On a
+  64-region example it lifts the effective sample size from ~0% to ~96% and cuts the
+  log-likelihood MC standard error ~100x, correcting the variance estimate.
+* **Importance-sampling diagnostics** (`mc_diagnostics()`, shown in `summary()`):
+  effective sample size of the importance weights at the optimum and a Monte Carlo
+  SE for the maximised log-likelihood; warns on collapse.
 * **Spatially continuous (raster) covariates** (`SDALGCP2_raster()`): covariates
   given as rasters enter the LGCP intensity at the candidate-point level and are
   aggregated on the intensity (exp) scale via a log-sum-exp offset

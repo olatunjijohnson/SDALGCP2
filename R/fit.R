@@ -21,6 +21,10 @@
 #'   over the supplied \code{phi} grid, the robust default) or \code{"direct"}
 #'   (optimise \code{phi} continuously inside the MCML objective; exponential
 #'   kernel only). See the package vignette/PDF on the double-integral derivation.
+#' @param reanchor number of re-anchoring passes: after fitting, the latent field
+#'   is re-simulated at the current optimum and the model refit, which keeps the
+#'   importance weights near-uniform (raises the MC effective sample size). 0
+#'   (default) fits once; 2-3 is usually ample.
 #' @param rho,giveup point-generation controls.
 #' @param nthreads OpenMP threads for the correlation build.
 #' @param messages logical; print optimiser progress.
@@ -60,7 +64,8 @@
 SDALGCP2 <- function(formula, data, my_shp, delta, phi = NULL, method = 1L,
                      weighted = FALSE, pop_shp = NULL, kappa = 0.5,
                      par0 = NULL, control.mcmc = NULL, phi_method = c("grid", "direct"),
-                     rho = 0.55, giveup = 1000L, nthreads = 0L, messages = FALSE) {
+                     reanchor = 0L, rho = 0.55, giveup = 1000L, nthreads = 0L,
+                     messages = FALSE) {
   phi_method <- match.arg(phi_method)
   if (!inherits(formula, "formula")) stop("'formula' must be a formula.")
   if (!is.data.frame(data)) stop("'data' must be a data frame.")
@@ -79,7 +84,7 @@ SDALGCP2 <- function(formula, data, my_shp, delta, phi = NULL, method = 1L,
                      pop_shp = pop_shp, rho = rho, giveup = giveup)
   corr <- precompute_corr(pts, phi, kappa = kappa, nthreads = nthreads)
   fit  <- mcml_fit(formula, data, corr, par0 = par0, control.mcmc = control.mcmc,
-                   phi_method = phi_method, messages = messages)
+                   phi_method = phi_method, reanchor = reanchor, messages = messages)
   fit$call <- match.call()
   fit
 }
