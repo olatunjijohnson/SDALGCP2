@@ -9,52 +9,70 @@
 #      raster case.
 
 # --- Gaussian-process kriging (exponential covariance + nugget) -----------------
-
-# ML fit of a constant-mean exponential GP to point data z at locations s (L x 2).
-# Profiles out the mean and variance; optimises log(phi_z) and log(nugget ratio).
-.fit_gp_exp <- function(s, z) {
-  s <- as.matrix(s); z <- as.numeric(z); L <- length(z)
-  D <- as.matrix(stats::dist(s)); one <- rep(1, L); dmax <- max(D)
-  negll <- function(par) {
-    phi <- exp(par[1]); eta <- exp(par[2])               # nugget ratio tau2/sigma2
-    C0 <- exp(-D / phi); diag(C0) <- diag(C0) + eta
-    ch <- tryCatch(chol(C0), error = function(e) NULL)
-    if (is.null(ch)) return(1e10)
-    Ci <- chol2inv(ch); ldet <- 2 * sum(log(diag(ch)))
-    Ci1 <- Ci %*% one; mu <- sum(Ci1 * z) / sum(Ci1)
-    r <- z - mu; s2 <- as.numeric(crossprod(r, Ci %*% r)) / L
-    0.5 * (L * log(s2) + ldet)
-  }
-  opt <- stats::optim(c(log(dmax / 3), log(0.1)), negll, method = "BFGS",
-                      control = list(maxit = 200))
-  phi <- exp(opt$par[1]); eta <- exp(opt$par[2])
-  C0 <- exp(-D / phi); diag(C0) <- diag(C0) + eta
-  ch <- chol(C0); Ci <- chol2inv(ch)
-  Ci1 <- Ci %*% one; mu <- sum(Ci1 * z) / sum(Ci1)
-  r <- z - mu; s2 <- as.numeric(crossprod(r, Ci %*% r)) / L
-  list(s = s, z = z, phi = phi, eta = eta, sigma2 = s2, mu = mu,
-       Ci = Ci, Cir = as.numeric(Ci %*% r), Ci1 = as.numeric(Ci1),
-       sumCi1 = sum(Ci1))
-}
+#
+# The same machinery handles point and areal covariate data; only the data-data
+# correlation R_BB(phi) and the data-target cross-correlation R_tB(phi) differ
+# (plain exponential for points; aggregated over the covariate polygons for areal).
 
 # Cross Euclidean distances between rows of A (m x 2) and B (n x 2).
 .cross_dist <- function(A, B) {
   sqrt(outer(A[, 1], B[, 1], "-")^2 + outer(A[, 2], B[, 2], "-")^2)
 }
 
-# Ordinary-kriging predictive mean and variance of the covariate SIGNAL at targets
-# t (T x 2): mu_z(t) and v_z(t) (includes mean-estimation uncertainty).
-.krige_exp <- function(gp, t) {
-  t <- as.matrix(t)
-  Dts <- .cross_dist(t, gp$s)                       # T x L distances
-  R <- exp(-Dts / gp$phi)                           # signal cross-correlation
-  mu <- gp$mu + as.numeric(R %*% gp$Cir)
-  RCi <- R %*% gp$Ci                                # T x L
-  quad <- rowSums(RCi * R)                          # r' C0^{-1} r
-  m1 <- 1 - as.numeric(R %*% gp$Ci1)                # 1 - 1' C0^{-1} r
+# ML fit of a constant-mean GP given a builder RBB_fun(phi) for the L x L data
+# correlation. Profiles out the mean and variance; optimises log phi and log nugget.
+.fit_gp_generic <- function(z, RBB_fun, dmax) {
+  z <- as.numeric(z); L <- length(z); one <- rep(1, L)
+  negll <- function(par) {
+    phi <- exp(par[1]); eta <- exp(par[2])
+    C0 <- RBB_fun(phi); diag(C0) <- diag(C0) + eta
+    ch <- tryCatch(chol(C0), error = function(e) NULL); if (is.null(ch)) return(1e10)
+    Ci <- chol2inv(ch); ldet <- 2 * sum(log(diag(ch)))
+    Ci1 <- Ci %*% one; mu <- sum(Ci1 * z) / sum(Ci1); r <- z - mu
+    s2 <- as.numeric(crossprod(r, Ci %*% r)) / L
+    0.5 * (L * log(s2) + ldet)
+  }
+  opt <- stats::optim(c(log(dmax / 3), log(0.1)), negll, method = "BFGS",
+                      control = list(maxit = 200))
+  phi <- exp(opt$par[1]); eta <- exp(opt$par[2])
+  C0 <- RBB_fun(phi); diag(C0) <- diag(C0) + eta; ch <- chol(C0); Ci <- chol2inv(ch)
+  Ci1 <- Ci %*% one; mu <- sum(Ci1 * z) / sum(Ci1); r <- z - mu
+  s2 <- as.numeric(crossprod(r, Ci %*% r)) / L
+  list(z = z, phi = phi, eta = eta, sigma2 = s2, mu = mu, Ci = Ci,
+       Cir = as.numeric(Ci %*% r), Ci1 = as.numeric(Ci1), sumCi1 = sum(Ci1))
+}
+
+# Ordinary-kriging predictive mean/variance given the T x L cross-correlation RtB.
+.krige_generic <- function(gp, RtB) {
+  mu <- gp$mu + as.numeric(RtB %*% gp$Cir)
+  quad <- rowSums((RtB %*% gp$Ci) * RtB)
+  m1 <- 1 - as.numeric(RtB %*% gp$Ci1)
   v <- gp$sigma2 * pmax(0, 1 - quad + m1^2 / gp$sumCi1)
   list(mean = mu, var = v)
 }
+
+# Point covariate support: plain exponential correlation.
+.gp_point <- function(s, z) {
+  s <- as.matrix(s); D <- as.matrix(stats::dist(s))
+  gp <- .fit_gp_generic(z, function(phi) exp(-D / phi), max(D)); gp$s <- s; gp
+}
+.krige_point <- function(gp, t)
+  .krige_generic(gp, exp(-.cross_dist(as.matrix(t), gp$s) / gp$phi))
+
+# Areal covariate support: the covariate is an average over polygons. Data-data and
+# data-target covariances are the AGGREGATED exponential over candidate points
+# inside the covariate polygons -- reusing the outcome-model kernels.
+.gp_areal <- function(cov_sf, zcol, kappa = 0.5) {
+  cpts <- sda_points(cov_sf, .auto_delta(cov_sf, 16), method = 3L)
+  coords <- lapply(cpts, function(p) as.matrix(p$xy)[, 1:2, drop = FALSE])
+  bb <- sf::st_bbox(cov_sf)
+  dmax <- sqrt((bb["xmax"] - bb["xmin"])^2 + (bb["ymax"] - bb["ymin"])^2)
+  RBB <- function(phi) corr_aggregate_cpp(coords, list(), c(phi), kappa, FALSE, 0L)[, , 1]
+  gp <- .fit_gp_generic(cov_sf[[zcol]], RBB, as.numeric(dmax))
+  gp$coords <- coords; gp$kappa <- kappa; gp
+}
+.krige_areal <- function(gp, t)
+  .krige_generic(gp, cross_cov_cpp(as.matrix(t), gp$coords, list(), gp$phi, gp$kappa, FALSE, 0L))
 
 # --- Berkson-corrected tilting ---------------------------------------------------
 
@@ -89,9 +107,10 @@
 #' @param formula model formula; the covariate names appear on the right-hand side.
 #' @param data \code{sf} polygons holding the response and offset (one row/region).
 #' @param delta candidate-point spacing.
-#' @param covariates a named list; each element is an \code{sf} of \strong{points}
-#'   carrying a column of the same name (the covariate's observed values on its own
-#'   support).
+#' @param covariates a named list; each element is an \code{sf} carrying a column
+#'   of the same name -- the covariate's observed values on its own support, either
+#'   \strong{points} (e.g. monitors; plain kriging) or \strong{polygons} (areal
+#'   averages on a different partition; aggregated areal kriging).
 #' @param phi spatial-scale grid for the outcome model (default from geometry).
 #' @param method,weighted,pop_shp point-generation controls.
 #' @param berkson logical; include the Berkson uncertainty correction (default
@@ -134,10 +153,17 @@ SDALGCP2_misaligned <- function(formula, data, delta, covariates, phi = NULL,
   MU[, 1] <- 1                                       # intercept column (no variance)
   for (j in seq_along(rhs)) {
     cv <- covariates[[rhs[j]]]
-    if (!inherits(cv, "sf")) stop("covariate '", rhs[j], "' must be an sf of points.")
-    s <- sf::st_coordinates(cv)[, 1:2, drop = FALSE]; zobs <- cv[[rhs[j]]]
-    if (messages) cat(sprintf("  kriging covariate '%s' from %d points...\n", rhs[j], length(zobs)))
-    gp <- .fit_gp_exp(s, zobs); kr <- .krige_exp(gp, allxy)
+    if (!inherits(cv, "sf")) stop("covariate '", rhs[j], "' must be an sf object.")
+    gtype <- as.character(sf::st_geometry_type(cv, by_geometry = FALSE))[1]
+    areal <- grepl("POLYGON", gtype)
+    if (messages) cat(sprintf("  kriging covariate '%s' from %d %s...\n",
+                              rhs[j], nrow(cv), if (areal) "polygons" else "points"))
+    if (areal) {
+      gp <- .gp_areal(cv, rhs[j], kappa = 0.5); kr <- .krige_areal(gp, allxy)
+    } else {
+      gp <- .gp_point(sf::st_coordinates(cv)[, 1:2, drop = FALSE], cv[[rhs[j]]])
+      kr <- .krige_point(gp, allxy)
+    }
     MU[, j + 1] <- kr$mean; VAR[, j + 1] <- if (berkson) kr$var else 0
   }
   Zlist <- lapply(seq_along(pts), function(i) {

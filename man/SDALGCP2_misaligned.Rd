@@ -27,9 +27,10 @@ SDALGCP2_misaligned(
 
 \item{delta}{candidate-point spacing.}
 
-\item{covariates}{a named list; each element is an \code{sf} of \strong{points}
-carrying a column of the same name (the covariate's observed values on its own
-support).}
+\item{covariates}{a named list; each element is an \code{sf} carrying a column
+of the same name -- the covariate's observed values on its own support, either
+\strong{points} (e.g. monitors; plain kriging) or \strong{polygons} (areal
+averages on a different partition; aggregated areal kriging).}
 
 \item{phi}{spatial-scale grid for the outcome model (default from geometry).}
 
