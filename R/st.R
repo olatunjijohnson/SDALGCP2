@@ -97,7 +97,8 @@
 #' @param times numeric vector of length \code{T} of observation times.
 #' @param delta candidate-point spacing.
 #' @param phi spatial-scale grid (default from geometry).
-#' @param kappa spatial Matern smoothness; \code{kappa_t} temporal smoothness.
+#' @param kappa spatial Matern smoothness.
+#' @param kappa_t temporal Matern smoothness.
 #' @param method,weighted,pop_shp point-generation controls.
 #' @param control.mcmc list from \code{\link{control_mcmc}}.
 #' @param reanchor number of re-anchoring passes (re-simulate the latent field at

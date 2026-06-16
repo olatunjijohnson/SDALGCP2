@@ -1,3 +1,8 @@
+#' Print an SDALGCP2 fit
+#' @param x an \code{"SDALGCP2"} object.
+#' @param ... unused.
+#' @return \code{x}, invisibly.
+#' @method print SDALGCP2
 #' @export
 print.SDALGCP2 <- function(x, ...) {
   cat("SDA-LGCP fit (SDALGCP2)\n")
@@ -22,6 +27,7 @@ print.SDALGCP2 <- function(x, ...) {
 #' @param object an object of class \code{"SDALGCP2"} from \code{\link{mcml_fit}}.
 #' @param ... unused.
 #' @return an object of class \code{"summary.SDALGCP2"} with a coefficient table.
+#' @method summary SDALGCP2
 #' @export
 summary.SDALGCP2 <- function(object, ...) {
   est <- .sda_estimates(object)
@@ -37,6 +43,11 @@ summary.SDALGCP2 <- function(object, ...) {
   out
 }
 
+#' Print a summary of an SDALGCP2 fit
+#' @param x a \code{"summary.SDALGCP2"} object.
+#' @param ... unused.
+#' @return \code{x}, invisibly.
+#' @method print summary.SDALGCP2
 #' @export
 print.summary.SDALGCP2 <- function(x, ...) {
   cat("Call: "); print(x$call)

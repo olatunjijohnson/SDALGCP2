@@ -77,6 +77,13 @@
 #' @param par0 optional starting values \code{c(beta, sigma2, phi)}; if \code{NULL}
 #'   they are derived from a Poisson GLM.
 #' @param control.mcmc list from \code{\link{control_mcmc}} (defaults if \code{NULL}).
+#' @param phi_method \code{"grid"} (profile over the \code{corr} phi grid, default)
+#'   or \code{"direct"} (optimise phi continuously; exponential/Matern kernel).
+#' @param nugget logical; if \code{TRUE} (requires \code{phi_method = "direct"})
+#'   add a relative nugget, fitting covariance \eqn{\sigma^2(R(\phi)+\nu I)}.
+#' @param reanchor number of re-anchoring passes (re-simulate the latent field at
+#'   the current optimum and refit) to raise the importance-sampling ESS.
+#' @param reanchor_tol relative-change tolerance for stopping the re-anchoring loop.
 #' @param messages logical; print optimiser progress.
 #' @return an object of class \code{"SDALGCP2"} (estimates, covariance, profile,
 #'   latent samples and metadata).

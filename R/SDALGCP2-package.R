@@ -7,4 +7,6 @@
 #' package source for the full design and statistical roadmap.
 #'
 #' @keywords internal
+#' @importFrom ggplot2 .data
+#' @importFrom stats setNames confint predict
 "_PACKAGE"

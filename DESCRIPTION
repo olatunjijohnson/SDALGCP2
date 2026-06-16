@@ -17,28 +17,24 @@ Description: A faster, modernised successor to the 'SDALGCP' package. Implements
 Depends: R (>= 4.2.0)
 License: GPL-2 | GPL-3
 Encoding: UTF-8
-LazyData: true
 LinkingTo:
     Rcpp,
     RcppArmadillo
 Imports:
     Rcpp,
-    Matrix,
     sf,
     terra,
-    stars,
     spatstat.geom,
     spatstat.random,
     ggplot2,
     progress,
-    methods,
     stats,
-    graphics,
     utils
 Suggests:
     knitr,
     rmarkdown,
     testthat (>= 3.0.0),
+    numDeriv,
     bench,
     SDALGCP
 VignetteBuilder: knitr

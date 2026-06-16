@@ -178,5 +178,10 @@ coef_plot <- function(object, level = 0.95, intercept = FALSE) {
     ggplot2::theme_minimal()
 }
 
+#' Plot an SDALGCP2 fit (the phi profile deviance)
+#' @param x an \code{"SDALGCP2"} object.
+#' @param ... passed to \code{\link{phi_profile}}.
+#' @return invisibly, the profile (see \code{\link{phi_profile}}).
+#' @method plot SDALGCP2
 #' @export
 plot.SDALGCP2 <- function(x, ...) phi_profile(x, ...)
