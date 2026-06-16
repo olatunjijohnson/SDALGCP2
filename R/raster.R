@@ -68,6 +68,14 @@
 #'   in \code{formula}.
 #' @param phi spatial-scale grid (default chosen from the geometry).
 #' @param method,weighted,pop_shp point-generation controls (see \code{\link{sda_points}}).
+#' @param kappa Matern smoothness for the spatial correlation.
+#' @param tilt_spatial logical; if \code{FALSE} (default) the spatial correlation
+#'   uses the population weights and is precomputed once (covariates enter only
+#'   through the log-sum-exp offset). If \code{TRUE}, the correlation
+#'   \eqn{R^c(\beta)} is rebuilt each iteration from the intensity-tilted weights
+#'   \eqn{c_{ik}(\beta)} and a log-normal aggregation correction
+#'   \eqn{\tfrac12\sigma^2(1-R^c_{ii})} is added -- the fully tilted model (more
+#'   accurate, more costly).
 #' @param control.mcmc list from \code{\link{control_mcmc}}.
 #' @param max_iter,tol outer Gauss-Newton iteration controls.
 #' @param messages logical; print progress.
@@ -77,6 +85,7 @@
 #' @export
 SDALGCP2_raster <- function(formula, data, my_shp, delta, rasters, phi = NULL,
                             method = 3L, weighted = FALSE, pop_shp = NULL,
+                            kappa = 0.5, tilt_spatial = FALSE,
                             control.mcmc = NULL, max_iter = 10L, tol = 1e-3,
                             messages = FALSE) {
   if (!inherits(my_shp, "sf")) my_shp <- sf::st_as_sf(my_shp)
@@ -101,16 +110,32 @@ SDALGCP2_raster <- function(formula, data, my_shp, delta, rasters, phi = NULL,
   Zlist <- .point_covariates(pts, rasters[[rhs]], sf::st_crs(my_shp))
   wlist <- lapply(pts, function(p) as.numeric(p$weight))
   q <- ncol(Zlist[[1]]); qn <- colnames(Zlist[[1]])
+  N <- length(pts)
 
-  corr <- precompute_corr(pts, phi)              # R^w(phi): does not depend on beta
+  # Offset-only model precomputes the population-weighted correlation once.
+  corr <- if (tilt_spatial) NULL else precompute_corr(pts, phi, kappa = kappa)
 
   beta <- stats::setNames(rep(0, q), qn)
   beta[1] <- log(mean(y / m))                    # intercept start
+  sigma2_cur <- NULL; phi_cur <- stats::median(phi)
   fit <- NULL; iter <- 0L
   repeat {
     iter <- iter + 1L
-    tl <- .tilt(Zlist, wlist, beta)
+    tl <- .tilt(Zlist, wlist, beta)              # effective design Dc, offset b, tilted weights c
     off <- log(m) + tl$b - as.numeric(tl$Dc %*% beta)   # linearisation offset
+
+    if (tilt_spatial) {
+      # Rebuild the correlation from the intensity-tilted weights c_ik(beta), and
+      # add the log-normal aggregation correction 0.5 v_i = 0.5 sigma2 (1 - R^c_ii).
+      pts_c <- lapply(seq_len(N), function(i) list(xy = pts[[i]]$xy, weight = tl$c[[i]]))
+      attr(pts_c, "weighted") <- TRUE; attr(pts_c, "my_shp") <- my_shp
+      corr <- precompute_corr(pts_c, phi, kappa = kappa)
+      if (!is.null(sigma2_cur)) {
+        kbest <- which.min(abs(phi - phi_cur))
+        off <- off + 0.5 * sigma2_cur * (1 - diag(corr$R[, , kbest]))
+      }
+    }
+
     df <- as.data.frame(tl$Dc); names(df) <- paste0("Z", seq_len(q))
     df$.y <- y; df$.off <- off
     form <- stats::as.formula(paste0(".y ~ ",
@@ -119,7 +144,7 @@ SDALGCP2_raster <- function(formula, data, my_shp, delta, rasters, phi = NULL,
     beta_new <- stats::setNames(fit$beta_opt, qn)
     delta_b <- max(abs(beta_new - beta))
     if (messages) cat(sprintf("  raster iter %d: max|dbeta| = %.4g\n", iter, delta_b))
-    beta <- beta_new
+    beta <- beta_new; sigma2_cur <- fit$sigma2_opt; phi_cur <- fit$phi_opt
     if (delta_b < tol || iter >= max_iter) break
   }
 

@@ -46,4 +46,11 @@ test_that("SDALGCP2_raster recovers beta where naive areal averaging is biased",
   expect_true(abs(fit$beta_opt["z"] - 1) < abs(coef(naive)["z"] - 1) / 2)  # >=2x better
   expect_true("z" %in% names(fit$beta_opt))
   expect_true(isTRUE(fit$raster))
+
+  # fully covariate-tilted variant runs and stays close to the offset-only fit
+  fit_t <- SDALGCP2_raster(y ~ z + offset(log(pop)), dat, shp, delta = 0.6, rasters = r,
+                           phi = seq(1.5, 5, length.out = 5), control.mcmc = ctrl,
+                           tilt_spatial = TRUE, max_iter = 4)
+  expect_true(is.finite(fit_t$beta_opt["z"]))
+  expect_lt(abs(fit_t$beta_opt["z"] - fit$beta_opt["z"]), 0.5)
 })
