@@ -37,18 +37,18 @@ plot.SDALGCP2_pred <- function(x, variable = "RR", bound = NULL,
     shp <- x$my_shp
     if (is.null(shp)) stop("This prediction has no polygon geometry to map.")
     if (!inherits(shp, "sf")) shp <- sf::st_as_sf(shp)
-    shp$.v <- shp[[.discrete_var(variable)]]
+    shp$fillvalue <- shp[[.discrete_var(variable)]]
     p <- ggplot2::ggplot(shp) +
-      ggplot2::geom_sf(ggplot2::aes(fill = .data$.v), color = "grey60", linewidth = 0.1)
+      ggplot2::geom_sf(ggplot2::aes(fill = .data$fillvalue), color = "grey60", linewidth = 0.1)
   } else {
     df <- data.frame(x = x$pred.loc[, 1], y = x$pred.loc[, 2],
-                     .v = if (variable == "SE_RR") x$RRsd else x$RRmean)
+                     fillvalue = if (variable == "SE_RR") x$RRsd else x$RRmean)
     if (!is.null(bound)) {
       if (!inherits(bound, "sf")) bound <- sf::st_as_sf(bound)
       pts <- sf::st_as_sf(df, coords = c("x", "y"), crs = sf::st_crs(bound))
       df <- df[lengths(sf::st_intersects(pts, sf::st_union(bound))) > 0, ]
     }
-    p <- ggplot2::ggplot(df, ggplot2::aes(.data$x, .data$y, fill = .data$.v)) +
+    p <- ggplot2::ggplot(df, ggplot2::aes(.data$x, .data$y, fill = .data$fillvalue)) +
       ggplot2::geom_tile() + ggplot2::coord_equal()
     if (!is.null(bound))
       p <- p + ggplot2::geom_sf(data = bound, inherit.aes = FALSE,
@@ -79,19 +79,19 @@ map_exceedance <- function(x, threshold = 1, bound = NULL, ...) {
   lab <- sprintf("P(RR > %g)", threshold)
   if (x$type == "discrete") {
     shp <- x$my_shp; if (!inherits(shp, "sf")) shp <- sf::st_as_sf(shp)
-    shp$.e <- ex
+    shp$fillvalue <- ex
     ggplot2::ggplot(shp) +
-      ggplot2::geom_sf(ggplot2::aes(fill = .data$.e), color = "grey60", linewidth = 0.1) +
+      ggplot2::geom_sf(ggplot2::aes(fill = .data$fillvalue), color = "grey60", linewidth = 0.1) +
       ggplot2::scale_fill_viridis_c(name = lab, limits = c(0, 1), option = "magma") +
       ggplot2::theme_minimal() + ggplot2::labs(x = NULL, y = NULL)
   } else {
-    df <- data.frame(x = x$pred.loc[, 1], y = x$pred.loc[, 2], .e = ex)
+    df <- data.frame(x = x$pred.loc[, 1], y = x$pred.loc[, 2], fillvalue = ex)
     if (!is.null(bound)) {
       if (!inherits(bound, "sf")) bound <- sf::st_as_sf(bound)
       pts <- sf::st_as_sf(df, coords = c("x", "y"), crs = sf::st_crs(bound))
       df <- df[lengths(sf::st_intersects(pts, sf::st_union(bound))) > 0, ]
     }
-    g <- ggplot2::ggplot(df, ggplot2::aes(.data$x, .data$y, fill = .data$.e)) +
+    g <- ggplot2::ggplot(df, ggplot2::aes(.data$x, .data$y, fill = .data$fillvalue)) +
       ggplot2::geom_tile() + ggplot2::coord_equal() +
       ggplot2::scale_fill_viridis_c(name = lab, limits = c(0, 1), option = "magma") +
       ggplot2::theme_minimal() + ggplot2::labs(x = NULL, y = NULL)

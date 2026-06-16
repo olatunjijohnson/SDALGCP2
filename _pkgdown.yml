@@ -2,8 +2,19 @@ url: https://olatunjijohnson.github.io/SDALGCP2
 
 template:
   bootstrap: 5
+  bootswatch: cosmo
   bslib:
-    primary: "#2166AC"
+    primary: "#B2182B"
+    secondary: "#2166AC"
+    base_font: {google: "Inter"}
+    heading_font: {google: "Inter"}
+    code_font: {google: "JetBrains Mono"}
+
+home:
+  title: Fast spatial & spatio-temporal disease mapping
+  description: >
+    SDALGCP2 fits log-Gaussian Cox process models to aggregated disease counts
+    with a fast, modern, glm-like interface.
 
 navbar:
   structure:
@@ -61,7 +72,10 @@ reference:
   - print.summary.SDALGCP2
 
 articles:
-- title: Get started
+- title: Tutorials
   navbar: ~
   contents:
   - SDALGCP2-intro
+  - raster-covariates
+  - spatio-temporal
+  - scale-grid-vs-continuous

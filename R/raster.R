@@ -91,14 +91,19 @@ SDALGCP2_raster <- function(formula, data, my_shp, delta, rasters, phi = NULL,
   if (!inherits(my_shp, "sf")) my_shp <- sf::st_as_sf(my_shp)
   if (!inherits(rasters, "SpatRaster")) rasters <- terra::rast(rasters)
 
-  # response and offset (population) from the formula/data
-  mf <- stats::model.frame(formula, data)
-  y <- as.numeric(stats::model.response(mf))
-  m <- if (any(startsWith(names(mf), "offset"))) exp(stats::model.offset(mf)) else rep(1, length(y))
+  # Covariates named in the formula are read from the raster, not 'data'. Add
+  # placeholder columns so model.frame() can parse the formula; the placeholders
+  # are never used (the design is built from the raster values).
   rhs <- attr(stats::terms(formula), "term.labels")
   rhs <- rhs[!grepl("^offset\\(", rhs)]
   miss <- setdiff(rhs, names(rasters))
   if (length(miss)) stop("raster layers missing for covariate(s): ", paste(miss, collapse = ", "))
+  for (nm in rhs) if (!nm %in% names(data)) data[[nm]] <- 0
+
+  # response and offset (population) from the formula/data
+  mf <- stats::model.frame(formula, data)
+  y <- as.numeric(stats::model.response(mf))
+  m <- if (any(startsWith(names(mf), "offset"))) exp(stats::model.offset(mf)) else rep(1, length(y))
 
   if (is.null(phi)) {
     areas <- as.numeric(sf::st_area(my_shp)); bb <- sf::st_bbox(my_shp)

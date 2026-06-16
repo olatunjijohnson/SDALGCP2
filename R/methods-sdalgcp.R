@@ -80,8 +80,7 @@ plot.sdalgcp <- function(x, type = c("risk", "incidence", "risk_se", "exceedance
   type <- match.arg(type)
   if (!is.null(x$T)) stop("Plotting spatio-temporal fits directly is not yet supported; use predict() and map per time slice.")
   obj <- .strip_sdalgcp(x)
-  pr <- stats::predict(obj, type = "discrete")
-  pr$my_shp <- x$data_sf
+  pr <- stats::predict(obj, type = "discrete")   # pr$my_shp already carries geometry + risk columns
   if (type == "exceedance") return(map_exceedance(pr, threshold = threshold, ...))
   var <- switch(type, risk = "ARR", incidence = "RR", risk_se = "SE_ARR")
   plot(pr, variable = var, midpoint = if (type %in% c("risk", "incidence")) 1 else NULL,
