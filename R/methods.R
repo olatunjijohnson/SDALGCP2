@@ -30,8 +30,9 @@ summary.SDALGCP2 <- function(object, ...) {
   tab <- cbind(Estimate = est, Std.Err = se, `z value` = z,
                `Pr(>|z|)` = 2 * stats::pnorm(-abs(z)))
   rownames(tab) <- rownames(object$cov)
+  mc <- tryCatch(suppressWarnings(mc_diagnostics(object)), error = function(e) NULL)
   out <- list(coefficients = tab, phi = object$phi_opt,
-              loglik = object$llike_val_opt, call = object$call)
+              loglik = object$llike_val_opt, mc = mc, call = object$call)
   class(out) <- "summary.SDALGCP2"
   out
 }
@@ -42,6 +43,9 @@ print.summary.SDALGCP2 <- function(x, ...) {
   cat("\nCoefficients:\n")
   stats::printCoefmat(x$coefficients, has.Pvalue = TRUE, P.values = TRUE, digits = 3)
   cat(sprintf("\nSpatial scale phi: %g\nLog-likelihood: %g\n", x$phi, x$loglik))
+  if (!is.null(x$mc))
+    cat(sprintf("MC importance-sampling ESS: %.0f / %d (%.0f%%);  log-lik MC SE: %.3g\n",
+                x$mc$ESS, x$mc$B, 100 * x$mc$ESS_frac, x$mc$se_loglik))
   cat("Note: sigma^2 is the variance of the latent Gaussian process.\n")
   invisible(x)
 }

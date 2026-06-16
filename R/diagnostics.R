@@ -68,6 +68,46 @@ model_check <- function(object, pred = NULL, nsim = 999, plot = TRUE) {
   invisible(list(fitted = fitted, residuals = resid, moran = mI))
 }
 
+#' Importance-sampling diagnostics for an MCML fit
+#'
+#' The MCML estimate reweights latent samples drawn at the anchor towards the
+#' optimum. When the optimum is far from the anchor the weights become uneven and
+#' the estimate unreliable. This reports the effective sample size of the
+#' importance weights at the maximiser and a Monte Carlo standard error for the
+#' maximised log-likelihood, \eqn{\mathrm{SE}\approx\sqrt{1/\mathrm{ESS}-1/B}}.
+#'
+#' @param object a fitted \code{"SDALGCP2"} object.
+#' @param warn_frac warn if the ESS falls below this fraction of \eqn{B}.
+#' @return invisibly, a list with \code{B}, \code{ESS}, \code{ESS_frac} and
+#'   \code{se_loglik}.
+#' @export
+mc_diagnostics <- function(object, warn_frac = 0.1) {
+  stopifnot(inherits(object, "SDALGCP2"))
+  S <- object$S; D <- object$D; y <- object$y; m <- object$m
+  n <- length(y); p <- ncol(D); B <- nrow(S)
+  data_ll <- as.numeric(S %*% y) - as.numeric(exp(S) %*% m)
+
+  par0 <- object$par0; beta0 <- par0[1:p]; s20 <- par0[p + 1]; phi0 <- par0[p + 2]
+  corr <- attr(object, "prematrix")
+  R0 <- corr$R[, , which.min(abs(corr$phi - phi0))]
+  c0 <- chol(R0); Den <- .mc_num_loglik(c(beta0, log(s20)), D, chol2inv(c0),
+                                        2 * sum(log(diag(c0))), S, data_ll, n, p)$num
+
+  Rb <- object$Sigma_mat_opt / object$sigma2_opt
+  cb <- chol(Rb); num_opt <- .mc_num_loglik(c(object$beta_opt, log(object$sigma2_opt)),
+                D, chol2inv(cb), 2 * sum(log(diag(cb))), S, data_ll, n, p)$num
+
+  a <- num_opt - Den; a <- a - max(a)
+  w <- exp(a); w <- w / sum(w)
+  ess <- 1 / sum(w^2)
+  out <- list(B = B, ESS = ess, ESS_frac = ess / B,
+              se_loglik = sqrt(max(0, 1 / ess - 1 / B)))
+  if (out$ESS_frac < warn_frac)
+    warning(sprintf("Low importance-sampling ESS (%.0f of %d, %.1f%%): consider re-anchoring (iterate = TRUE) or a par0 closer to the optimum.",
+                    ess, B, 100 * out$ESS_frac))
+  invisible(out)
+}
+
 #' One-call panel of post-fit graphics
 #'
 #' Returns the maps and summaries an analyst usually wants after fitting:
