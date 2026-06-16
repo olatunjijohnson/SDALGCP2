@@ -1,0 +1,67 @@
+url: https://olatunjijohnson.github.io/SDALGCP2
+
+template:
+  bootstrap: 5
+  bslib:
+    primary: "#2166AC"
+
+navbar:
+  structure:
+    left:  [intro, reference, articles, news]
+    right: [math, github]
+  components:
+    math:
+      text: Derivations (PDF)
+      menu:
+        - text: Continuous-phi (double integral)
+          href: https://github.com/olatunjijohnson/SDALGCP2/blob/main/math/continuous-phi-derivation.pdf
+        - text: Raster covariates (intensity-scale)
+          href: https://github.com/olatunjijohnson/SDALGCP2/blob/main/math/raster-covariates-derivation.pdf
+
+reference:
+- title: Model fitting
+  desc: User entry points for fitting SDA-LGCP models.
+  contents:
+  - SDALGCP2
+  - SDALGCP2_raster
+  - SDALGCP2_ST
+  - mcml_fit
+- title: Candidate points and correlation
+  desc: Discretisation and the aggregated correlation assembly.
+  contents:
+  - sda_points
+  - precompute_corr
+- title: Sampling and control
+  contents:
+  - control_mcmc
+  - laplace_sampling
+- title: Prediction
+  contents:
+  - predict.SDALGCP2
+  - predict.SDALGCP2_ST
+  - exceedance
+- title: Visualisation
+  desc: Maps and post-fit graphics.
+  contents:
+  - plot.SDALGCP2_pred
+  - plot.SDALGCP2
+  - map_exceedance
+  - phi_profile
+  - coef_plot
+  - report
+- title: Diagnostics
+  contents:
+  - mc_diagnostics
+  - model_check
+- title: Methods
+  contents:
+  - summary.SDALGCP2
+  - confint.SDALGCP2
+  - print.SDALGCP2
+  - print.summary.SDALGCP2
+
+articles:
+- title: Get started
+  navbar: ~
+  contents:
+  - SDALGCP2-intro

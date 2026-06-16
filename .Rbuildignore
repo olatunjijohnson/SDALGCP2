@@ -6,3 +6,6 @@
 ^\.git$
 ^\.github$
 ^math$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
