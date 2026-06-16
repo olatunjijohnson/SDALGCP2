@@ -1,0 +1,48 @@
+Package: SDALGCP2
+Title: Fast Spatially Discrete Approximation to Log-Gaussian Cox Processes for Aggregated Disease Count Data
+Version: 0.0.0.9000
+Authors@R: c(
+    person("Olatunji", "Johnson", email = "teejaystatistics@gmail.com", role = c("aut", "cre")),
+    person("Emanuele", "Giorgi", role = "aut"),
+    person("Peter", "Diggle", role = "aut"))
+Description: A faster, modernised successor to the 'SDALGCP' package. Implements a
+    spatially discrete approximation to a log-Gaussian Cox process model for
+    spatially aggregated disease count data, estimated by Monte Carlo Maximum
+    Likelihood as in Christensen (2004) <doi:10.1198/106186004X2525> and Johnson
+    et al. (2019) <doi:10.1002/sim.8339>. Performance-critical steps (aggregated
+    correlation assembly, MALA sampling, the Monte Carlo likelihood, and the
+    Kronecker-structured spatio-temporal likelihood) are implemented in C++ via
+    'RcppArmadillo'. Adds statistical extensions including a nugget term, general
+    Matern smoothness, importance-sampling diagnostics and re-anchored MCML.
+Depends: R (>= 4.2.0)
+License: GPL-2 | GPL-3
+Encoding: UTF-8
+LazyData: true
+LinkingTo:
+    Rcpp,
+    RcppArmadillo
+Imports:
+    Rcpp,
+    Matrix,
+    sf,
+    terra,
+    stars,
+    spatstat.geom,
+    spatstat.random,
+    ggplot2,
+    progress,
+    methods,
+    stats,
+    graphics,
+    utils
+Suggests:
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0),
+    bench,
+    SDALGCP
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+RoxygenNote: 7.3.1
+URL: https://github.com/olatunjijohnson/SDALGCP2
+BugReports: https://github.com/olatunjijohnson/SDALGCP2/issues

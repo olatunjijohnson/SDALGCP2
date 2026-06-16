@@ -1,0 +1,7 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^DESIGN\.md$
+^benchmarks$
+^scripts$
+^\.git$
+^\.github$
