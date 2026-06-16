@@ -2,7 +2,7 @@ test_that("testthat is operational", {
   expect_equal(1, 1)
 })
 
-test_that("corr_and_grad_cpp derivatives match finite differences", {
+test_that("corr_and_grad_cpp derivatives match finite differences for all kappa", {
   set.seed(1)
   N <- 15
   coords <- lapply(seq_len(N), function(i) {
@@ -10,11 +10,36 @@ test_that("corr_and_grad_cpp derivatives match finite differences", {
     matrix(runif(ni * 2, 0, 100), ncol = 2)
   })
   phi <- 20; h <- 1e-4
-  cg <- SDALGCP2:::corr_and_grad_cpp(coords, list(), phi, FALSE, 0L)
-  Rp <- SDALGCP2:::corr_and_grad_cpp(coords, list(), phi + h, FALSE, 0L)$R
-  Rm <- SDALGCP2:::corr_and_grad_cpp(coords, list(), phi - h, FALSE, 0L)$R
-  expect_lt(max(abs(cg$dR - (Rp - Rm) / (2 * h))), 1e-6)
-  expect_lt(max(abs(cg$d2R - (Rp - 2 * cg$R + Rm) / (h * h))), 1e-4)
+  for (kap in c(0.5, 1.5, 2.5)) {
+    cg <- SDALGCP2:::corr_and_grad_cpp(coords, list(), phi, kap, FALSE, 0L)
+    Rp <- SDALGCP2:::corr_and_grad_cpp(coords, list(), phi + h, kap, FALSE, 0L)$R
+    Rm <- SDALGCP2:::corr_and_grad_cpp(coords, list(), phi - h, kap, FALSE, 0L)$R
+    expect_lt(max(abs(cg$dR - (Rp - Rm) / (2 * h))), 1e-6)
+    expect_lt(max(abs(cg$d2R - (Rp - 2 * cg$R + Rm) / (h * h))), 1e-4)
+  }
+})
+
+test_that("direct method runs with Matern kappa = 1.5", {
+  suppressMessages(library(sf))
+  set.seed(4)
+  shp <- st_sf(geometry = st_make_grid(
+    st_as_sfc(st_bbox(c(xmin = 0, ymin = 0, xmax = 16, ymax = 16))), n = c(6, 6)))
+  N <- nrow(shp)
+  pts <- sda_points(shp, delta = 1.4, method = 3)
+  phi_grid <- seq(1, 5, length.out = 6)
+  corr <- precompute_corr(pts, phi_grid, kappa = 1.5)
+  Sig <- 0.5 * corr$R[, , 3]
+  x1 <- as.numeric(scale(st_coordinates(st_centroid(shp))[, 1]))
+  pop <- round(runif(N, 500, 3000))
+  y <- rpois(N, pop * exp(cbind(1, x1) %*% c(-6, 0.5) +
+                          as.numeric(t(chol(Sig)) %*% rnorm(N))))
+  dat <- data.frame(y = y, x1 = x1, pop = pop)
+  ctrl <- control_mcmc(n.sim = 4000, burnin = 1000, thin = 5, h = 1.65 / N^(1/6))
+  fit <- SDALGCP2(y ~ x1 + offset(log(pop)), dat, shp, delta = 1.4, phi = phi_grid,
+                  method = 3, kappa = 1.5, phi_method = "direct", control.mcmc = ctrl)
+  expect_equal(fit$kappa, 1.5)
+  expect_true(is.finite(fit$phi_opt) && fit$phi_opt > 0)
+  expect_true(is.finite(sqrt(fit$cov["phi", "phi"])))
 })
 
 test_that("analytic gradient/Hessian of the direct MCML match numerical", {

@@ -34,19 +34,20 @@ cross_cov_cpp <- function(pred, coords, weights, phi, kappa, weighted, nthreads 
     .Call(`_SDALGCP2_cross_cov_cpp`, pred, coords, weights, phi, kappa, weighted, nthreads)
 }
 
-#' Aggregated correlation and its phi-derivatives at one phi (C++, exponential)
+#' Aggregated correlation and its phi-derivatives at one phi (C++, Matern)
 #'
 #' @param coords list of N candidate-point matrices (n_i x 2).
 #' @param weights list of N weight vectors (each summing to 1), or empty for the
 #'   unweighted (mean) case.
 #' @param phi spatial scale (> 0).
+#' @param kappa Matern smoothness; one of 0.5, 1.5, 2.5.
 #' @param weighted logical; population-weighted aggregation.
 #' @param nthreads OpenMP threads (<= 0 = default).
 #' @return list with N x N matrices \code{R}, \code{dR} (dR/dphi) and \code{d2R}
 #'   (d2R/dphi2).
 #' @keywords internal
-corr_and_grad_cpp <- function(coords, weights, phi, weighted, nthreads = 0L) {
-    .Call(`_SDALGCP2_corr_and_grad_cpp`, coords, weights, phi, weighted, nthreads)
+corr_and_grad_cpp <- function(coords, weights, phi, kappa, weighted, nthreads = 0L) {
+    .Call(`_SDALGCP2_corr_and_grad_cpp`, coords, weights, phi, kappa, weighted, nthreads)
 }
 
 #' Conditional mode and Laplace covariance for [S | Y], Poisson, non-nested (C++)

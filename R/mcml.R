@@ -123,8 +123,9 @@ mcml_fit <- function(formula, data, corr, par0 = NULL, control.mcmc = NULL,
 
   ## ---- continuous-phi ("direct") path: optimise (beta, sigma2, phi) jointly ----
   if (phi_method == "direct") {
-    if (!is.null(corr$kappa) && corr$kappa != 0.5)
-      stop("phi_method = 'direct' currently supports the exponential kernel (kappa = 0.5).")
+    kap <- if (!is.null(corr$kappa)) corr$kappa else 0.5
+    if (!kap %in% c(0.5, 1.5, 2.5))
+      stop("phi_method = 'direct' supports Matern kappa in {0.5, 1.5, 2.5}.")
     pts <- attr(R, "S_coord")
     weighted <- isTRUE(attr(R, "weighted"))
     coords <- lapply(pts, function(z) as.matrix(z$xy)[, 1:2, drop = FALSE])
@@ -132,18 +133,19 @@ mcml_fit <- function(formula, data, corr, par0 = NULL, control.mcmc = NULL,
     if (nugget) {
       df <- .mcml_direct_nugget_fit(y, D, m, coords, wts, weighted, S.sim, data_ll,
                                     par0_opt = c(beta0, log(sigma2_0)), phi0 = phi0,
-                                    nu0 = nu_anchor, n = n, p = p, messages = messages)
+                                    nu0 = nu_anchor, n = n, p = p, kappa = kap,
+                                    messages = messages)
       pnames <- c(colnames(D), "sigma^2", "phi", "nu")
       phi_opt <- df$estimate[p + 2]; nu_opt <- df$estimate[p + 3]
-      Cm <- corr_and_grad_cpp(coords, wts, phi_opt, weighted, 0L)$R
+      Cm <- corr_and_grad_cpp(coords, wts, phi_opt, kap, weighted, 0L)$R
       diag(Cm) <- diag(Cm) + nu_opt
     } else {
       df <- .mcml_direct_fit(y, D, m, coords, wts, weighted, S.sim, data_ll,
                              par0_opt = c(beta0, log(sigma2_0)), phi0 = phi0,
-                             n = n, p = p, messages = messages)
+                             n = n, p = p, kappa = kap, messages = messages)
       pnames <- c(colnames(D), "sigma^2", "phi")
       phi_opt <- df$estimate[p + 2]; nu_opt <- NULL
-      Cm <- corr_and_grad_cpp(coords, wts, phi_opt, weighted, 0L)$R
+      Cm <- corr_and_grad_cpp(coords, wts, phi_opt, kap, weighted, 0L)$R
     }
     beta_opt <- df$estimate[1:p]; sigma2_opt <- df$estimate[p + 1]
     out <- list(

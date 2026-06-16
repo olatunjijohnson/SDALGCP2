@@ -2,6 +2,10 @@
 
 First development version — a faster, modernised successor to SDALGCP.
 
+* **General Matern smoothness for the direct method**: `corr_and_grad_cpp` now
+  provides closed-form phi-derivatives for Matern `kappa` in {0.5, 1.5, 2.5}, so
+  continuous-phi (`phi_method = "direct"`) estimation works for all three (was
+  exponential only). Derivatives verified against finite differences.
 * **Nugget / overdispersion term** (`nugget = TRUE`, with `phi_method = "direct"`):
   fits covariance `sigma2 (R(phi) + nu I)` and estimates the relative nugget
   `nu = tau2/sigma2` with a standard error, absorbing region-level overdispersion

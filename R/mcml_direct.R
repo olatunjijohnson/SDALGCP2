@@ -13,8 +13,8 @@
 #                   - (sum_b w_b grad)(sum_b w_b grad)'.
 
 # Build R(phi), derivatives and the theta-only matrices needed by grad/Hessian.
-.phi_pieces <- function(phi, coords, wts, weighted, need_hess = FALSE) {
-  cg <- corr_and_grad_cpp(coords, wts, phi, weighted, 0L)
+.phi_pieces <- function(phi, coords, wts, weighted, kappa = 0.5, need_hess = FALSE) {
+  cg <- corr_and_grad_cpp(coords, wts, phi, kappa, weighted, 0L)
   R <- cg$R; Rp <- cg$dR
   ch <- chol(R); Rinv <- chol2inv(ch); ldetR <- 2 * sum(log(diag(ch)))
   A  <- Rinv %*% Rp                 # Rinv R'
@@ -39,11 +39,12 @@
 # dC/dnu = I, d2C/dnu2 = d2C/dphi dnu = 0. Analytic gradient + Hessian, gated by
 # numerical differentiation (test-nugget.R).
 .mcml_direct_nugget_fit <- function(y, D, m, coords, wts, weighted, S.sim, data_ll,
-                                    par0_opt, phi0, nu0, n, p, messages = FALSE) {
+                                    par0_opt, phi0, nu0, n, p, kappa = 0.5,
+                                    messages = FALSE) {
   B <- nrow(S.sim); s2idx <- p + 1; pidx <- p + 2; nidx <- p + 3
 
   pieces <- function(phi, nu) {
-    cg <- corr_and_grad_cpp(coords, wts, phi, weighted, 0L)
+    cg <- corr_and_grad_cpp(coords, wts, phi, kappa, weighted, 0L)
     Rp <- cg$dR; Rpp <- cg$d2R
     C <- cg$R; diag(C) <- diag(C) + nu
     ch <- chol(C); Cinv <- chol2inv(ch); ldetC <- 2 * sum(log(diag(ch)))
@@ -137,7 +138,7 @@
 
 # One direct fit: returns estimate c(beta, sigma2, phi), value, covariance.
 .mcml_direct_fit <- function(y, D, m, coords, wts, weighted, S.sim, data_ll,
-                             par0_opt, phi0, n, p, messages = FALSE) {
+                             par0_opt, phi0, n, p, kappa = 0.5, messages = FALSE) {
   B <- nrow(S.sim)
 
   num_at <- function(beta, s2, pc) {
@@ -149,19 +150,19 @@
   }
 
   # Anchor denominator at phi0 (prior part; data term cancels in the ratio).
-  pc0 <- .phi_pieces(phi0, coords, wts, weighted)
+  pc0 <- .phi_pieces(phi0, coords, wts, weighted, kappa)
   Den <- num_at(par0_opt[1:p], exp(par0_opt[p + 1]), pc0)$num
 
   unpack <- function(xi) list(beta = xi[1:p], s2 = exp(xi[p + 1]), phi = exp(xi[p + 2]))
 
   negMCL <- function(xi) {
-    th <- unpack(xi); pc <- .phi_pieces(th$phi, coords, wts, weighted)
+    th <- unpack(xi); pc <- .phi_pieces(th$phi, coords, wts, weighted, kappa)
     cp <- num_at(th$beta, th$s2, pc)
     -log(mean(exp(cp$num - Den)))
   }
 
   negGrad <- function(xi) {
-    th <- unpack(xi); pc <- .phi_pieces(th$phi, coords, wts, weighted)
+    th <- unpack(xi); pc <- .phi_pieces(th$phi, coords, wts, weighted, kappa)
     cp <- num_at(th$beta, th$s2, pc)
     w <- exp(cp$num - Den); w <- w / sum(w)
     G  <- cp$diff %*% pc$Rinv
@@ -173,7 +174,7 @@
   }
 
   negHess <- function(xi) {
-    th <- unpack(xi); pc <- .phi_pieces(th$phi, coords, wts, weighted, need_hess = TRUE)
+    th <- unpack(xi); pc <- .phi_pieces(th$phi, coords, wts, weighted, kappa, need_hess = TRUE)
     cp <- num_at(th$beta, th$s2, pc)
     w <- exp(cp$num - Den); w <- w / sum(w)
     s2 <- th$s2; phi <- th$phi

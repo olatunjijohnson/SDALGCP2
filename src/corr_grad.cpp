@@ -17,12 +17,35 @@
 // [[Rcpp::plugins(openmp)]]
 using namespace Rcpp;
 
-//' Aggregated correlation and its phi-derivatives at one phi (C++, exponential)
+// Matern correlation and its first/second phi-derivatives at distance d, with
+// a = sqrt(2 kappa) d / phi (a = d/phi for kappa = 1/2). Supports kappa in
+// {1/2, 3/2, 5/2}; all are smooth at d = 0 (a = 0 -> rho = 1, derivatives 0).
+static inline void matern_dphi(double d, double phi, double kappa,
+                               double& rho, double& drho, double& d2rho) {
+  const double phi2 = phi * phi;
+  if (kappa == 0.5) {
+    double a = d / phi, e = std::exp(-a);
+    rho = e; drho = a * e / phi; d2rho = a * (a - 2.0) * e / phi2;
+  } else if (kappa == 1.5) {
+    double a = std::sqrt(3.0) * d / phi, e = std::exp(-a);
+    rho = (1.0 + a) * e;
+    drho = a * a * e / phi;
+    d2rho = a * a * (a - 3.0) * e / phi2;
+  } else {  // kappa == 2.5
+    double a = std::sqrt(5.0) * d / phi, e = std::exp(-a);
+    rho = (1.0 + a + a * a / 3.0) * e;
+    drho = a * a * (1.0 + a) * e / (3.0 * phi);
+    d2rho = a * a * (a * a - 3.0 * a - 3.0) * e / (3.0 * phi2);
+  }
+}
+
+//' Aggregated correlation and its phi-derivatives at one phi (C++, Matern)
 //'
 //' @param coords list of N candidate-point matrices (n_i x 2).
 //' @param weights list of N weight vectors (each summing to 1), or empty for the
 //'   unweighted (mean) case.
 //' @param phi spatial scale (> 0).
+//' @param kappa Matern smoothness; one of 0.5, 1.5, 2.5.
 //' @param weighted logical; population-weighted aggregation.
 //' @param nthreads OpenMP threads (<= 0 = default).
 //' @return list with N x N matrices \code{R}, \code{dR} (dR/dphi) and \code{d2R}
@@ -32,6 +55,7 @@ using namespace Rcpp;
 Rcpp::List corr_and_grad_cpp(const Rcpp::List& coords,
                              const Rcpp::List& weights,
                              double phi,
+                             double kappa,
                              bool weighted,
                              int nthreads = 0) {
   const int N = coords.size();
@@ -53,8 +77,6 @@ Rcpp::List corr_and_grad_cpp(const Rcpp::List& coords,
       pairs.push_back(std::make_pair(i, j));
   const long long npairs = (long long)pairs.size();
 
-  const double p2 = phi * phi, p3 = p2 * phi, p4 = p2 * p2;
-
 #ifdef _OPENMP
   if (nthreads > 0) omp_set_num_threads(nthreads);
   #pragma omp parallel for schedule(dynamic)
@@ -72,11 +94,12 @@ Rcpp::List corr_and_grad_cpp(const Rcpp::List& coords,
       for (int l = 0; l < nj; ++l) {
         const double dx = xk - Xj(l, 0), dy = yk - Xj(l, 1);
         const double d  = std::sqrt(dx * dx + dy * dy);
-        const double e  = std::exp(-d / phi);
         const double w  = weighted ? wk * W[j](l) : inv_npair;
-        sR  += w * e;
-        sD  += w * e * (d / p2);
-        sD2 += w * e * (d * d / p4 - 2.0 * d / p3);
+        double rho, drho, d2rho;
+        matern_dphi(d, phi, kappa, rho, drho, d2rho);
+        sR  += w * rho;
+        sD  += w * drho;
+        sD2 += w * d2rho;
       }
     }
     R(i, j) = R(j, i) = sR;
