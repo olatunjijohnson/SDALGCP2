@@ -83,4 +83,13 @@ test_that("SDALGCP2_ST fits end-to-end and recovers the slope", {
   expect_lt(abs(fit$beta_opt[2] - 0.5), 0.3)
   expect_true(is.finite(fit$nu_opt) && fit$nu_opt > 0)
   expect_true("nu" %in% rownames(fit$cov))
+
+  # re-anchoring runs and discrete prediction returns N x T risk surfaces
+  fit2 <- SDALGCP2_ST(y ~ x1 + offset(log(pop)), dat, shp, times = times, delta = 1.5,
+                      phi = phi_grid, control.mcmc = ctrl, reanchor = 2)
+  expect_true(fit2$n_reanchor >= 1)
+  pred <- predict(fit2)
+  expect_equal(dim(pred$RR_mean), c(N, T))
+  expect_true(all(pred$ARR_mean > 0))
+  expect_equal(nrow(pred$table), N * T)
 })

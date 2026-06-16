@@ -100,13 +100,16 @@
 #' @param kappa spatial Matern smoothness; \code{kappa_t} temporal smoothness.
 #' @param method,weighted,pop_shp point-generation controls.
 #' @param control.mcmc list from \code{\link{control_mcmc}}.
+#' @param reanchor number of re-anchoring passes (re-simulate the latent field at
+#'   the current optimum and refit); improves the variance-parameter estimates.
 #' @param messages logical; print progress.
 #' @return an object of class \code{c("SDALGCP2_ST","SDALGCP2")} with \code{phi_opt},
 #'   \code{nu_opt}, coefficient table and covariance.
 #' @export
 SDALGCP2_ST <- function(formula, data, my_shp, times, delta, phi = NULL,
                         kappa = 0.5, kappa_t = 0.5, method = 3L, weighted = FALSE,
-                        pop_shp = NULL, control.mcmc = NULL, messages = FALSE) {
+                        pop_shp = NULL, control.mcmc = NULL, reanchor = 0L,
+                        messages = FALSE) {
   if (!inherits(my_shp, "sf")) my_shp <- sf::st_as_sf(my_shp)
   N <- nrow(my_shp); T <- length(times)
   mf <- stats::model.frame(formula, data)
@@ -128,50 +131,98 @@ SDALGCP2_ST <- function(formula, data, my_shp, times, delta, phi = NULL,
 
   # starting values from a Poisson GLM
   g <- stats::glm(formula, family = "poisson", data = data)
-  beta0 <- stats::coef(g); s20 <- mean(stats::residuals(g)^2); nu0 <- stats::median(diff(sort(unique(times)))) * 2
-  phi0 <- stats::median(phi); i0 <- which.min(abs(phi - phi0)); Rs0 <- Rarr[, , i0]
-  Rt0 <- .temporal_corr(times, nu0, kappa_t)
-
-  # one-time anchor sampling from the FULL covariance (Kronecker built once here)
-  Sigma0 <- s20 * kronecker(Rt0, Rs0)
+  beta0 <- stats::coef(g); s20 <- mean(stats::residuals(g)^2)
+  nu0 <- stats::median(diff(sort(unique(times)))) * 2
   mu0 <- as.numeric(D %*% beta0)
-  if (messages) cat("Sampling latent field at anchor (NT =", N * T, ")...\n")
-  S.sim <- laplace_sampling(mu0, Sigma0, y, m, control.mcmc)$samples
-  data_ll <- as.numeric(S.sim %*% y) - as.numeric(exp(S.sim) %*% m)
 
-  cRs0 <- chol(Rs0); Rs0inv <- chol2inv(cRs0); ldetRs0 <- 2 * sum(log(diag(cRs0)))
-  theta0 <- c(beta0, log(s20), log(nu0))
-  Den <- .st_num_loglik(theta0, D, Rs0inv, ldetRs0, S.sim, data_ll, N, T, p, times, kappa_t)$num
+  # A single pass: draw the latent field at the anchor, profile over phi.
+  .pass <- function(beta_a, s2_a, nu_a, phi_a) {
+    i0 <- which.min(abs(phi - phi_a)); Rs0 <- Rarr[, , i0]
+    Rt0 <- .temporal_corr(times, nu_a, kappa_t)
+    Sigma0 <- s2_a * kronecker(Rt0, Rs0)            # full Kronecker built ONCE per pass
+    if (messages) cat("Sampling latent field at anchor (NT =", N * T, ")...\n")
+    S.sim <- laplace_sampling(as.numeric(D %*% beta_a), Sigma0, y, m, control.mcmc)$samples
+    data_ll <- as.numeric(S.sim %*% y) - as.numeric(exp(S.sim) %*% m)
+    cRs0 <- chol(Rs0); Rs0inv <- chol2inv(cRs0); ldetRs0 <- 2 * sum(log(diag(cRs0)))
+    theta0 <- c(beta_a, log(s2_a), log(nu_a))
+    Den <- .st_num_loglik(theta0, D, Rs0inv, ldetRs0, S.sim, data_ll, N, T, p, times, kappa_t)$num
 
-  if (messages) cat("Profiling over", length(phi), "phi values...\n")
-  res <- vector("list", length(phi)); th <- theta0
-  for (i in seq_along(phi)) {
-    cRs <- chol(Rarr[, , i]); Rsinv <- chol2inv(cRs); ldetRs <- 2 * sum(log(diag(cRs)))
-    res[[i]] <- .st_fit_one_phi(th, D, Rsinv, ldetRs, S.sim, data_ll, Den, N, T, p, times, kappa_t)
-    th <- res[[i]]$par
+    res <- vector("list", length(phi)); th <- theta0
+    for (i in seq_along(phi)) {
+      cRs <- chol(Rarr[, , i]); Rsinv <- chol2inv(cRs); ldetRs <- 2 * sum(log(diag(cRs)))
+      res[[i]] <- .st_fit_one_phi(th, D, Rsinv, ldetRs, S.sim, data_ll, Den, N, T, p, times, kappa_t)
+      th <- res[[i]]$par
+    }
+    vals <- vapply(res, `[[`, numeric(1), "value")
+    best <- which.max(vals); est <- res[[best]]$par
+
+    gfun <- res[[best]]$grad
+    eps <- 1e-4; k <- length(est); H <- matrix(0, k, k); g0 <- gfun(est)
+    for (j in seq_len(k)) { e <- est; e[j] <- e[j] + eps; H[, j] <- (gfun(e) - g0) / eps }
+    H <- (H + t(H)) / 2
+    cov <- tryCatch(solve(H), error = function(e) matrix(NA, k, k))
+    list(beta_opt = est[1:p], sigma2_opt = exp(est[p + 1]), nu_opt = exp(est[p + 2]),
+         phi_opt = phi[best], cov = cov, value = vals[best],
+         all_para = data.frame(phi = phi, value = vals), S = S.sim)
   }
-  vals <- vapply(res, `[[`, numeric(1), "value")
-  best <- which.max(vals); est <- res[[best]]$par
 
-  # covariance from a finite-difference Hessian of the analytic gradient
-  gfun <- res[[best]]$grad
-  eps <- 1e-4; k <- length(est); H <- matrix(0, k, k)
-  g0 <- gfun(est)
-  for (j in seq_len(k)) { e <- est; e[j] <- e[j] + eps; H[, j] <- (gfun(e) - g0) / eps }
-  H <- (H + t(H)) / 2
-  cov <- tryCatch(solve(H), error = function(e) matrix(NA, k, k))
+  # Re-anchoring loop (re-simulate the latent field at the current optimum).
+  cur <- list(beta_opt = beta0, sigma2_opt = s20, nu_opt = nu0, phi_opt = stats::median(phi))
+  fit_p <- NULL; done <- 0L
+  for (kk in 0:reanchor) {
+    fit_p <- .pass(cur$beta_opt, cur$sigma2_opt, cur$nu_opt, cur$phi_opt)
+    conv <- kk > 0 && max(abs(c(fit_p$beta_opt, fit_p$sigma2_opt, fit_p$nu_opt) -
+                              c(cur$beta_opt, cur$sigma2_opt, cur$nu_opt)) /
+                          pmax(abs(c(cur$beta_opt, cur$sigma2_opt, cur$nu_opt)), 1e-6)) < 1e-2
+    cur <- fit_p; done <- kk
+    if (messages && reanchor > 0) cat(sprintf("  ST re-anchor pass %d done\n", kk))
+    if (conv) break
+  }
 
-  beta_opt <- est[1:p]; sigma2_opt <- exp(est[p + 1]); nu_opt <- exp(est[p + 2])
   pn <- c(colnames(D), "sigma^2", "nu")
-  estimates <- stats::setNames(c(beta_opt, sigma2_opt, nu_opt), pn)
-  dimnames(cov) <- list(pn, pn)
-
-  out <- list(D = D, y = y, m = m, beta_opt = beta_opt, sigma2_opt = sigma2_opt,
-              phi_opt = phi[best], nu_opt = nu_opt, estimates = estimates, cov = cov,
-              llike_val_opt = vals[best], mu = mu0, kappa = kappa, kappa_t = kappa_t,
-              all_para = data.frame(phi = phi, value = vals), S = S.sim,
-              N = N, T = T, times = times, phi_method = "grid+direct(nu)", call = match.call())
+  estimates <- stats::setNames(c(fit_p$beta_opt, fit_p$sigma2_opt, fit_p$nu_opt), pn)
+  dimnames(fit_p$cov) <- list(pn, pn)
+  out <- list(D = D, y = y, m = m, beta_opt = fit_p$beta_opt, sigma2_opt = fit_p$sigma2_opt,
+              phi_opt = fit_p$phi_opt, nu_opt = fit_p$nu_opt, estimates = estimates,
+              cov = fit_p$cov, llike_val_opt = fit_p$value, mu = mu0,
+              kappa = kappa, kappa_t = kappa_t, all_para = fit_p$all_para, S = fit_p$S,
+              S.coord = pts, control.mcmc = control.mcmc,
+              N = N, T = T, times = times, n_reanchor = done,
+              phi_method = "grid+direct(nu)", call = match.call())
   attr(out, "my_shp") <- my_shp
   class(out) <- c("SDALGCP2_ST", "SDALGCP2")
+  out
+}
+
+#' Discrete (region x time) prediction for a spatio-temporal fit
+#'
+#' Draws the latent field at the fitted optimum and returns posterior mean and SD
+#' of the incidence relative risk \eqn{\exp(\mu+S)} and covariate-adjusted relative
+#' risk \eqn{\exp(S)} for every region and time.
+#'
+#' @param object an \code{"SDALGCP2_ST"} fit.
+#' @param control.mcmc optional MCMC controls (defaults to the fitting ones).
+#' @param ... unused.
+#' @return a list with \eqn{N\times T} matrices \code{RR_mean}, \code{RR_sd},
+#'   \code{ARR_mean}, \code{ARR_sd} and a long data frame \code{table}.
+#' @method predict SDALGCP2_ST
+#' @export
+predict.SDALGCP2_ST <- function(object, control.mcmc = NULL, ...) {
+  N <- object$N; T <- object$T
+  pts <- object$S.coord
+  if (is.null(pts)) stop("Prediction needs the candidate points stored in the fit.")
+  Rs <- precompute_corr(pts, object$phi_opt, kappa = object$kappa)$R[, , 1]
+  Rt <- .temporal_corr(object$times, object$nu_opt, object$kappa_t)
+  Sigma <- object$sigma2_opt * kronecker(Rt, Rs)
+  if (is.null(control.mcmc)) control.mcmc <- object$control.mcmc
+  if (is.null(control.mcmc)) control.mcmc <- control_mcmc(h = 1.65 / (N * T)^(1 / 6))
+  S.sim <- laplace_sampling(object$mu, Sigma, object$y, object$m, control.mcmc)$samples
+  RR <- exp(S.sim); ARR <- exp(sweep(S.sim, 2, object$mu, "-"))
+  toM <- function(v) matrix(v, N, T)
+  out <- list(RR_mean = toM(colMeans(RR)), RR_sd = toM(.colSDs(RR)),
+              ARR_mean = toM(colMeans(ARR)), ARR_sd = toM(.colSDs(ARR)),
+              table = data.frame(region = rep(seq_len(N), T), time = rep(object$times, each = N),
+                                 RR = colMeans(RR), ARR = colMeans(ARR)))
+  class(out) <- "SDALGCP2_ST_pred"
   out
 }
