@@ -13,6 +13,7 @@ sdalgcp_control(
   kappa = 0.5,
   kappa_t = 0.5,
   nugget = FALSE,
+  confounding = c("none", "restricted"),
   reanchor = 2L,
   n_sim = 10000L,
   burnin = 2000L,
@@ -45,6 +46,12 @@ spatio-temporal fits); chosen from the geometry if \code{NULL}.}
 
 \item{nugget}{logical; add an unstructured region-level term (overdispersion).
 Requires \code{scale = "continuous"}.}
+
+\item{confounding}{\code{"none"} (default) or \code{"restricted"}. With
+\code{"restricted"}, restricted spatial regression is used: the spatial random
+effect is constrained to the orthogonal complement of the fixed-effect design
+so it cannot absorb a spatially structured covariate (avoids spatial
+confounding / attenuation of \code{beta}). Spatial models only.}
 
 \item{reanchor}{number of re-anchoring passes (re-simulate the latent field at
 the optimum and refit) for reliable variance estimates. Default \code{2}.}

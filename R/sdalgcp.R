@@ -23,6 +23,11 @@
 #' @param kappa_t temporal Matern smoothness (spatio-temporal fits).
 #' @param nugget logical; add an unstructured region-level term (overdispersion).
 #'   Requires \code{scale = "continuous"}.
+#' @param confounding \code{"none"} (default) or \code{"restricted"}. With
+#'   \code{"restricted"}, restricted spatial regression is used: the spatial random
+#'   effect is constrained to the orthogonal complement of the fixed-effect design
+#'   so it cannot absorb a spatially structured covariate (avoids spatial
+#'   confounding / attenuation of \code{beta}). Spatial models only.
 #' @param reanchor number of re-anchoring passes (re-simulate the latent field at
 #'   the optimum and refit) for reliable variance estimates. Default \code{2}.
 #' @param n_sim,burnin,thin MCMC length controls for the latent-field sampler.
@@ -35,16 +40,19 @@ sdalgcp_control <- function(delta = NULL, points_per_region = 16,
                             point_method = c("regular", "uniform", "ssi"),
                             scale = c("continuous", "grid"), phi = NULL,
                             kappa = 0.5, kappa_t = 0.5, nugget = FALSE,
+                            confounding = c("none", "restricted"),
                             reanchor = 2L, n_sim = 10000L, burnin = 2000L,
                             thin = 8L, tilt_spatial = FALSE, nthreads = 0L) {
   point_method <- match.arg(point_method)
   scale <- match.arg(scale)
+  confounding <- match.arg(confounding)
   stopifnot((n_sim - burnin) %% thin == 0)
   list(delta = delta, points_per_region = points_per_region,
        point_method = point_method, scale = scale, phi = phi, kappa = kappa,
-       kappa_t = kappa_t, nugget = nugget, reanchor = as.integer(reanchor),
-       n_sim = as.integer(n_sim), burnin = as.integer(burnin),
-       thin = as.integer(thin), tilt_spatial = tilt_spatial, nthreads = nthreads)
+       kappa_t = kappa_t, nugget = nugget, confounding = confounding,
+       reanchor = as.integer(reanchor), n_sim = as.integer(n_sim),
+       burnin = as.integer(burnin), thin = as.integer(thin),
+       tilt_spatial = tilt_spatial, nthreads = nthreads)
 }
 
 # Auto candidate-point spacing: aim for ~points_per_region points in a typical
@@ -143,9 +151,9 @@ sdalgcp <- function(formula, data, time = NULL, rasters = NULL, popden = NULL,
     fit <- SDALGCP2(formula, df, data, delta = delta, phi = control$phi,
                     method = pm, weighted = weighted, pop_shp = popden, kappa = control$kappa,
                     control.mcmc = ctrl_mcmc, phi_method = if (control$scale == "continuous") "direct" else "grid",
-                    nugget = control$nugget, reanchor = control$reanchor,
-                    nthreads = control$nthreads, messages = verbose)
-    fit$mode <- "spatial"
+                    nugget = control$nugget, confounding = control$confounding,
+                    reanchor = control$reanchor, nthreads = control$nthreads, messages = verbose)
+    fit$mode <- if (control$confounding == "restricted") "spatial (restricted)" else "spatial"
   }
   fit$delta <- delta; fit$formula <- formula; fit$call <- match.call()
   fit$data_sf <- if (is.null(time)) data else shp

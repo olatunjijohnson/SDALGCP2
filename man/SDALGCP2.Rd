@@ -18,6 +18,7 @@ SDALGCP2(
   control.mcmc = NULL,
   phi_method = c("grid", "direct"),
   nugget = FALSE,
+  confounding = c("none", "restricted"),
   reanchor = 0L,
   rho = 0.55,
   giveup = 1000L,
@@ -59,6 +60,10 @@ add an unstructured region-level term, fitting covariance
 \eqn{\sigma^2(R(\phi)+\nu I)} and estimating the relative nugget
 \eqn{\nu=\tau^2/\sigma^2} with a standard error. Absorbs overdispersion not
 explained by the spatial structure.}
+
+\item{confounding}{\code{"none"} (default) or \code{"restricted"} for restricted
+spatial regression (constrains the spatial random effect orthogonal to the
+fixed-effect design; fitted by a Laplace-approximate marginal likelihood).}
 
 \item{reanchor}{number of re-anchoring passes: after fitting, the latent field
 is re-simulated at the current optimum and the model refit, which keeps the
