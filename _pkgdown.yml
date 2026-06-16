@@ -32,11 +32,17 @@ navbar:
           href: https://github.com/olatunjijohnson/SDALGCP2/blob/main/math/confounding-and-misalignment.pdf
 
 reference:
-- title: Model fitting
-  desc: User entry points for fitting SDA-LGCP models.
+- title: Fitting
+  desc: The main interface and its controls.
+  contents:
+  - sdalgcp
+  - sdalgcp_control
+- title: Specialised fitting engines
+  desc: Lower-level fitters used by sdalgcp() for specific settings.
   contents:
   - SDALGCP2
   - SDALGCP2_raster
+  - SDALGCP2_misaligned
   - SDALGCP2_ST
   - mcml_fit
 - title: Candidate points and correlation
@@ -50,12 +56,14 @@ reference:
   - laplace_sampling
 - title: Prediction
   contents:
+  - predict.sdalgcp
   - predict.SDALGCP2
   - predict.SDALGCP2_ST
   - exceedance
 - title: Visualisation
   desc: Maps and post-fit graphics.
   contents:
+  - plot.sdalgcp
   - plot.SDALGCP2_pred
   - plot.SDALGCP2
   - map_exceedance
