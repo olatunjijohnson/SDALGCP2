@@ -9,6 +9,7 @@ sdalgcp(
   data,
   time = NULL,
   rasters = NULL,
+  covariates = NULL,
   popden = NULL,
   control = sdalgcp_control(),
   verbose = FALSE
@@ -26,6 +27,11 @@ spatio-temporal model is fitted (data must have one row per region and time).}
 
 \item{rasters}{optional \code{terra::SpatRaster} of spatially continuous
 covariates (layers named in \code{formula}).}
+
+\item{covariates}{optional named list of \code{sf} \strong{point} layers giving
+covariates observed on a different support (e.g. monitors); each is kriged to
+the candidate points and enters with a Berkson correction (see
+\code{\link{SDALGCP2_misaligned}}).}
 
 \item{popden}{optional population-density \code{SpatRaster}; if supplied, the
 region aggregation is population-weighted.}

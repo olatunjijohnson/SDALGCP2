@@ -83,6 +83,10 @@ sdalgcp_control <- function(delta = NULL, points_per_region = 16,
 #'   spatio-temporal model is fitted (data must have one row per region and time).
 #' @param rasters optional \code{terra::SpatRaster} of spatially continuous
 #'   covariates (layers named in \code{formula}).
+#' @param covariates optional named list of \code{sf} \strong{point} layers giving
+#'   covariates observed on a different support (e.g. monitors); each is kriged to
+#'   the candidate points and enters with a Berkson correction (see
+#'   \code{\link{SDALGCP2_misaligned}}).
 #' @param popden optional population-density \code{SpatRaster}; if supplied, the
 #'   region aggregation is population-weighted.
 #' @param control a \code{\link{sdalgcp_control}} list of settings (smart defaults).
@@ -109,8 +113,8 @@ sdalgcp_control <- function(delta = NULL, points_per_region = 16,
 #' plot(fit)                   # default relative-risk map
 #' }
 #' @export
-sdalgcp <- function(formula, data, time = NULL, rasters = NULL, popden = NULL,
-                    control = sdalgcp_control(), verbose = FALSE) {
+sdalgcp <- function(formula, data, time = NULL, rasters = NULL, covariates = NULL,
+                    popden = NULL, control = sdalgcp_control(), verbose = FALSE) {
   if (!inherits(formula, "formula")) stop("'formula' must be a formula, e.g. cases ~ x + offset(log(pop)).")
   if (!inherits(data, "sf")) stop("'data' must be an 'sf' object (polygons with the model columns). Convert with sf::st_as_sf().")
   weighted <- !is.null(popden)
@@ -133,6 +137,14 @@ sdalgcp <- function(formula, data, time = NULL, rasters = NULL, popden = NULL,
                        weighted = weighted, pop_shp = popden, control.mcmc = ctrl_mcmc,
                        reanchor = control$reanchor, messages = verbose)
     fit$mode <- "spatio-temporal"
+  } else if (!is.null(covariates)) {
+    ## ---- covariates on a different support (kriged + Berkson) ----
+    delta <- control$delta %||% .auto_delta(data, control$points_per_region)
+    if (verbose) message(sprintf("Misaligned-covariate fit: %d regions, delta = %.3g", nrow(data), delta))
+    fit <- SDALGCP2_misaligned(formula, data, delta = delta, covariates = covariates,
+                               phi = control$phi, method = pm, weighted = weighted,
+                               pop_shp = popden, control.mcmc = ctrl_mcmc, messages = verbose)
+    fit$mode <- "spatial (misaligned covariates)"
   } else if (!is.null(rasters)) {
     ## ---- raster (intensity-scale) covariates ----
     df <- sf::st_drop_geometry(data)
