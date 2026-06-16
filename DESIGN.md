@@ -221,6 +221,49 @@ and fully precomputable — still strictly better than areal averaging. Both wil
 offered; default to the first-order offset model, with the fully-tilted version as
 an option. Implementation tracked as task #5; design fixed here.
 
+## 3c. Methodology: continuous-phi (grid-free) MCML — "solve it directly"
+
+**Current behaviour.** The spatial scale `phi` is *discretised*: we evaluate the
+aggregated correlation `R(phi)` on a grid, fit `(beta, sigma2)` at each, and take
+the profile maximum. The grid is robust (it shows the whole profile) but wasteful
+— most grid points are far from the optimum — and the resolution caps the
+precision of `phi-hat`.
+
+**Idea (user).** Treat `phi` as a continuous parameter and optimise it *directly*
+inside the MCML objective, alongside `beta` and `sigma2`, instead of scanning a
+grid. The MCML log-likelihood is smooth in `phi`, so a gradient-based optimiser
+needs only `R(phi)` and its derivative `dR/dphi` at arbitrary `phi`.
+
+**Derivatives are available in closed form.** For the aggregated exponential
+kernel,
+```
+R_ij(phi)      = sum_{k,l} w_ik w_jl exp(-d_kl/phi)
+dR_ij/dphi     = sum_{k,l} w_ik w_jl exp(-d_kl/phi) * (d_kl / phi^2)
+```
+(general Matern: differentiate the closed-form 3/2, 5/2 kernels similarly). The
+MCML gradient w.r.t. `log phi` then follows exactly as in the existing
+spatio-temporal code, which already does this for the temporal range `nu`:
+```
+d/dphi of the per-sample joint log-density
+  = -0.5 [ tr(R^{-1} R')  -  (S-mu)' R^{-1} R' R^{-1} (S-mu) / sigma2 ],   R' = dR/dphi
+```
+weighted by the importance weights and reduced over samples — the same vectorised
+machinery as `mcml_fit`, plus one extra parameter.
+
+**Plan.**
+- New C++ kernel `corr_and_grad_cpp(coords, weights, phi, kappa)` returning `R`
+  and `dR/dphi` (reuses the `corr_aggregate` inner loop).
+- `mcml_fit(..., method = c("grid","direct"))`: `"grid"` stays the default and the
+  reference; `"direct"` optimises `(beta, log sigma2, log phi)` jointly with
+  `nlminb`/`optim`, recomputing `R(phi)`/`R'(phi)` per step (cheap now).
+- Standard errors for `phi` come directly from the joint Hessian (no loess/spline
+  needed), and the profile plot can still be produced on demand.
+- **Compare** the two: agreement of `phi-hat` and speed (direct should need far
+  fewer correlation builds than a 20-point grid). Keep both options permanently —
+  grid for diagnostics/multimodal profiles, direct for speed/precision.
+
+Tracked as task #6; design fixed here.
+
 ## 4. Engineering / dependency modernisation
 
 - **Drop legacy/orphaned deps:** `geoR` (orphaned), `sp`, `raster`, `spacetime`,
