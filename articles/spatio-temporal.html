@@ -77,75 +77,132 @@
 
     
     
-<p>When the same regions are observed at several time points, add
-<code>time =</code> the name of the time column and
-<code><a href="../reference/sdalgcp.html">sdalgcp()</a></code> fits a separable space-time SDA-LGCP. The spatial
-scale <code>phi</code> is estimated alongside a temporal Matern range
-<code>nu</code>.</p>
+<p>When the same regions are observed at several times, add
+<code>time =</code> and <code>SDALGCP2</code> fits a separable
+space–time model. This tutorial is self-contained.</p>
+<div class="section level2">
+<h2 id="the-model">The model<a class="anchor" aria-label="anchor" href="#the-model"></a>
+</h2>
+<p>For region
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>i</mi><annotation encoding="application/x-tex">i</annotation></semantics></math>
+at time
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>t</mi><annotation encoding="application/x-tex">t</annotation></semantics></math>,
+counts
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>Y</mi><mrow><mi>i</mi><mi>t</mi></mrow></msub><annotation encoding="application/x-tex">Y_{it}</annotation></semantics></math>
+with offset
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>m</mi><mrow><mi>i</mi><mi>t</mi></mrow></msub><annotation encoding="application/x-tex">m_{it}</annotation></semantics></math>:
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>Y</mi><mrow><mi>i</mi><mi>t</mi></mrow></msub><mo>∣</mo><mi>S</mi><mo>∼</mo><mrow><mi mathvariant="normal">P</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">n</mi></mrow><mspace width="-0.167em"></mspace><mo minsize="120%" maxsize="120%" stretchy="true" form="prefix">(</mo><msub><mi>m</mi><mrow><mi>i</mi><mi>t</mi></mrow></msub><mspace width="0.167em"></mspace><msup><mi>e</mi><msub><mi>η</mi><mrow><mi>i</mi><mi>t</mi></mrow></msub></msup><mo minsize="120%" maxsize="120%" stretchy="true" form="postfix">)</mo><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>η</mi><mrow><mi>i</mi><mi>t</mi></mrow></msub><mo>=</mo><msubsup><mi>d</mi><mrow><mi>i</mi><mi>t</mi></mrow><mi>⊤</mi></msubsup><mi>β</mi><mo>+</mo><msub><mi>S</mi><mrow><mi>i</mi><mi>t</mi></mrow></msub><mo>,</mo></mrow><annotation encoding="application/x-tex">
+Y_{it}\mid S \sim \mathrm{Poisson}\!\big(m_{it}\,e^{\eta_{it}}\big),
+\qquad \eta_{it}=d_{it}^\top\beta + S_{it},
+</annotation></semantics></math> with a <strong>separable</strong>
+space–time covariance
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">C</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">v</mi></mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>S</mi><mrow><mi>i</mi><mi>t</mi></mrow></msub><mo>,</mo><msub><mi>S</mi><mrow><mi>j</mi><mi>s</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo><mspace width="0.278em"></mspace><mo>=</mo><mspace width="0.278em"></mspace><msup><mi>σ</mi><mn>2</mn></msup><mspace width="0.167em"></mspace><msub><mi>R</mi><mi>s</mi></msub><mo stretchy="false" form="prefix">(</mo><mrow><mo stretchy="true" form="prefix">‖</mo><mi>⋅</mi><mo stretchy="true" form="postfix">‖</mo></mrow><mo>;</mo><mi>ϕ</mi><msub><mo stretchy="false" form="postfix">)</mo><mrow><mi>i</mi><mi>j</mi></mrow></msub><mspace width="0.278em"></mspace><msub><mi>R</mi><mi>t</mi></msub><mo stretchy="false" form="prefix">(</mo><mo stretchy="false" form="prefix">|</mo><mi>t</mi><mo>−</mo><mi>s</mi><mo stretchy="false" form="prefix">|</mo><mo>;</mo><mi>ν</mi><msub><mo stretchy="false" form="postfix">)</mo><mrow><mi>t</mi><mi>s</mi></mrow></msub><mo>,</mo></mrow><annotation encoding="application/x-tex">
+\mathrm{Cov}(S_{it},S_{js}) \;=\; \sigma^2\,R_s(\lVert\cdot\rVert;\phi)_{ij}\;R_t(|t-s|;\nu)_{ts},
+</annotation></semantics></math>
+i.e. <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">C</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">v</mi></mrow><mo stretchy="false" form="prefix">(</mo><mrow><mi mathvariant="normal">v</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">c</mi></mrow><mspace width="0.167em"></mspace><mi>S</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><msup><mi>σ</mi><mn>2</mn></msup><mspace width="0.167em"></mspace><mo stretchy="false" form="prefix">(</mo><msub><mi>R</mi><mi>t</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>ν</mi><mo stretchy="false" form="postfix">)</mo><mo>⊗</mo><msub><mi>R</mi><mi>s</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>ϕ</mi><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mathrm{Cov}(\mathrm{vec}\,S)=\sigma^2\,(R_t(\nu)\otimes R_s(\phi))</annotation></semantics></math>,
+where
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>R</mi><mi>s</mi></msub><annotation encoding="application/x-tex">R_s</annotation></semantics></math>
+is the aggregated spatial correlation (range
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ϕ</mi><annotation encoding="application/x-tex">\phi</annotation></semantics></math>)
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>R</mi><mi>t</mi></msub><annotation encoding="application/x-tex">R_t</annotation></semantics></math>
+a temporal Matérn correlation (range
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ν</mi><annotation encoding="application/x-tex">\nu</annotation></semantics></math>).
+<code>SDALGCP2</code> never forms the
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>N</mi><mspace width="-0.167em"></mspace><mo>⋅</mo><mspace width="-0.167em"></mspace><mi>T</mi><mo stretchy="false" form="postfix">)</mo><mo>×</mo><mo stretchy="false" form="prefix">(</mo><mi>N</mi><mspace width="-0.167em"></mspace><mo>⋅</mo><mspace width="-0.167em"></mspace><mi>T</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(N\!\cdot\!T)\times(N\!\cdot\!T)</annotation></semantics></math>
+covariance — it uses the Kronecker identities
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>x</mi><mi>⊤</mi></msup><mo stretchy="false" form="prefix">(</mo><msub><mi>R</mi><mi>t</mi></msub><mo>⊗</mo><msub><mi>R</mi><mi>s</mi></msub><msup><mo stretchy="false" form="postfix">)</mo><mrow><mi>−</mi><mn>1</mn></mrow></msup><mi>x</mi><mo>=</mo><mrow><mi mathvariant="normal">t</mi><mi mathvariant="normal">r</mi></mrow><mo stretchy="false" form="prefix">(</mo><msubsup><mi>R</mi><mi>s</mi><mrow><mi>−</mi><mn>1</mn></mrow></msubsup><mi>M</mi><msubsup><mi>R</mi><mi>t</mi><mrow><mi>−</mi><mn>1</mn></mrow></msubsup><msup><mi>M</mi><mi>⊤</mi></msup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">x^\top(R_t\otimes R_s)^{-1}x=\mathrm{tr}(R_s^{-1}M R_t^{-1}M^\top)</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">|</mo><msub><mi>R</mi><mi>t</mi></msub><mo>⊗</mo><msub><mi>R</mi><mi>s</mi></msub><mo stretchy="false" form="prefix">|</mo><mo>=</mo><mi>N</mi><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">|</mo><msub><mi>R</mi><mi>t</mi></msub><mo stretchy="false" form="prefix">|</mo><mi>+</mi><mi>T</mi><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">|</mo><msub><mi>R</mi><mi>s</mi></msub><mo stretchy="false" form="prefix">|</mo></mrow><annotation encoding="application/x-tex">\log|R_t\otimes R_s|=N\log|R_t|+T\log|R_s|</annotation></semantics></math>
+— so it scales to many regions and times. The temporal range
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ν</mi><annotation encoding="application/x-tex">\nu</annotation></semantics></math>
+is estimated alongside
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>β</mi><mo>,</mo><msup><mi>σ</mi><mn>2</mn></msup><mo>,</mo><mi>ϕ</mi></mrow><annotation encoding="application/x-tex">\beta,\sigma^2,\phi</annotation></semantics></math>.</p>
+</div>
 <div class="section level2">
 <h2 id="the-data">The data<a class="anchor" aria-label="anchor" href="#the-data"></a>
 </h2>
 <p>One row per region <strong>and</strong> time, with the geometry
-repeated. Here, four years on a 6×6 lattice:</p>
+repeated. Here four years on a 6×6 lattice:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/olatunjijohnson/SDALGCP2" class="external-link">SDALGCP2</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-spatial.github.io/sf/" class="external-link">sf</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">7</span><span class="op">)</span></span>
-<span><span class="va">shp</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://r-spatial.github.io/sf/reference/sf.html" class="external-link">st_sf</a></span><span class="op">(</span>geometry <span class="op">=</span> <span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_make_grid.html" class="external-link">st_make_grid</a></span><span class="op">(</span></span>
+<span><span class="va">shp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://r-spatial.github.io/sf/reference/sf.html" class="external-link">st_sf</a></span><span class="op">(</span>geometry <span class="op">=</span> <span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_make_grid.html" class="external-link">st_make_grid</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_as_sfc.html" class="external-link">st_as_sfc</a></span><span class="op">(</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_bbox.html" class="external-link">st_bbox</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>xmin <span class="op">=</span> <span class="fl">0</span>, ymin <span class="op">=</span> <span class="fl">0</span>, xmax <span class="op">=</span> <span class="fl">18</span>, ymax <span class="op">=</span> <span class="fl">18</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>, n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">6</span>, <span class="fl">6</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">N</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/dimensions.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">shp</span><span class="op">)</span>; <span class="va">times</span> <span class="op">&lt;-</span> <span class="fl">2019</span><span class="op">:</span><span class="fl">2022</span>; <span class="cn">T</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">times</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># simulate space-time counts (separable covariance) ...</span></span>
+<span><span class="co"># simulate separable space-time counts (true beta=0.5)</span></span>
+<span><span class="va">pts</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sda_points.html">sda_points</a></span><span class="op">(</span><span class="va">shp</span>, delta <span class="op">=</span> <span class="fl">1.4</span>, method <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="va">Rs</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/precompute_corr.html">precompute_corr</a></span><span class="op">(</span><span class="va">pts</span>, <span class="fl">3</span><span class="op">)</span><span class="op">$</span><span class="va">R</span><span class="op">[</span>, , <span class="fl">1</span><span class="op">]</span></span>
+<span><span class="va">Rt</span>  <span class="op">&lt;-</span> <span class="fu">SDALGCP2</span><span class="fu">:::</span><span class="fu">.temporal_corr</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="cn">T</span><span class="op">)</span>, <span class="fl">1.5</span>, <span class="fl">0.5</span><span class="op">)</span></span>
+<span><span class="va">L</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/transpose.html" class="external-link">t</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/chol.html" class="external-link">chol</a></span><span class="op">(</span><span class="fl">0.4</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/kronecker.html" class="external-link">kronecker</a></span><span class="op">(</span><span class="va">Rt</span>, <span class="va">Rs</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">x1</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">N</span> <span class="op">*</span> <span class="cn">T</span><span class="op">)</span>; <span class="va">pop</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/math-generics.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">N</span> <span class="op">*</span> <span class="cn">T</span>, <span class="fl">1000</span>, <span class="fl">5000</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">y</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">rpois</a></span><span class="op">(</span><span class="va">N</span> <span class="op">*</span> <span class="cn">T</span>, <span class="va">pop</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="fl">6</span> <span class="op">+</span> <span class="fl">0.5</span> <span class="op">*</span> <span class="va">x1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">L</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">N</span> <span class="op">*</span> <span class="cn">T</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
 <span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://r-spatial.github.io/sf/reference/sf.html" class="external-link">st_sf</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>cases <span class="op">=</span> <span class="va">y</span>, x1 <span class="op">=</span> <span class="va">x1</span>, pop <span class="op">=</span> <span class="va">pop</span>, year <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="va">times</span>, each <span class="op">=</span> <span class="va">N</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  geometry <span class="op">=</span> <span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_geometry.html" class="external-link">st_geometry</a></span><span class="op">(</span><span class="va">shp</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="va">N</span><span class="op">)</span>, <span class="cn">T</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
+<p><img src="t3_data.png"></p>
 </div>
 <div class="section level2">
 <h2 id="fit">Fit<a class="anchor" aria-label="anchor" href="#fit"></a>
 </h2>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sdalgcp.html">sdalgcp</a></span><span class="op">(</span><span class="va">cases</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/offset.html" class="external-link">offset</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">pop</span><span class="op">)</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dat</span>, time <span class="op">=</span> <span class="st">"year"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sdalgcp.html">sdalgcp</a></span><span class="op">(</span><span class="va">cases</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/offset.html" class="external-link">offset</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">pop</span><span class="op">)</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dat</span>, time <span class="op">=</span> <span class="st">"year"</span>,</span>
+<span>               control <span class="op">=</span> <span class="fu"><a href="../reference/sdalgcp_control.html">sdalgcp_control</a></span><span class="op">(</span>reanchor <span class="op">=</span> <span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rspatial.github.io/terra/reference/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></code></pre></div>
-<p>Internally the likelihood never forms the
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>N</mi><mo>⋅</mo><mi>T</mi><mo stretchy="false" form="postfix">)</mo><mo>×</mo><mo stretchy="false" form="prefix">(</mo><mi>N</mi><mo>⋅</mo><mi>T</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(N\cdot T)\times(N\cdot T)</annotation></semantics></math>
-covariance — it uses the Kronecker identities
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>x</mi><mi>⊤</mi></msup><mo stretchy="false" form="prefix">(</mo><msub><mi>R</mi><mi>t</mi></msub><mo>⊗</mo><msub><mi>R</mi><mi>s</mi></msub><msup><mo stretchy="false" form="postfix">)</mo><mrow><mi>−</mi><mn>1</mn></mrow></msup><mi>x</mi><mo>=</mo><mrow><mi mathvariant="normal">t</mi><mi mathvariant="normal">r</mi></mrow><mo stretchy="false" form="prefix">(</mo><msubsup><mi>R</mi><mi>s</mi><mrow><mi>−</mi><mn>1</mn></mrow></msubsup><mi>M</mi><msubsup><mi>R</mi><mi>t</mi><mrow><mi>−</mi><mn>1</mn></mrow></msubsup><msup><mi>M</mi><mi>⊤</mi></msup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">x^\top(R_t\otimes R_s)^{-1}x = \mathrm{tr}(R_s^{-1} M R_t^{-1} M^\top)</annotation></semantics></math>
-and
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">|</mo><msub><mi>R</mi><mi>t</mi></msub><mo>⊗</mo><msub><mi>R</mi><mi>s</mi></msub><mo stretchy="false" form="prefix">|</mo><mo>=</mo><mi>N</mi><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">|</mo><msub><mi>R</mi><mi>t</mi></msub><mo stretchy="false" form="prefix">|</mo><mi>+</mi><mi>T</mi><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">|</mo><msub><mi>R</mi><mi>s</mi></msub><mo stretchy="false" form="prefix">|</mo></mrow><annotation encoding="application/x-tex">\log|R_t\otimes R_s| = N\log|R_t| + T\log|R_s|</annotation></semantics></math>
-— so it scales to many regions and times.</p>
+<pre><code><span><span class="co">#&gt; Coefficients:</span></span>
+<span><span class="co">#&gt;             Estimate Std.Err z value Pr(&gt;|z|)</span></span>
+<span><span class="co">#&gt; (Intercept)  -6.167   0.107  -57.61   &lt;2e-16 ***</span></span>
+<span><span class="co">#&gt; x1            0.592   0.038   15.73   &lt;2e-16 ***</span></span>
+<span><span class="co">#&gt; sigma^2       0.491   0.205    2.39    0.017 *</span></span>
+<span><span class="co">#&gt; nu            0.853   0.360    2.37    0.018 *</span></span>
+<span><span class="co">#&gt;</span></span>
+<span><span class="co">#&gt; Spatial scale phi: 2.02</span></span></code></pre>
+<p><code>nu</code> is the temporal range (correlation length in years);
+<code>phi</code> the spatial range.</p>
 </div>
 <div class="section level2">
-<h2 id="map-relative-risk-by-time">Map relative risk by time<a class="anchor" aria-label="anchor" href="#map-relative-risk-by-time"></a>
+<h2 id="predict-and-map-pick-a-year-and-a-quantity">Predict and map — pick a year and a quantity<a class="anchor" aria-label="anchor" href="#predict-and-map-pick-a-year-and-a-quantity"></a>
 </h2>
-<p><code><a href="https://rspatial.github.io/terra/reference/predict.html" class="external-link">predict()</a></code> returns region-by-time matrices and a long
-table:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">pred</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">pred</span><span class="op">$</span><span class="va">ARR_mean</span><span class="op">)</span>   <span class="co"># N x T matrix of covariate-adjusted relative risk</span></span>
+<p><code><a href="https://rspatial.github.io/terra/reference/predict.html" class="external-link">predict()</a></code> returns
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi><mo>×</mo><mi>T</mi></mrow><annotation encoding="application/x-tex">N\times T</annotation></semantics></math>
+matrices of relative risk and covariate-adjusted relative risk (with
+standard errors). The <code><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot()</a></code> method selects a
+<strong>time</strong> and a <strong>quantity</strong>
+(<code>"RR"</code>, <code>"ARR"</code>, <code>"RR_se"</code>,
+<code>"ARR_se"</code>, <code>"exceedance"</code>):</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">pr</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># join one time slice back to the geometry to map, or facet all of them:</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
-<span><span class="va">maps</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="cn">T</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">t</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">g</span> <span class="op">&lt;-</span> <span class="va">shp</span>; <span class="va">g</span><span class="op">$</span><span class="va">RR</span> <span class="op">&lt;-</span> <span class="va">pred</span><span class="op">$</span><span class="va">ARR_mean</span><span class="op">[</span>, <span class="va">t</span><span class="op">]</span>; <span class="va">g</span><span class="op">$</span><span class="va">year</span> <span class="op">&lt;-</span> <span class="va">times</span><span class="op">[</span><span class="va">t</span><span class="op">]</span>; <span class="va">g</span></span>
-<span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">maps</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggsf.html" class="external-link">geom_sf</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="va">RR</span><span class="op">)</span>, color <span class="op">=</span> <span class="st">"grey70"</span>, linewidth <span class="op">=</span> <span class="fl">0.1</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">facet_wrap</a></span><span class="op">(</span><span class="op">~</span><span class="va">year</span>, nrow <span class="op">=</span> <span class="fl">1</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_gradient.html" class="external-link">scale_fill_gradient2</a></span><span class="op">(</span>midpoint <span class="op">=</span> <span class="fl">1</span>, low <span class="op">=</span> <span class="st">"#2166AC"</span>, mid <span class="op">=</span> <span class="st">"grey95"</span>, high <span class="op">=</span> <span class="st">"#B2182B"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="st_facet.png"></p>
-<p>The hotspot in the upper-right intensifies through 2020–2021 and
-recedes by 2022 — the kind of space-time pattern that area-by-area or
-year-by-year analyses miss.</p>
+<span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">pr</span>, time <span class="op">=</span> <span class="cn">NULL</span>, what <span class="op">=</span> <span class="st">"ARR"</span><span class="op">)</span>                 <span class="co"># facet all years</span></span>
+<span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">pr</span>, time <span class="op">=</span> <span class="fl">2021</span>, what <span class="op">=</span> <span class="st">"RR"</span><span class="op">)</span>                  <span class="co"># relative risk, 2021 only</span></span>
+<span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">pr</span>, time <span class="op">=</span> <span class="fl">2021</span>, what <span class="op">=</span> <span class="st">"exceedance"</span>, threshold <span class="op">=</span> <span class="fl">1.3</span>, which <span class="op">=</span> <span class="st">"ARR"</span><span class="op">)</span></span></code></pre></div>
+<p>Covariate-adjusted relative risk, all years:</p>
+<p><img src="t3_arr_facet.png"></p>
+<table class="table">
+<thead><tr class="header">
+<th align="center">Relative risk, 2021</th>
+<th align="center">P(adjusted RR &gt; 1.3), 2021</th>
+</tr></thead>
+<tbody><tr class="odd">
+<td align="center"><img src="t3_rr_2021.png"></td>
+<td align="center"><img src="t3_exc_2021.png"></td>
+</tr></tbody>
+</table>
+<p>You can equally call <code>plot(fit, time = 2021, what = "RR")</code>
+directly on the fit, and <code>pr$table</code> is a long data frame
+(region × time) of every quantity for further analysis.</p>
 </div>
 <div class="section level2">
-<h2 id="tip">Tip<a class="anchor" aria-label="anchor" href="#tip"></a>
+<h2 id="tips">Tips<a class="anchor" aria-label="anchor" href="#tips"></a>
 </h2>
-<p>Spatio-temporal fits use a <code>phi</code> grid (set via
-<code>sdalgcp_control(phi = ...)</code>); the temporal range
-<code>nu</code> is estimated continuously. Increase
-<code>reanchor</code> in the control if the variance parameters look
-unstable. ```</p>
+<p>Spatio-temporal fits profile the spatial range <code>phi</code> on a
+grid (set it with <code>sdalgcp_control(phi = ...)</code>); the temporal
+range <code>nu</code> is estimated continuously. Increase
+<code>reanchor</code> if the variance parameters look unstable. ```</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

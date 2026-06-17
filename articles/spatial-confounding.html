@@ -78,59 +78,126 @@
     
     
 <p>When a covariate is itself spatially structured (a north–south
-gradient, distance to a city, deprivation), it is collinear with the
-spatial random effect. The random effect then <em>absorbs</em> the
-covariate’s signal, and the estimated coefficient is
-<strong>attenuated</strong> with inflated variance. This is <em>spatial
-confounding</em> (Reich, Hodges &amp; Zadnik 2006; Hughes &amp; Haran
-2013).</p>
+gradient, deprivation, distance to a city), it is collinear with the
+spatial random effect: the data can be explained almost equally well by
+“covariate effect” or by “spatial noise”. This is <strong>spatial
+confounding</strong>. This tutorial is self-contained and deliberately
+balanced — spatial confounding is a genuinely nuanced topic.</p>
 <div class="section level2">
-<h2 id="seeing-the-problem">Seeing the problem<a class="anchor" aria-label="anchor" href="#seeing-the-problem"></a>
+<h2 id="the-issue">The issue<a class="anchor" aria-label="anchor" href="#the-issue"></a>
 </h2>
-<p>Simulate counts where a spatially smooth covariate <code>x1</code>
-has a true effect of 0.5, on top of a spatial field:</p>
+<p>The model is
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>η</mi><mi>i</mi></msub><mo>=</mo><msubsup><mi>d</mi><mi>i</mi><mi>⊤</mi></msubsup><mi>β</mi><mo>+</mo><msub><mi>S</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">\eta_i=d_i^\top\beta+S_i</annotation></semantics></math>
+with
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>S</mi><mo>∼</mo><mi>𝒩</mi><mo stretchy="false" form="prefix">(</mo><mn>0</mn><mo>,</mo><msup><mi>σ</mi><mn>2</mn></msup><mi>R</mi><mo stretchy="false" form="prefix">(</mo><mi>ϕ</mi><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">S\sim\mathcal N(0,\sigma^2 R(\phi))</annotation></semantics></math>.
+When a column of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>d</mi><annotation encoding="application/x-tex">d</annotation></semantics></math>
+lies close to the leading spatial modes of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>R</mi><mo stretchy="false" form="prefix">(</mo><mi>ϕ</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">R(\phi)</annotation></semantics></math>,
+the coefficient
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>β</mi><annotation encoding="application/x-tex">\beta</annotation></semantics></math>
+and the random effect
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>S</mi><annotation encoding="application/x-tex">S</annotation></semantics></math>
+compete to explain the same pattern. The consequence is that
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>β</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\widehat\beta</annotation></semantics></math>
+is poorly identified — uncertain, and sensitive to how the spatial term
+is specified.</p>
+</div>
+<div class="section level2">
+<h2 id="restricted-spatial-regression-rsr">Restricted spatial regression (RSR)<a class="anchor" aria-label="anchor" href="#restricted-spatial-regression-rsr"></a>
+</h2>
+<p>One remedy (Reich, Hodges &amp; Zadnik 2006; Hughes &amp; Haran 2013)
+constrains the random effect to the <strong>orthogonal
+complement</strong> of the fixed-effect design. With
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>K</mi><annotation encoding="application/x-tex">K</annotation></semantics></math>
+an orthonormal basis of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">n</mi><mi mathvariant="normal">u</mi><mi mathvariant="normal">l</mi><mi mathvariant="normal">l</mi></mrow><mo stretchy="false" form="prefix">(</mo><msup><mi>D</mi><mi>⊤</mi></msup><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mathrm{null}(D^\top)</annotation></semantics></math>,
+the model becomes
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>η</mi><mo>=</mo><mi>D</mi><mi>β</mi><mo>+</mo><mi>K</mi><mi>α</mi><mo>,</mo><mspace width="2.0em"></mspace><mi>α</mi><mo>∼</mo><mi>𝒩</mi><mspace width="-0.167em"></mspace><mo minsize="120%" maxsize="120%" stretchy="true" form="prefix">(</mo><mn>0</mn><mo>,</mo><msup><mi>σ</mi><mn>2</mn></msup><msup><mi>K</mi><mi>⊤</mi></msup><mi>R</mi><mo stretchy="false" form="prefix">(</mo><mi>ϕ</mi><mo stretchy="false" form="postfix">)</mo><mi>K</mi><mo minsize="120%" maxsize="120%" stretchy="true" form="postfix">)</mo><mo>,</mo></mrow><annotation encoding="application/x-tex">
+\eta=D\beta+K\alpha,\qquad \alpha\sim\mathcal N\!\big(0,\sigma^2 K^\top R(\phi)K\big),
+</annotation></semantics></math> so
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>K</mi><mi>α</mi></mrow><annotation encoding="application/x-tex">K\alpha</annotation></semantics></math>
+cannot reproduce any column of
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>D</mi><annotation encoding="application/x-tex">D</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>β</mi><annotation encoding="application/x-tex">\beta</annotation></semantics></math>
+is identified by the data, not by the spatial smoothing.
+<code>SDALGCP2</code> fits it by a Laplace-approximate marginal
+likelihood (derivation: <a href="https://github.com/olatunjijohnson/SDALGCP2/blob/main/math/confounding-and-misalignment.pdf" class="external-link"><code>math/confounding-and-misalignment.pdf</code></a>).</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/olatunjijohnson/SDALGCP2" class="external-link">SDALGCP2</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-spatial.github.io/sf/" class="external-link">sf</a></span><span class="op">)</span></span>
-<span><span class="co"># ... regions with a gradient covariate x1, offset pop, simulated cases ...</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/glm.html" class="external-link">glm</a></span><span class="op">(</span><span class="va">cases</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/offset.html" class="external-link">offset</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">pop</span><span class="op">)</span><span class="op">)</span>, <span class="va">poisson</span>, <span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_geometry.html" class="external-link">st_drop_geometry</a></span><span class="op">(</span><span class="va">regions</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">[</span><span class="st">"x1"</span><span class="op">]</span></span>
-<span><span class="va">fit_std</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sdalgcp.html">sdalgcp</a></span><span class="op">(</span><span class="va">cases</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/offset.html" class="external-link">offset</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">pop</span><span class="op">)</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">regions</span><span class="op">)</span></span>
-<span><span class="va">fit_std</span><span class="op">$</span><span class="va">beta_opt</span><span class="op">[</span><span class="st">"x1"</span><span class="op">]</span></span></code></pre></div>
-<p>The standard SDA-LGCP fit attenuates the coefficient because the
-spatial term has eaten part of the gradient:</p>
-<p><img src="rsr_compare.png" style="width:60.0%"></p>
-<pre><code><span><span class="co">#&gt; truth               0.50</span></span>
-<span><span class="co">#&gt; Poisson GLM         0.42</span></span>
-<span><span class="co">#&gt; standard SDA-LGCP   0.28   &lt;- attenuated by confounding</span></span>
-<span><span class="co">#&gt; restricted (RSR)    0.44</span></span></code></pre>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span></span>
+<span><span class="va">regions</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://r-spatial.github.io/sf/reference/sf.html" class="external-link">st_sf</a></span><span class="op">(</span>geometry <span class="op">=</span> <span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_make_grid.html" class="external-link">st_make_grid</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_as_sfc.html" class="external-link">st_as_sfc</a></span><span class="op">(</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_bbox.html" class="external-link">st_bbox</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>xmin <span class="op">=</span> <span class="fl">0</span>, ymin <span class="op">=</span> <span class="fl">0</span>, xmax <span class="op">=</span> <span class="fl">20</span>, ymax <span class="op">=</span> <span class="fl">20</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>, n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">8</span>, <span class="fl">8</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">N</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/dimensions.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">regions</span><span class="op">)</span></span>
+<span><span class="va">pts</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sda_points.html">sda_points</a></span><span class="op">(</span><span class="va">regions</span>, delta <span class="op">=</span> <span class="fl">1.2</span>, method <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="va">S</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/transpose.html" class="external-link">t</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/chol.html" class="external-link">chol</a></span><span class="op">(</span><span class="fl">0.7</span> <span class="op">*</span> <span class="fu"><a href="../reference/precompute_corr.html">precompute_corr</a></span><span class="op">(</span><span class="va">pts</span>, <span class="fl">4</span><span class="op">)</span><span class="op">$</span><span class="va">R</span><span class="op">[</span>, , <span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">N</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">regions</span><span class="op">$</span><span class="va">x1</span>    <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/scale.html" class="external-link">scale</a></span><span class="op">(</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_coordinates.html" class="external-link">st_coordinates</a></span><span class="op">(</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/geos_unary.html" class="external-link">st_centroid</a></span><span class="op">(</span><span class="va">regions</span><span class="op">)</span><span class="op">)</span><span class="op">[</span>, <span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>  <span class="co"># spatial gradient</span></span>
+<span><span class="va">regions</span><span class="op">$</span><span class="va">pop</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/math-generics.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">N</span>, <span class="fl">500</span>, <span class="fl">3000</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">regions</span><span class="op">$</span><span class="va">cases</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">rpois</a></span><span class="op">(</span><span class="va">N</span>, <span class="va">regions</span><span class="op">$</span><span class="va">pop</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="fl">6</span> <span class="op">+</span> <span class="fl">0.6</span> <span class="op">*</span> <span class="va">regions</span><span class="op">$</span><span class="va">x1</span> <span class="op">+</span> <span class="va">S</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># standard fit vs restricted spatial regression</span></span>
+<span><span class="va">fit_std</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sdalgcp.html">sdalgcp</a></span><span class="op">(</span><span class="va">cases</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/offset.html" class="external-link">offset</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">pop</span><span class="op">)</span><span class="op">)</span>, <span class="va">regions</span><span class="op">)</span></span>
+<span><span class="va">fit_rsr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sdalgcp.html">sdalgcp</a></span><span class="op">(</span><span class="va">cases</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/offset.html" class="external-link">offset</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">pop</span><span class="op">)</span><span class="op">)</span>, <span class="va">regions</span>,</span>
+<span>                   control <span class="op">=</span> <span class="fu"><a href="../reference/sdalgcp_control.html">sdalgcp_control</a></span><span class="op">(</span>confounding <span class="op">=</span> <span class="st">"restricted"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="the-fix-restricted-spatial-regression">The fix: restricted spatial regression<a class="anchor" aria-label="anchor" href="#the-fix-restricted-spatial-regression"></a>
+<h2 id="what-rsr-does-and-what-it-does-not">What RSR does — and what it does not<a class="anchor" aria-label="anchor" href="#what-rsr-does-and-what-it-does-not"></a>
 </h2>
-<p>Constrain the spatial random effect to the <strong>orthogonal
-complement</strong> of the fixed-effect design, so it cannot reproduce
-any covariate. Turn it on with one control argument:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fit_rsr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sdalgcp.html">sdalgcp</a></span><span class="op">(</span><span class="va">cases</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/offset.html" class="external-link">offset</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">pop</span><span class="op">)</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">regions</span>,</span>
-<span>                   control <span class="op">=</span> <span class="fu"><a href="../reference/sdalgcp_control.html">sdalgcp_control</a></span><span class="op">(</span>confounding <span class="op">=</span> <span class="st">"restricted"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rspatial.github.io/terra/reference/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_rsr</span><span class="op">)</span></span></code></pre></div>
-<p><code>SDALGCP2</code> builds an orthonormal basis <code>K</code> of
-<code>null(Dᵀ)</code>, replaces the random effect by <code>Kα</code>
-(which is orthogonal to every column of the design), and fits the
-restricted model by a Laplace-approximate marginal likelihood. The
-coefficient is now identified by the data, not by the spatial smoothing,
-and the spatial term only captures the residual structure. Full
-derivation: <code>math/confounding-and-misalignment.pdf</code>.</p>
+<p>Because the single-dataset estimate depends on the (random) alignment
+of the spatial field with the covariate, the honest way to see the
+effect is a small <strong>simulation study</strong> — 24 data sets
+generated as above (true
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>β</mi><mo>=</mo><mn>0.6</mn></mrow><annotation encoding="application/x-tex">\beta=0.6</annotation></semantics></math>),
+fitting both methods:</p>
+<p><img src="t5_study.png" style="width:55.0%"></p>
+<pre><code><span><span class="co">#&gt; Across 24 simulated data sets (true beta = 0.6):</span></span>
+<span><span class="co">#&gt;   standard          mean est = 0.602,  SD of est = 0.265,  mean SE = 0.151</span></span>
+<span><span class="co">#&gt;   restricted (RSR)  mean est = 0.587,  SD of est = 0.267,  mean SE = 0.074</span></span></code></pre>
+<p>Two things stand out:</p>
+<ul>
+<li>both methods are essentially <strong>unbiased on average</strong>
+(0.60 vs 0.59) — here the spatial term is genuine noise, not a hidden
+confounder, so neither systematically attenuates
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>β</mi><annotation encoding="application/x-tex">\beta</annotation></semantics></math>;</li>
+<li>RSR reports a much <strong>smaller standard error</strong> (0.074 vs
+0.151). Its estimate is identified purely by the within-covariate
+signal, so it looks very precise.</li>
+</ul>
+<p><strong>Caveat (important).</strong> That small RSR standard error
+can be <em>anti-conservative</em>: it does not reflect the
+across-data-set spread
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>≈</mo><mn>0.27</mn></mrow><annotation encoding="application/x-tex">\approx0.27</annotation></semantics></math>
+here), because it treats the spatial–covariate separation as known. This
+is the well-documented critique of RSR (Hanks et al. 2015; Zimmerman
+&amp; Ver Hoef 2021). Whether RSR helps depends on the causal role of
+the spatial term: if it is just smooth noise, RSR gives a clean,
+data-driven estimate; if it is a proxy for an <em>unmeasured spatial
+confounder</em>, the unrestricted model may actually be preferable.</p>
 </div>
 <div class="section level2">
-<h2 id="when-to-use-it">When to use it<a class="anchor" aria-label="anchor" href="#when-to-use-it"></a>
+<h2 id="practical-guidance">Practical guidance<a class="anchor" aria-label="anchor" href="#practical-guidance"></a>
 </h2>
-<p>Use <code>confounding = "restricted"</code> when a covariate of
-interest is spatially smooth and you care about an unbiased,
-interpretable coefficient. If the covariates are non-spatial (e.g. an
-individual-level rate), confounding is not an issue and the default fit
-is appropriate. ```</p>
+<ul>
+<li>Use <code>confounding = "restricted"</code> when you want a
+coefficient identified by the covariate’s own variation, free of the
+spatial smoothing — but treat its standard error as a lower bound.</li>
+<li>When covariates are non-spatial (e.g. an individual-level rate),
+confounding is not a concern and the default fit is appropriate.</li>
+<li>In all cases, report which choice you made: the spatial term and the
+covariate are partly interchangeable, and that is a property of the
+data, not a bug.</li>
+</ul>
+</div>
+<div class="section level2">
+<h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
+</h2>
+<p>Reich, Hodges &amp; Zadnik (2006) <em>Biometrics</em>; Hughes &amp;
+Haran (2013) <em>JRSS-B</em>; Hanks, Schliep, Hooten &amp; Hoeting
+(2015) <em>Environmetrics</em>; Zimmerman &amp; Ver Hoef (2021)
+<em>Spatial Statistics</em>. ```</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

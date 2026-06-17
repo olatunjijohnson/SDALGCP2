@@ -77,69 +77,117 @@
 
     
     
-<p>Covariates are frequently observed on a <em>different support</em>
-from the outcome: air quality at a handful of monitoring stations,
-temperature on a coarse climate grid, deprivation on census tracts that
-do not match the health districts the counts are reported on.
-<code>SDALGCP2</code> aligns them by <strong>predicting the covariate to
-the candidate points</strong> of the outcome regions and entering it
-with an uncertainty-aware (Berkson) correction.</p>
+<p>Covariates are often observed on a <em>different support</em> from
+the outcome: air quality at a few monitoring stations, temperature on a
+coarse climate grid, deprivation on census tracts that do not match the
+health districts. <code>SDALGCP2</code> aligns them by
+<strong>predicting the covariate to the candidate points</strong> of the
+outcome regions and entering it with an uncertainty-aware (Berkson)
+correction. This tutorial is self-contained.</p>
 <div class="section level2">
-<h2 id="point-support-monitors">Point support: monitors<a class="anchor" aria-label="anchor" href="#point-support-monitors"></a>
+<h2 id="the-method">The method<a class="anchor" aria-label="anchor" href="#the-method"></a>
 </h2>
-<p>Suppose the covariate <code>z</code> is observed only at 40 scattered
-monitors (an <code>sf</code> of points with a <code>z</code> column),
-while the outcome is counts over a lattice. Pass the monitors through
-<code>covariates =</code>:</p>
+<p>The intensity-scale offset (Tutorial 2) needs the covariate
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>z</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>x</mi><mrow><mi>i</mi><mi>k</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">z(x_{ik})</annotation></semantics></math>
+at the candidate points
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>x</mi><mrow><mi>i</mi><mi>k</mi></mrow></msub><annotation encoding="application/x-tex">x_{ik}</annotation></semantics></math>.
+When
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>z</mi><annotation encoding="application/x-tex">z</annotation></semantics></math>
+is observed elsewhere we (1) model it as a Gaussian process and
+<strong>krige</strong> it to those points, obtaining a predictive mean
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>μ</mi><mi>z</mi></msub><mo stretchy="false" form="prefix">(</mo><msub><mi>x</mi><mrow><mi>i</mi><mi>k</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mu_z(x_{ik})</annotation></semantics></math>
+and variance
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>v</mi><mi>z</mi></msub><mo stretchy="false" form="prefix">(</mo><msub><mi>x</mi><mrow><mi>i</mi><mi>k</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">v_z(x_{ik})</annotation></semantics></math>;
+(2) plug these into a <strong>Berkson-corrected</strong> offset
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>b</mi><mi>i</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>β</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><munder><mo>∑</mo><mi>k</mi></munder><msub><mi>w</mi><mrow><mi>i</mi><mi>k</mi></mrow></msub><mspace width="0.167em"></mspace><mrow><mi mathvariant="normal">exp</mi><mo>⁡</mo></mrow><mspace width="-0.167em"></mspace><mo minsize="180%" maxsize="180%" stretchy="true" form="prefix">{</mo><msub><mi>μ</mi><mi>z</mi></msub><mo stretchy="false" form="prefix">(</mo><msub><mi>x</mi><mrow><mi>i</mi><mi>k</mi></mrow></msub><msup><mo stretchy="false" form="postfix">)</mo><mi>⊤</mi></msup><mi>β</mi><mo>+</mo><mstyle displaystyle="false"><mfrac><mn>1</mn><mn>2</mn></mfrac></mstyle><mspace width="0.167em"></mspace><msup><mi>β</mi><mi>⊤</mi></msup><msub><mi>V</mi><mi>z</mi></msub><mo stretchy="false" form="prefix">(</mo><msub><mi>x</mi><mrow><mi>i</mi><mi>k</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo><mspace width="0.167em"></mspace><mi>β</mi><mo minsize="180%" maxsize="180%" stretchy="true" form="postfix">}</mo><mi>.</mi></mrow><annotation encoding="application/x-tex">
+b_i(\beta)=\log\sum_k w_{ik}\,
+\exp\!\Big\{\mu_z(x_{ik})^\top\beta+\tfrac12\,\beta^\top V_z(x_{ik})\,\beta\Big\}.
+</annotation></semantics></math> The
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mstyle displaystyle="false"><mfrac><mn>1</mn><mn>2</mn></mfrac></mstyle><msup><mi>β</mi><mi>⊤</mi></msup><msub><mi>V</mi><mi>z</mi></msub><mi>β</mi></mrow><annotation encoding="application/x-tex">\tfrac12\beta^\top V_z\beta</annotation></semantics></math>
+term propagates the prediction uncertainty (plugging in the kriged mean
+alone would attenuate
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>β</mi><annotation encoding="application/x-tex">\beta</annotation></semantics></math>);
+as
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>v</mi><mi>z</mi></msub><mo>→</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">v_z\to0</annotation></semantics></math>
+it recovers the raster case. Derivation: <a href="https://github.com/olatunjijohnson/SDALGCP2/blob/main/math/confounding-and-misalignment.pdf" class="external-link"><code>math/confounding-and-misalignment.pdf</code></a>.</p>
+</div>
+<div class="section level2">
+<h2 id="point-support-monitoring-stations">Point support: monitoring stations<a class="anchor" aria-label="anchor" href="#point-support-monitoring-stations"></a>
+</h2>
+<p>The covariate <code>z</code> is observed at 40 scattered monitors (an
+<code>sf</code> of points with a <code>z</code> column); the outcome is
+counts over an 8×8 lattice.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/olatunjijohnson/SDALGCP2" class="external-link">SDALGCP2</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-spatial.github.io/sf/" class="external-link">sf</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># monitors: sf POINTs with a 'z' column ; regions: sf POLYGONs with cases, pop</span></span>
-<span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sdalgcp.html">sdalgcp</a></span><span class="op">(</span><span class="va">cases</span> <span class="op">~</span> <span class="va">z</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/offset.html" class="external-link">offset</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">pop</span><span class="op">)</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">regions</span>,</span>
-<span>               covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>z <span class="op">=</span> <span class="va">monitors</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">123</span><span class="op">)</span></span>
+<span><span class="va">zf</span>  <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">xy</span><span class="op">)</span> <span class="fl">1.5</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Trig.html" class="external-link">sin</a></span><span class="op">(</span><span class="va">xy</span><span class="op">[</span>, <span class="fl">1</span><span class="op">]</span> <span class="op">/</span> <span class="fl">4</span><span class="op">)</span> <span class="op">+</span> <span class="fl">1.2</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Trig.html" class="external-link">cos</a></span><span class="op">(</span><span class="va">xy</span><span class="op">[</span>, <span class="fl">2</span><span class="op">]</span> <span class="op">/</span> <span class="fl">5</span><span class="op">)</span> <span class="op">+</span> <span class="fl">0.5</span> <span class="op">*</span> <span class="va">xy</span><span class="op">[</span>, <span class="fl">1</span><span class="op">]</span> <span class="op">/</span> <span class="fl">20</span></span>
+<span><span class="va">reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://r-spatial.github.io/sf/reference/sf.html" class="external-link">st_sf</a></span><span class="op">(</span>geometry <span class="op">=</span> <span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_make_grid.html" class="external-link">st_make_grid</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_as_sfc.html" class="external-link">st_as_sfc</a></span><span class="op">(</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_bbox.html" class="external-link">st_bbox</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>xmin <span class="op">=</span> <span class="fl">0</span>, ymin <span class="op">=</span> <span class="fl">0</span>, xmax <span class="op">=</span> <span class="fl">20</span>, ymax <span class="op">=</span> <span class="fl">20</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>, n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">8</span>, <span class="fl">8</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">N</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">reg</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># simulate counts from the point-level intensity model (true beta_z = 0.8)</span></span>
+<span><span class="va">pts</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sda_points.html">sda_points</a></span><span class="op">(</span><span class="va">reg</span>, delta <span class="op">=</span> <span class="fl">1.0</span>, method <span class="op">=</span> <span class="fl">3</span><span class="op">)</span>; <span class="va">w</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">pts</span>, <span class="kw">function</span><span class="op">(</span><span class="va">p</span><span class="op">)</span> <span class="va">p</span><span class="op">$</span><span class="va">weight</span><span class="op">)</span></span>
+<span><span class="va">b_true</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="va">N</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">Z</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fu">zf</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">pts</span><span class="op">[[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">xy</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>; <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">w</span><span class="op">[[</span><span class="va">i</span><span class="op">]</span><span class="op">]</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">Z</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">6</span>, <span class="fl">0.8</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">}</span><span class="op">)</span></span>
+<span><span class="va">reg</span><span class="op">$</span><span class="va">pop</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">N</span>, <span class="fl">800</span>, <span class="fl">5000</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">reg</span><span class="op">$</span><span class="va">cases</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">rpois</a></span><span class="op">(</span><span class="va">N</span>, <span class="va">reg</span><span class="op">$</span><span class="va">pop</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">b_true</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># the covariate, observed ONLY at 40 monitors</span></span>
+<span><span class="va">mon</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_as_sf.html" class="external-link">st_as_sf</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">40</span>, <span class="fl">0</span>, <span class="fl">20</span><span class="op">)</span>, y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">40</span>, <span class="fl">0</span>, <span class="fl">20</span><span class="op">)</span><span class="op">)</span>, coords <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"x"</span>, <span class="st">"y"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">mon</span><span class="op">$</span><span class="va">z</span> <span class="op">&lt;-</span> <span class="fu">zf</span><span class="op">(</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_coordinates.html" class="external-link">st_coordinates</a></span><span class="op">(</span><span class="va">mon</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>Pass the monitors through <code>covariates =</code>; <code>reg</code>
+does not need a <code>z</code> column:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sdalgcp.html">sdalgcp</a></span><span class="op">(</span><span class="va">cases</span> <span class="op">~</span> <span class="va">z</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/offset.html" class="external-link">offset</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">pop</span><span class="op">)</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">reg</span>, covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>z <span class="op">=</span> <span class="va">mon</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">fit</span><span class="op">$</span><span class="va">beta_opt</span><span class="op">[</span><span class="st">"z"</span><span class="op">]</span></span>
+<span><span class="co">#&gt; 0.89   (true 0.8)</span></span></code></pre></div>
 <p>Internally the covariate is kriged from the monitors to every
-candidate point, giving a predictive mean <strong>and variance</strong>
-at each:</p>
-<p><img src="misalign_krige.png" style="width:60.0%"></p>
-<p>The fit then uses the intensity-scale offset with a Berkson term,
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>b</mi><mi>i</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>β</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><msub><mo>∑</mo><mi>k</mi></msub><msub><mi>w</mi><mrow><mi>i</mi><mi>k</mi></mrow></msub><mrow><mi mathvariant="normal">exp</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">{</mo><mi>z</mi><mo stretchy="false" form="prefix">(</mo><msub><mi>x</mi><mrow><mi>i</mi><mi>k</mi></mrow></msub><msup><mo stretchy="false" form="postfix">)</mo><mi>⊤</mi></msup><mi>β</mi><mo>+</mo><mstyle displaystyle="false"><mfrac><mn>1</mn><mn>2</mn></mfrac></mstyle><msup><mi>β</mi><mi>⊤</mi></msup><msub><mi>V</mi><mi>z</mi></msub><mo stretchy="false" form="prefix">(</mo><msub><mi>x</mi><mrow><mi>i</mi><mi>k</mi></mrow></msub><mo stretchy="false" form="postfix">)</mo><mi>β</mi><mo stretchy="false" form="postfix">}</mo></mrow><annotation encoding="application/x-tex">b_i(\beta)=\log\sum_k w_{ik}\exp\{z(x_{ik})^\top\beta+\tfrac12\beta^\top V_z(x_{ik})\beta\}</annotation></semantics></math>,
-so the prediction uncertainty is propagated rather than ignored (which
-would attenuate
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>β</mi><annotation encoding="application/x-tex">\beta</annotation></semantics></math>).
-On simulated data the effect (true 0.8) is recovered as
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>≈</mo><mn>0.77</mn></mrow><annotation encoding="application/x-tex">\approx 0.77</annotation></semantics></math>
-from the monitors alone. Set <code>berkson = FALSE</code> in
-<code><a href="../reference/SDALGCP2_misaligned.html">SDALGCP2_misaligned()</a></code> for the naive kriged-mean
-plug-in.</p>
+candidate point:</p>
+<p><img src="t6_krige.png" style="width:58.0%"></p>
+<p>The covariate’s own spatial model (range, nugget, variance) is
+estimated by maximum likelihood; <code>SDALGCP2</code> then fits the
+outcome model with the Berkson-corrected offset.</p>
 </div>
 <div class="section level2">
 <h2 id="areal-support-a-different-partition">Areal support: a different partition<a class="anchor" aria-label="anchor" href="#areal-support-a-different-partition"></a>
 </h2>
 <p>If the covariate is reported as <strong>averages over other
 polygons</strong> (e.g. a coarser grid or census tracts), supply those
-polygons instead — <code>SDALGCP2</code> detects the geometry and uses
+polygons. <code>SDALGCP2</code> detects the geometry and uses
 <em>aggregated areal kriging</em>, reusing the same C++ kernels that
 build the outcome correlation:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># covpoly: sf POLYGONs (a different partition) with a 'z' column of areal averages</span></span>
-<span><span class="va">fit_areal</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sdalgcp.html">sdalgcp</a></span><span class="op">(</span><span class="va">cases</span> <span class="op">~</span> <span class="va">z</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/offset.html" class="external-link">offset</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">pop</span><span class="op">)</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">regions</span>,</span>
-<span>                     covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>z <span class="op">=</span> <span class="va">covpoly</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p>Recovered effect on simulated data:
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>≈</mo><mn>0.85</mn></mrow><annotation encoding="application/x-tex">\approx 0.85</annotation></semantics></math>
-(true 0.8), from a covariate averaged over 25 polygons that do not match
-the 64 outcome regions.</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># covariate observed as averages over a coarser 4x4 partition</span></span>
+<span><span class="va">covpoly</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://r-spatial.github.io/sf/reference/sf.html" class="external-link">st_sf</a></span><span class="op">(</span>geometry <span class="op">=</span> <span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_make_grid.html" class="external-link">st_make_grid</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_as_sfc.html" class="external-link">st_as_sfc</a></span><span class="op">(</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_bbox.html" class="external-link">st_bbox</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>xmin <span class="op">=</span> <span class="fl">0</span>, ymin <span class="op">=</span> <span class="fl">0</span>, xmax <span class="op">=</span> <span class="fl">20</span>, ymax <span class="op">=</span> <span class="fl">20</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>, n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">4</span>, <span class="fl">4</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">cpts</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sda_points.html">sda_points</a></span><span class="op">(</span><span class="va">covpoly</span>, delta <span class="op">=</span> <span class="fl">1.0</span>, method <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="va">covpoly</span><span class="op">$</span><span class="va">z</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">cpts</span>, <span class="kw">function</span><span class="op">(</span><span class="va">p</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="fu">zf</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">p</span><span class="op">$</span><span class="va">xy</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>   <span class="co"># areal averages</span></span>
+<span></span>
+<span><span class="va">fit_areal</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sdalgcp.html">sdalgcp</a></span><span class="op">(</span><span class="va">cases</span> <span class="op">~</span> <span class="va">z</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/offset.html" class="external-link">offset</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">pop</span><span class="op">)</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">reg</span>, covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>z <span class="op">=</span> <span class="va">covpoly</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">fit_areal</span><span class="op">$</span><span class="va">beta_opt</span><span class="op">[</span><span class="st">"z"</span><span class="op">]</span></span></code></pre></div>
+<pre><code><span><span class="co">#&gt; True z effect: 0.80</span></span>
+<span><span class="co">#&gt; Point support  (40 monitors):           0.89</span></span>
+<span><span class="co">#&gt; Areal support  (25 different polygons):  0.85</span></span></code></pre>
+<p>In both cases the covariate effect is recovered from data that were
+never observed on the outcome’s own units — point monitors, or polygons
+that do not match the outcome regions.</p>
 </div>
 <div class="section level2">
 <h2 id="notes">Notes<a class="anchor" aria-label="anchor" href="#notes"></a>
 </h2>
-<p>The candidate-point grid that discretises the outcome regions doubles
-as the common support on which outcome and covariate are aligned. The
-covariate’s own spatial model (range, nugget, variance) is estimated by
-maximum likelihood. Full derivation, including the Berkson correction
-and the areal cross-covariances, is in
-<code>math/confounding-and-misalignment.pdf</code>. ```</p>
+<ul>
+<li>The candidate-point grid that discretises the outcome regions
+doubles as the common support on which outcome and covariate are
+aligned.</li>
+<li>Set <code>berkson = FALSE</code> in
+<code><a href="../reference/SDALGCP2_misaligned.html">SDALGCP2_misaligned()</a></code> for the naive kriged-mean plug-in (no
+uncertainty propagation).</li>
+<li>Currently the covariate model’s <em>parameter</em> uncertainty is
+plugged in (its predictive uncertainty is propagated); a fully joint
+two-stage model is a natural extension. ```</li>
+</ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

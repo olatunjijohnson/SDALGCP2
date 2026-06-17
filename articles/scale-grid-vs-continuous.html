@@ -79,12 +79,52 @@
     
 <p>The spatial scale
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ϕ</mi><annotation encoding="application/x-tex">\phi</annotation></semantics></math>
-controls how quickly correlation decays with distance. It enters the
-model only through a <strong>double integral</strong> of the correlation
-function over each pair of regions,
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>R</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><mi>ϕ</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><msub><mo>∫</mo><msub><mi>A</mi><mi>i</mi></msub></msub><mspace width="-0.167em"></mspace><msub><mo>∫</mo><msub><mi>A</mi><mi>j</mi></msub></msub><msub><mi>w</mi><mi>i</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>x</mi><mo stretchy="false" form="postfix">)</mo><msub><mi>w</mi><mi>j</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>y</mi><mo stretchy="false" form="postfix">)</mo><mrow><mi mathvariant="normal">exp</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><mi>−</mi><mo stretchy="false" form="postfix">∥</mo><mi>x</mi><mo>−</mo><mi>y</mi><mo stretchy="false" form="postfix">∥</mo><mi>/</mi><mi>ϕ</mi><mo stretchy="false" form="postfix">)</mo><mspace width="0.167em"></mspace><mi>d</mi><mi>x</mi><mspace width="0.167em"></mspace><mi>d</mi><mi>y</mi></mrow><annotation encoding="application/x-tex">R_{ij}(\phi)=\int_{A_i}\!\int_{A_j} w_i(x)w_j(y)\exp(-\|x-y\|/\phi)\,dx\,dy</annotation></semantics></math>,
-approximated by a sum over candidate points. <code>SDALGCP2</code>
-offers two ways to estimate it.</p>
+controls how fast spatial correlation decays with distance — it sets the
+“reach” of a hotspot. This tutorial explains how <code>SDALGCP2</code>
+estimates it and is self-contained.</p>
+<div class="section level2">
+<h2 id="where-phi-lives-a-double-integral">Where
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ϕ</mi><annotation encoding="application/x-tex">\phi</annotation></semantics></math>
+lives: a double integral<a class="anchor" aria-label="anchor" href="#where-phi-lives-a-double-integral"></a>
+</h2>
+<p>The region-level random effect
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>S</mi><mi>i</mi></msub><annotation encoding="application/x-tex">S_i</annotation></semantics></math>
+is the average over area
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>A</mi><mi>i</mi></msub><annotation encoding="application/x-tex">A_i</annotation></semantics></math>
+of a continuous process
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>S</mi><mo stretchy="false" form="prefix">(</mo><mi>x</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">S(x)</annotation></semantics></math>
+with
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">C</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">v</mi></mrow><mo stretchy="false" form="prefix">{</mo><mi>S</mi><mo stretchy="false" form="prefix">(</mo><mi>x</mi><mo stretchy="false" form="postfix">)</mo><mo>,</mo><mi>S</mi><mo stretchy="false" form="prefix">(</mo><msup><mi>x</mi><mo>′</mo></msup><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">}</mo><mo>=</mo><msup><mi>σ</mi><mn>2</mn></msup><msup><mi>e</mi><mrow><mi>−</mi><mrow><mo stretchy="true" form="prefix">‖</mo><mi>x</mi><mo>−</mo><msup><mi>x</mi><mo>′</mo></msup><mo stretchy="true" form="postfix">‖</mo></mrow><mi>/</mi><mi>ϕ</mi></mrow></msup></mrow><annotation encoding="application/x-tex">\mathrm{Cov}\{S(x),S(x')\}=\sigma^2 e^{-\lVert
+x-x'\rVert/\phi}</annotation></semantics></math>. The covariance
+between two regions is therefore a <strong>double integral</strong> over
+the pair of areas:
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>R</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><mi>ϕ</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><msub><mo>∫</mo><msub><mi>A</mi><mi>i</mi></msub></msub><mspace width="-0.167em"></mspace><msub><mo>∫</mo><msub><mi>A</mi><mi>j</mi></msub></msub><msub><mi>w</mi><mi>i</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>x</mi><mo stretchy="false" form="postfix">)</mo><mspace width="0.167em"></mspace><msub><mi>w</mi><mi>j</mi></msub><mo stretchy="false" form="prefix">(</mo><mi>y</mi><mo stretchy="false" form="postfix">)</mo><mspace width="0.167em"></mspace><mrow><mi mathvariant="normal">exp</mi><mo>⁡</mo></mrow><mspace width="-0.167em"></mspace><mo minsize="180%" maxsize="180%" stretchy="true" form="prefix">(</mo><mo>−</mo><mstyle displaystyle="false"><mfrac><mrow><mo stretchy="true" form="prefix">‖</mo><mi>x</mi><mo>−</mo><mi>y</mi><mo stretchy="true" form="postfix">‖</mo></mrow><mi>ϕ</mi></mfrac></mstyle><mo minsize="180%" maxsize="180%" stretchy="true" form="postfix">)</mo><mspace width="0.167em"></mspace><mi>d</mi><mi>x</mi><mspace width="0.167em"></mspace><mi>d</mi><mi>y</mi><mo>,</mo></mrow><annotation encoding="application/x-tex">
+R_{ij}(\phi)=\int_{A_i}\!\int_{A_j} w_i(x)\,w_j(y)\,
+   \exp\!\Big(-\tfrac{\lVert x-y\rVert}{\phi}\Big)\,dx\,dy,
+</annotation></semantics></math> approximated by a weighted sum over the
+candidate points inside each region.
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ϕ</mi><annotation encoding="application/x-tex">\phi</annotation></semantics></math>
+appears <em>inside</em> this integral, so the whole
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi><mo>×</mo><mi>N</mi></mrow><annotation encoding="application/x-tex">N\times N</annotation></semantics></math>
+correlation matrix depends on it. There are two ways to estimate it.</p>
+</div>
+<div class="section level2">
+<h2 id="set-up-an-example">Set up an example<a class="anchor" aria-label="anchor" href="#set-up-an-example"></a>
+</h2>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/olatunjijohnson/SDALGCP2" class="external-link">SDALGCP2</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-spatial.github.io/sf/" class="external-link">sf</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">11</span><span class="op">)</span></span>
+<span><span class="va">regions</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://r-spatial.github.io/sf/reference/sf.html" class="external-link">st_sf</a></span><span class="op">(</span>geometry <span class="op">=</span> <span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_make_grid.html" class="external-link">st_make_grid</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_as_sfc.html" class="external-link">st_as_sfc</a></span><span class="op">(</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_bbox.html" class="external-link">st_bbox</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>xmin <span class="op">=</span> <span class="fl">0</span>, ymin <span class="op">=</span> <span class="fl">0</span>, xmax <span class="op">=</span> <span class="fl">20</span>, ymax <span class="op">=</span> <span class="fl">20</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>, n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">9</span>, <span class="fl">9</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">N</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/dimensions.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">regions</span><span class="op">)</span></span>
+<span><span class="va">pts</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sda_points.html">sda_points</a></span><span class="op">(</span><span class="va">regions</span>, delta <span class="op">=</span> <span class="fl">1.1</span>, method <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="va">S</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/transpose.html" class="external-link">t</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/chol.html" class="external-link">chol</a></span><span class="op">(</span><span class="fl">0.5</span> <span class="op">*</span> <span class="fu"><a href="../reference/precompute_corr.html">precompute_corr</a></span><span class="op">(</span><span class="va">pts</span>, <span class="fl">3</span><span class="op">)</span><span class="op">$</span><span class="va">R</span><span class="op">[</span>, , <span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">N</span><span class="op">)</span><span class="op">)</span>  <span class="co"># true phi = 3</span></span>
+<span><span class="va">regions</span><span class="op">$</span><span class="va">x1</span>    <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">N</span><span class="op">)</span></span>
+<span><span class="va">regions</span><span class="op">$</span><span class="va">pop</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/math-generics.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">N</span>, <span class="fl">800</span>, <span class="fl">4000</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">regions</span><span class="op">$</span><span class="va">cases</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">rpois</a></span><span class="op">(</span><span class="va">N</span>, <span class="va">regions</span><span class="op">$</span><span class="va">pop</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="fl">6</span> <span class="op">+</span> <span class="fl">0.5</span> <span class="op">*</span> <span class="va">regions</span><span class="op">$</span><span class="va">x1</span> <span class="op">+</span> <span class="va">S</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
 <div class="section level2">
 <h2 id="grid-profile">Grid (profile)<a class="anchor" aria-label="anchor" href="#grid-profile"></a>
 </h2>
@@ -92,40 +132,47 @@ offers two ways to estimate it.</p>
 evaluate the model on a <strong>grid</strong> of
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ϕ</mi><annotation encoding="application/x-tex">\phi</annotation></semantics></math>
 values and take the profile maximum.</p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/olatunjijohnson/SDALGCP2" class="external-link">SDALGCP2</a></span><span class="op">)</span></span>
-<span><span class="va">fit_grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sdalgcp.html">sdalgcp</a></span><span class="op">(</span><span class="va">cases</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/offset.html" class="external-link">offset</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">pop</span><span class="op">)</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">regions</span>,</span>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit_grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sdalgcp.html">sdalgcp</a></span><span class="op">(</span><span class="va">cases</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/offset.html" class="external-link">offset</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">pop</span><span class="op">)</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">regions</span>,</span>
 <span>                    control <span class="op">=</span> <span class="fu"><a href="../reference/sdalgcp_control.html">sdalgcp_control</a></span><span class="op">(</span>scale <span class="op">=</span> <span class="st">"grid"</span>,</span>
 <span>                                              phi <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">1.5</span>, <span class="fl">6</span>, length.out <span class="op">=</span> <span class="fl">12</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="continuous-direct-the-default">Continuous (direct) — the default<a class="anchor" aria-label="anchor" href="#continuous-direct-the-default"></a>
 </h2>
-<p>The aggregated correlation is differentiable in
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ϕ</mi><annotation encoding="application/x-tex">\phi</annotation></semantics></math>,
-so we can optimise it <strong>directly</strong>, with no grid. This
-removes the discretisation error, is faster (no wasted grid points), and
-yields a proper <strong>standard error</strong> for
+<p>The aggregated correlation
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>R</mi><mo stretchy="false" form="prefix">(</mo><mi>ϕ</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">R(\phi)</annotation></semantics></math>
+is <strong>differentiable</strong> in
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ϕ</mi><annotation encoding="application/x-tex">\phi</annotation></semantics></math>:
+the derivative is obtained by differentiating the kernel inside the
+integral,
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>∂</mi><mi>ϕ</mi></msub><msup><mi>e</mi><mrow><mi>−</mi><mi>d</mi><mi>/</mi><mi>ϕ</mi></mrow></msup><mo>=</mo><msup><mi>e</mi><mrow><mi>−</mi><mi>d</mi><mi>/</mi><mi>ϕ</mi></mrow></msup><mspace width="0.167em"></mspace><mi>d</mi><mi>/</mi><msup><mi>ϕ</mi><mn>2</mn></msup></mrow><annotation encoding="application/x-tex">\partial_\phi e^{-d/\phi}=e^{-d/\phi}\,d/\phi^2</annotation></semantics></math>.
+<code>SDALGCP2</code> therefore optimises
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ϕ</mi><annotation encoding="application/x-tex">\phi</annotation></semantics></math><strong>directly</strong>, jointly with
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>β</mi><annotation encoding="application/x-tex">\beta</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>σ</mi><mn>2</mn></msup><annotation encoding="application/x-tex">\sigma^2</annotation></semantics></math>,
+with no grid. This removes the grid-discretisation error and — because
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ϕ</mi><annotation encoding="application/x-tex">\phi</annotation></semantics></math>
-from the joint Hessian (derivation in
-<code>math/continuous-phi-derivation.pdf</code>).</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+is now a fitted parameter — yields a proper <strong>standard
+error</strong> from the joint Hessian (full derivation: <a href="https://github.com/olatunjijohnson/SDALGCP2/blob/main/math/continuous-phi-derivation.pdf" class="external-link"><code>math/continuous-phi-derivation.pdf</code></a>).</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fit_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sdalgcp.html">sdalgcp</a></span><span class="op">(</span><span class="va">cases</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/offset.html" class="external-link">offset</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">pop</span><span class="op">)</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">regions</span><span class="op">)</span>  <span class="co"># scale = "continuous"</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="they-agree-and-continuous-is-faster-with-an-se">They agree — and continuous is faster, with an SE<a class="anchor" aria-label="anchor" href="#they-agree-and-continuous-is-faster-with-an-se"></a>
+<h2 id="they-agree-and-continuous-gives-a-standard-error">They agree — and continuous gives a standard error<a class="anchor" aria-label="anchor" href="#they-agree-and-continuous-gives-a-standard-error"></a>
 </h2>
-<p>On a 9×9 simulated lattice (true
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ϕ</mi><mo>=</mo><mn>3</mn></mrow><annotation encoding="application/x-tex">\phi = 3</annotation></semantics></math>):</p>
-<pre><code><span><span class="co">#&gt; GRID:       phi = 2.73            beta = 0.437   [6.5s]</span></span>
-<span><span class="co">#&gt; CONTINUOUS: phi = 2.86 (SE 0.35)  beta = 0.449   [3.4s]</span></span></code></pre>
-<p><img src="phi_compare.png" style="width:60.0%"></p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># (timings will vary)</span></span></code></pre></div>
+<pre><code><span><span class="co">#&gt; GRID:       phi = 2.73            beta_x1 = 0.437   [6.0s]</span></span>
+<span><span class="co">#&gt; CONTINUOUS: phi = 2.86 (SE 0.35)  beta_x1 = 0.449   [6.2s]</span></span></code></pre>
+<p><img src="t4_compare.png" style="width:60.0%"></p>
 <p>The blue curve is the grid profile deviance; its minimum (the grid
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mover><mi>ϕ</mi><mo accent="true">̂</mo></mover><annotation encoding="application/x-tex">\hat\phi</annotation></semantics></math>)
-lands between grid nodes. The red line is the continuous estimate with
-its 95% confidence band — close to the grid optimum, obtained in half
-the time, and with an honest standard error that the grid cannot
-provide.</p>
+falls between grid nodes. The red line is the continuous estimate with
+its 95% confidence band — essentially the same value, but obtained
+without choosing a grid and with an honest standard error that the grid
+cannot provide.</p>
 </div>
 <div class="section level2">
 <h2 id="which-to-use">Which to use?<a class="anchor" aria-label="anchor" href="#which-to-use"></a>
@@ -160,21 +207,17 @@ provide.</p>
 <td>not traced</td>
 </tr>
 <tr class="even">
-<td>Matern smoothness</td>
+<td>Matérn smoothness</td>
 <td>any</td>
 <td>0.5, 1.5, 2.5</td>
 </tr>
-<tr class="odd">
-<td>speed</td>
-<td>one fit per node</td>
-<td>one optimisation</td>
-</tr>
 </tbody>
 </table>
-<p>Use <strong>continuous</strong> for speed and a standard error; use
-<strong>grid</strong> when you want to see the whole profile (e.g. to
-check for a flat or multimodal likelihood). Both are available via
-<code>sdalgcp_control(scale = ...)</code>. ```</p>
+<p>Use <strong>continuous</strong> (the default) for a clean estimate
+with a standard error and no grid to choose. Use <strong>grid</strong>
+when you want to inspect the whole profile — e.g. to check for a flat or
+multimodal likelihood, with <code>plot(fit_grid)</code>. Both are
+selected by <code>sdalgcp_control(scale = ...)</code>. ```</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
