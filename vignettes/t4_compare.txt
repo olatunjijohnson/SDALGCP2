@@ -1,0 +1,2 @@
+GRID:       phi = 2.73            beta_x1 = 0.437   [6.0s]
+CONTINUOUS: phi = 2.86 (SE 0.35)  beta_x1 = 0.449   [6.2s]

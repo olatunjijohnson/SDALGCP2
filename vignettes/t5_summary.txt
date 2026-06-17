@@ -1,0 +1,12 @@
+Standard fit:
+            Estimate Std.Err z value Pr(>|z|)
+(Intercept)   -5.766   0.123 -46.878    0.000
+x1             0.377   0.110   3.423    0.001
+sigma^2        0.591   0.758   0.780    0.435
+phi            1.194   0.736   1.622    0.105
+
+Restricted (RSR) fit:
+            Estimate Std.Err z value Pr(>|z|)
+(Intercept)   -5.747   0.061 -93.563    0.000
+x1             0.399   0.059   6.818    0.000
+sigma^2        0.471   0.191   2.468    0.014

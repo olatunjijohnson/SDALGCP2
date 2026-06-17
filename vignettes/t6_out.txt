@@ -1,0 +1,3 @@
+True z effect: 0.80
+Point support  (40 monitors):           0.890
+Areal support  (25 different polygons):  0.847

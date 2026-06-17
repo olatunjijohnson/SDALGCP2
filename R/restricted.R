@@ -27,7 +27,8 @@
     h <- m * exp(eta)
     grad <- as.numeric(crossprod(K, y - h)) - as.numeric(SaInv_s2 %*% alpha)
     negH <- crossprod(K * h, K) + SaInv_s2          # K' diag(h) K + Sa^{-1}/sigma2
-    step <- solve(negH, grad)
+    step <- tryCatch(solve(negH, grad), error = function(e)
+      solve(negH + diag(1e-8 * mean(diag(negH)), nrow(negH)), grad))
     alpha <- alpha + step
     if (max(abs(step)) < tol) break
   }
@@ -63,6 +64,7 @@
 
   fit_phi <- function(i) {
     Sa <- crossprod(K, R[, , i] %*% K)              # K' R(phi_i) K
+    Sa <- Sa + diag(1e-6 * mean(diag(Sa)), nrow(Sa))  # ridge: K'RK is near-singular at large phi
     ch <- chol(Sa); SaInv <- chol2inv(ch); ldetSa <- 2 * sum(log(diag(ch)))
     opt <- stats::optim(par0, function(par) -.rsr_marglik(par, y, m, D, K, SaInv, ldetSa, p, r),
                         method = "BFGS", control = list(maxit = 200))

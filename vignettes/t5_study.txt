@@ -1,0 +1,3 @@
+Across 24 simulated data sets (true beta = 0.6):
+  standard          mean est = 0.602,  SD of est = 0.265,  mean SE = 0.151
+  restricted (RSR)  mean est = 0.587,  SD of est = 0.267,  mean SE = 0.074

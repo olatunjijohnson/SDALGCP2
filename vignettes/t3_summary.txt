@@ -1,0 +1,16 @@
+Call: sdalgcp(formula = cases ~ x1 + offset(log(pop)), data = dat, 
+    time = "year", control = sdalgcp_control(reanchor = 2, n_sim = 6000, 
+        burnin = 1500, thin = 5))
+
+Coefficients:
+            Estimate Std.Err z value Pr(>|z|)    
+(Intercept)  -6.1668  0.1070  -57.61   <2e-16 ***
+x1            0.5923  0.0377   15.73   <2e-16 ***
+sigma^2       0.4909  0.2051    2.39    0.017 *  
+nu            0.8531  0.3601    2.37    0.018 *  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Spatial scale phi: 2.01818
+Log-likelihood: 0.955068
+Note: sigma^2 is the variance of the latent Gaussian process.
