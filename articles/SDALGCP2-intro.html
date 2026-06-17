@@ -77,116 +77,214 @@
 
     
     
-<p><code>SDALGCP2</code> fits a spatially discrete approximation to a
-log-Gaussian Cox process (SDA-LGCP) to <strong>aggregated disease
-counts</strong> — counts observed over administrative areas. The
-interface is deliberately close to <code><a href="https://rdrr.io/r/stats/glm.html" class="external-link">glm()</a></code>: give a formula
-and an <code>sf</code> object and you are done.</p>
+<p>This tutorial fits a spatial disease-mapping model end to end and is
+fully self-contained: every code block below runs as shown (set a seed
+and copy-paste).</p>
 <div class="section level2">
-<h2 id="the-data">The data<a class="anchor" aria-label="anchor" href="#the-data"></a>
+<h2 id="the-model">The model<a class="anchor" aria-label="anchor" href="#the-model"></a>
 </h2>
-<p><code><a href="../reference/sdalgcp.html">sdalgcp()</a></code> expects an <code>sf</code> object whose
-columns hold the response, covariates and offset (population at risk).
-Here we simulate a 10×10 lattice with a spatial signal; in practice this
-would be your shapefile joined to a counts table.</p>
+<p>We observe disease counts
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>Y</mi><mi>i</mi></msub><annotation encoding="application/x-tex">Y_i</annotation></semantics></math>
+aggregated over areal units
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>A</mi><mi>i</mi></msub><annotation encoding="application/x-tex">A_i</annotation></semantics></math>
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>i</mi><mo>=</mo><mn>1</mn><mo>,</mo><mi>…</mi><mo>,</mo><mi>N</mi></mrow><annotation encoding="application/x-tex">i=1,\dots,N</annotation></semantics></math>)
+with an offset
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>m</mi><mi>i</mi></msub><annotation encoding="application/x-tex">m_i</annotation></semantics></math>
+(the expected count, e.g. population times a baseline rate). SDALGCP2
+fits a <strong>spatially discrete approximation to a log-Gaussian Cox
+process</strong>:
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>Y</mi><mi>i</mi></msub><mo>∣</mo><mi>S</mi><mspace width="0.278em"></mspace><mo>∼</mo><mspace width="0.278em"></mspace><mrow><mi mathvariant="normal">P</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">n</mi></mrow><mspace width="-0.167em"></mspace><mo minsize="120%" maxsize="120%" stretchy="true" form="prefix">(</mo><msub><mi>m</mi><mi>i</mi></msub><mspace width="0.167em"></mspace><msup><mi>e</mi><msub><mi>η</mi><mi>i</mi></msub></msup><mo minsize="120%" maxsize="120%" stretchy="true" form="postfix">)</mo><mo>,</mo><mspace width="2.0em"></mspace><msub><mi>η</mi><mi>i</mi></msub><mspace width="0.278em"></mspace><mo>=</mo><mspace width="0.278em"></mspace><msubsup><mi>d</mi><mi>i</mi><mi>⊤</mi></msubsup><mi>β</mi><mspace width="0.278em"></mspace><mo>+</mo><mspace width="0.278em"></mspace><msub><mi>S</mi><mi>i</mi></msub><mo>,</mo></mrow><annotation encoding="application/x-tex">
+Y_i \mid S \;\sim\; \mathrm{Poisson}\!\big(m_i\, e^{\eta_i}\big),
+\qquad
+\eta_i \;=\; d_i^\top\beta \;+\; S_i,
+</annotation></semantics></math> where
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>d</mi><mi>i</mi></msub><annotation encoding="application/x-tex">d_i</annotation></semantics></math>
+are area-level covariates and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>S</mi><mo>=</mo><mo stretchy="false" form="prefix">(</mo><msub><mi>S</mi><mn>1</mn></msub><mo>,</mo><mi>…</mi><mo>,</mo><msub><mi>S</mi><mi>N</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">S=(S_1,\dots,S_N)</annotation></semantics></math>
+is a Gaussian spatial random effect.
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>S</mi><mi>i</mi></msub><annotation encoding="application/x-tex">S_i</annotation></semantics></math>
+is the average over area
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>A</mi><mi>i</mi></msub><annotation encoding="application/x-tex">A_i</annotation></semantics></math>
+of a continuous Gaussian process
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>S</mi><mo stretchy="false" form="prefix">(</mo><mi>x</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">S(x)</annotation></semantics></math>
+with exponential covariance
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">C</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">v</mi></mrow><mo stretchy="false" form="prefix">{</mo><mi>S</mi><mo stretchy="false" form="prefix">(</mo><mi>x</mi><mo stretchy="false" form="postfix">)</mo><mo>,</mo><mi>S</mi><mo stretchy="false" form="prefix">(</mo><msup><mi>x</mi><mo>′</mo></msup><mo stretchy="false" form="postfix">)</mo><mo stretchy="false" form="postfix">}</mo><mo>=</mo><msup><mi>σ</mi><mn>2</mn></msup><mrow><mi mathvariant="normal">exp</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">(</mo><mi>−</mi><mrow><mo stretchy="true" form="prefix">‖</mo><mi>x</mi><mo>−</mo><msup><mi>x</mi><mo>′</mo></msup><mo stretchy="true" form="postfix">‖</mo></mrow><mi>/</mi><mi>ϕ</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\mathrm{Cov}\{S(x),S(x')\}=\sigma^2\exp(-\lVert x-x'\rVert/\phi)</annotation></semantics></math>;
+aggregating this process over the areas gives an
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi><mo>×</mo><mi>N</mi></mrow><annotation encoding="application/x-tex">N\times N</annotation></semantics></math>
+covariance built from candidate points inside each region (see
+Tutorial 4). The parameters are the coefficients
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>β</mi><annotation encoding="application/x-tex">\beta</annotation></semantics></math>,
+the spatial variance
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msup><mi>σ</mi><mn>2</mn></msup><annotation encoding="application/x-tex">\sigma^2</annotation></semantics></math>
+and the range
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ϕ</mi><annotation encoding="application/x-tex">\phi</annotation></semantics></math>.</p>
+<p>Two quantities are reported for every area:</p>
+<ul>
+<li>
+<strong>Relative risk</strong>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="normal">R</mi><mi mathvariant="normal">R</mi></mrow><mi>i</mi></msub><mo>=</mo><msup><mi>e</mi><msub><mi>η</mi><mi>i</mi></msub></msup><mo>=</mo><msup><mi>e</mi><mrow><msubsup><mi>d</mi><mi>i</mi><mi>⊤</mi></msubsup><mi>β</mi><mo>+</mo><msub><mi>S</mi><mi>i</mi></msub></mrow></msup></mrow><annotation encoding="application/x-tex">\mathrm{RR}_i=e^{\eta_i}=e^{d_i^\top\beta+S_i}</annotation></semantics></math>
+— the full relative risk, including the covariate effect;</li>
+<li>
+<strong>Covariate-adjusted relative risk</strong>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="normal">A</mi><mi mathvariant="normal">R</mi><mi mathvariant="normal">R</mi></mrow><mi>i</mi></msub><mo>=</mo><msup><mi>e</mi><msub><mi>S</mi><mi>i</mi></msub></msup></mrow><annotation encoding="application/x-tex">\mathrm{ARR}_i=e^{S_i}</annotation></semantics></math>
+— the residual spatial relative risk <em>after</em> adjusting for
+covariates (where is risk high/low beyond what the covariates
+explain?).</li>
+</ul>
+</div>
+<div class="section level2">
+<h2 id="simulate-a-data-set">Simulate a data set<a class="anchor" aria-label="anchor" href="#simulate-a-data-set"></a>
+</h2>
+<p><code><a href="../reference/sdalgcp.html">sdalgcp()</a></code> takes an <code>sf</code> object whose columns
+hold the response, covariates and offset. Here we simulate one; in
+practice this is your shapefile joined to a counts table.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/olatunjijohnson/SDALGCP2" class="external-link">SDALGCP2</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-spatial.github.io/sf/" class="external-link">sf</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">2024</span><span class="op">)</span></span>
 <span><span class="va">regions</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://r-spatial.github.io/sf/reference/sf.html" class="external-link">st_sf</a></span><span class="op">(</span>geometry <span class="op">=</span> <span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_make_grid.html" class="external-link">st_make_grid</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_as_sfc.html" class="external-link">st_as_sfc</a></span><span class="op">(</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_bbox.html" class="external-link">st_bbox</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>xmin <span class="op">=</span> <span class="fl">0</span>, ymin <span class="op">=</span> <span class="fl">0</span>, xmax <span class="op">=</span> <span class="fl">20</span>, ymax <span class="op">=</span> <span class="fl">20</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>, n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">N</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/dimensions.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">regions</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># a covariate, a population offset, and simulated counts with a spatial hotspot</span></span>
+<span><span class="co"># a spatial random effect, a covariate, a population offset, and Poisson counts</span></span>
 <span><span class="va">pts</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sda_points.html">sda_points</a></span><span class="op">(</span><span class="va">regions</span>, delta <span class="op">=</span> <span class="fl">0.9</span>, method <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="va">S</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rspatial.github.io/terra/reference/transpose.html" class="external-link">t</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/chol.html" class="external-link">chol</a></span><span class="op">(</span><span class="fl">0.5</span> <span class="op">*</span> <span class="fu"><a href="../reference/precompute_corr.html">precompute_corr</a></span><span class="op">(</span><span class="va">pts</span>, <span class="fl">4</span><span class="op">)</span><span class="op">$</span><span class="va">R</span><span class="op">[</span>, , <span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">N</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">regions</span><span class="op">$</span><span class="va">x1</span>    <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">N</span><span class="op">)</span></span>
 <span><span class="va">regions</span><span class="op">$</span><span class="va">pop</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/math-generics.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">N</span>, <span class="fl">800</span>, <span class="fl">5000</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">regions</span><span class="op">$</span><span class="va">cases</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">rpois</a></span><span class="op">(</span><span class="va">N</span>, <span class="va">regions</span><span class="op">$</span><span class="va">pop</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="fl">6</span> <span class="op">+</span> <span class="fl">0.6</span> <span class="op">*</span> <span class="va">regions</span><span class="op">$</span><span class="va">x1</span> <span class="op">+</span> <span class="va">S</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="fit-one-line">Fit — one line<a class="anchor" aria-label="anchor" href="#fit-one-line"></a>
-</h2>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sdalgcp.html">sdalgcp</a></span><span class="op">(</span><span class="va">cases</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/offset.html" class="external-link">offset</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">pop</span><span class="op">)</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">regions</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rspatial.github.io/terra/reference/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></code></pre></div>
-<p>No <code>delta</code>, no <code>phi</code>, no MCMC settings: the
-candidate-point spacing is chosen from the region size, the spatial
-scale is optimised continuously, and the latent field is re-anchored for
-reliable variances. To change any of this, pass
-<code>control = sdalgcp_control(...)</code>.</p>
-<pre><code><span><span class="co">#&gt; Coefficients:</span></span>
-<span><span class="co">#&gt;             Estimate Std.Err z value Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; (Intercept)  -6.05     0.10   -60.0   &lt;2e-16 ***</span></span>
-<span><span class="co">#&gt; x1            0.58     0.08     7.2   5e-13  ***</span></span>
-<span><span class="co">#&gt; sigma^2       0.46     0.18     2.6   0.009  **</span></span>
-<span><span class="co">#&gt; phi           3.49     0.74     4.7   2e-06  ***</span></span></code></pre>
-</div>
-<div class="section level2">
-<h2 id="map-the-relative-risk">Map the relative risk<a class="anchor" aria-label="anchor" href="#map-the-relative-risk"></a>
-</h2>
-<p><code><a href="https://rspatial.github.io/terra/reference/predict.html" class="external-link">predict()</a></code> returns an <code>sf</code> you can map
-directly; <code><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot()</a></code> gives sensible defaults.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">rr</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>             <span class="co"># sf with relative_risk, relative_risk_se, incidence</span></span>
-<span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>                      <span class="co"># covariate-adjusted relative risk</span></span>
-<span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"risk_se"</span><span class="op">)</span>           <span class="co"># its uncertainty</span></span>
-<span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"exceedance"</span>, threshold <span class="op">=</span> <span class="fl">1.5</span><span class="op">)</span>   <span class="co"># P(relative risk &gt; 1.5)</span></span></code></pre></div>
+<span><span class="va">regions</span><span class="op">$</span><span class="va">cases</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Poisson.html" class="external-link">rpois</a></span><span class="op">(</span><span class="va">N</span>, <span class="va">regions</span><span class="op">$</span><span class="va">pop</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="fl">6</span> <span class="op">+</span> <span class="fl">0.6</span> <span class="op">*</span> <span class="va">regions</span><span class="op">$</span><span class="va">x1</span> <span class="op">+</span> <span class="va">S</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">regions</span><span class="op">$</span><span class="va">SIR</span>   <span class="op">&lt;-</span> <span class="va">regions</span><span class="op">$</span><span class="va">cases</span> <span class="op">/</span> <span class="op">(</span><span class="va">regions</span><span class="op">$</span><span class="va">pop</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="fl">6</span><span class="op">)</span><span class="op">)</span>   <span class="co"># crude standardised ratio</span></span></code></pre></div>
+<p>The crude standardised incidence ratio (SIR) is noisy and over-fits
+sparsely populated areas — exactly what a model smooths:</p>
 <table class="table">
-<colgroup>
-<col width="33%">
-<col width="33%">
-<col width="33%">
-</colgroup>
 <thead><tr class="header">
-<th align="center">Relative risk</th>
-<th align="center">Uncertainty</th>
-<th align="center">Exceedance P(RR &gt; 1.5)</th>
+<th align="center">Crude SIR (the data)</th>
+<th align="center">Covariate <code>x1</code>
+</th>
 </tr></thead>
 <tbody><tr class="odd">
-<td align="center"><img src="showcase_risk.png"></td>
-<td align="center"><img src="showcase_uncertainty.png"></td>
-<td align="center"><img src="showcase_exceedance.png"></td>
+<td align="center"><img src="t1_data_sir.png"></td>
+<td align="center"><img src="t1_data_cov.png"></td>
 </tr></tbody>
 </table>
-<p>The <strong>exceedance map</strong> answers the question
-public-health users usually care about: <em>where is the relative risk
-confidently above a threshold?</em></p>
+</div>
+<div class="section level2">
+<h2 id="fit">Fit<a class="anchor" aria-label="anchor" href="#fit"></a>
+</h2>
+<p>One call. Candidate-point spacing, the spatial range and MCMC
+settings are chosen automatically; <code>reanchor = 3</code>
+re-simulates the latent field at the optimum a few times for reliable
+variance estimates.</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sdalgcp.html">sdalgcp</a></span><span class="op">(</span><span class="va">cases</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/offset.html" class="external-link">offset</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">pop</span><span class="op">)</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">regions</span>,</span>
+<span>               control <span class="op">=</span> <span class="fu"><a href="../reference/sdalgcp_control.html">sdalgcp_control</a></span><span class="op">(</span>reanchor <span class="op">=</span> <span class="fl">3</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rspatial.github.io/terra/reference/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">#&gt; Coefficients:</span></span>
+<span><span class="co">#&gt;             Estimate Std.Err z value Pr(&gt;|z|)</span></span>
+<span><span class="co">#&gt; (Intercept)  -6.057   0.130  -46.78  &lt; 2e-16 ***</span></span>
+<span><span class="co">#&gt; x1            0.664   0.040   16.49  &lt; 2e-16 ***</span></span>
+<span><span class="co">#&gt; sigma^2       0.374   0.507    0.74     0.46</span></span>
+<span><span class="co">#&gt; phi           1.839   0.444    4.14  3.5e-05 ***</span></span>
+<span><span class="co">#&gt;</span></span>
+<span><span class="co">#&gt; Spatial scale phi: 1.84</span></span>
+<span><span class="co">#&gt; MC importance-sampling ESS: 208 / 1000 (21%);  log-lik MC SE: 0.062</span></span></code></pre>
+<p>The covariate effect <code>x1</code> is estimated at 0.66 (true value
+0.6), the spatial range <code>phi</code> and variance
+<code>sigma^2</code> describe the residual spatial structure, and the
+importance-sampling effective sample size reports how reliable the Monte
+Carlo likelihood is.</p>
+</div>
+<div class="section level2">
+<h2 id="map-the-two-relative-risks">Map the two relative risks<a class="anchor" aria-label="anchor" href="#map-the-two-relative-risks"></a>
+</h2>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"RR"</span><span class="op">)</span>          <span class="co"># relative risk exp(eta)</span></span>
+<span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"ARR"</span><span class="op">)</span>         <span class="co"># covariate-adjusted relative risk exp(S)</span></span></code></pre></div>
+<table class="table">
+<thead><tr class="header">
+<th align="center">Relative risk <code>RR</code>
+</th>
+<th align="center">Covariate-adjusted <code>ARR</code>
+</th>
+</tr></thead>
+<tbody><tr class="odd">
+<td align="center"><img src="t1_rr.png"></td>
+<td align="center"><img src="t1_arr.png"></td>
+</tr></tbody>
+</table>
+<p><code>RR</code> (left) is the overall pattern of risk;
+<code>ARR</code> (right) strips out the covariate contribution and shows
+the <em>unexplained</em> spatial signal — useful for spotting hotspots
+that the covariates do not account for.</p>
+</div>
+<div class="section level2">
+<h2 id="uncertainty-and-exceedance">Uncertainty and exceedance<a class="anchor" aria-label="anchor" href="#uncertainty-and-exceedance"></a>
+</h2>
+<p>Every quantity comes with a standard error, and you can ask for the
+probability that risk exceeds a policy threshold:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"ARR_se"</span><span class="op">)</span>                          <span class="co"># standard error of the adjusted RR</span></span>
+<span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"exceedance"</span>, threshold <span class="op">=</span> <span class="fl">1.5</span><span class="op">)</span>     <span class="co"># P(adjusted RR &gt; 1.5)</span></span></code></pre></div>
+<table class="table">
+<thead><tr class="header">
+<th align="center">SE of adjusted RR</th>
+<th align="center">P(adjusted RR &gt; 1.5)</th>
+</tr></thead>
+<tbody><tr class="odd">
+<td align="center"><img src="t1_arr_se.png"></td>
+<td align="center"><img src="t1_exc.png"></td>
+</tr></tbody>
+</table>
+<p>The exceedance map is usually the most decision-relevant output: it
+flags areas that are confidently above the threshold rather than high by
+chance.</p>
 </div>
 <div class="section level2">
 <h2 id="a-continuous-surface">A continuous surface<a class="anchor" aria-label="anchor" href="#a-continuous-surface"></a>
 </h2>
-<p>Relative risk can also be predicted on a fine grid
-(change-of-support), giving a smooth surface rather than a
-choropleth:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">pc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, type <span class="op">=</span> <span class="st">"continuous"</span>, cellsize <span class="op">=</span> <span class="fl">0.6</span><span class="op">)</span>  <span class="co"># via the engine</span></span>
-<span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">pc</span>, <span class="st">"RR"</span>, bound <span class="op">=</span> <span class="fu"><a href="https://r-spatial.github.io/sf/reference/geos_combine.html" class="external-link">st_union</a></span><span class="op">(</span><span class="va">regions</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p><img src="showcase_continuous.png" style="width:60.0%"></p>
+<p>Risk can also be predicted on a fine grid (change-of-support), giving
+a smooth surface instead of a choropleth:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">pc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, type <span class="op">=</span> <span class="st">"continuous"</span>, sampler <span class="op">=</span> <span class="st">"laplace"</span>, cellsize <span class="op">=</span> <span class="fl">0.6</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">pc</span>, <span class="st">"ARR"</span>, bound <span class="op">=</span> <span class="va">regions</span><span class="op">)</span></span></code></pre></div>
+<p><img src="t1_cont.png" style="width:55.0%"></p>
+<p><code><a href="https://rspatial.github.io/terra/reference/predict.html" class="external-link">predict()</a></code> returns all four quantities (<code>RR</code>,
+<code>ARR</code> and their <code>_se</code>) for both
+<code>type = "discrete"</code> and <code>type = "continuous"</code>, and
+<code><a href="../reference/exceedance.html">exceedance()</a></code> works on either.</p>
 </div>
 <div class="section level2">
 <h2 id="model-checking">Model checking<a class="anchor" aria-label="anchor" href="#model-checking"></a>
 </h2>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/model_check.html">model_check</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>        <span class="co"># observed vs fitted + residual Moran's I</span></span>
-<span><span class="fu"><a href="../reference/mc_diagnostics.html">mc_diagnostics</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span>     <span class="co"># importance-sampling effective sample size</span></span></code></pre></div>
-<p>A non-significant residual Moran’s I indicates the spatial random
-effect has absorbed the spatial structure.</p>
+<p>Finally, check that the spatial term has absorbed the spatial
+structure: the Pearson residuals should show no leftover spatial
+autocorrelation.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/model_check.html">model_check</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></code></pre></div>
+<p><img src="t1_modelcheck.png" style="width:55.0%"></p>
+<pre><code><span><span class="co">#&gt; Residual Moran's I = -0.114 (E = -0.010), p = 0.974</span></span></code></pre>
+<p>A non-significant residual Moran’s I (here
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>≈</mo><mn>0.97</mn></mrow><annotation encoding="application/x-tex">p\approx0.97</annotation></semantics></math>)
+indicates the model has captured the spatial pattern, and the
+observed-vs-fitted points lie around the identity line.</p>
 </div>
 <div class="section level2">
-<h2 id="where-next">Where next<a class="anchor" aria-label="anchor" href="#where-next"></a>
+<h2 id="next">Next<a class="anchor" aria-label="anchor" href="#next"></a>
 </h2>
 <ul>
 <li>
 <a href="raster-covariates.html">Raster predictors</a> — continuous
 covariates done right.</li>
 <li>
-<a href="spatio-temporal.html">Spatio-temporal</a> — space-time
+<a href="spatio-temporal.html">Spatio-temporal</a> — space–time
 relative risk.</li>
 <li>
 <a href="scale-grid-vs-continuous.html">Estimating the scale</a> —
-grid vs continuous <code>phi</code>. ```</li>
+what
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ϕ</mi><annotation encoding="application/x-tex">\phi</annotation></semantics></math>
+is and how it is estimated.</li>
+<li>
+<a href="spatial-confounding.html">Spatial confounding</a> and <a href="misaligned-covariates.html">misaligned covariates</a>. ```</li>
 </ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
