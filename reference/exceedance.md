@@ -1,11 +1,11 @@
-# Exceedance probabilities P(relative risk \> threshold)
+# Exceedance probabilities P(risk \> threshold)
 
-Exceedance probabilities P(relative risk \> threshold)
+Exceedance probabilities P(risk \> threshold)
 
 ## Usage
 
 ``` r
-exceedance(object, thresholds)
+exceedance(object, thresholds, which = c("ARR", "RR"))
 ```
 
 ## Arguments
@@ -18,6 +18,11 @@ exceedance(object, thresholds)
 - thresholds:
 
   numeric vector of thresholds.
+
+- which:
+
+  which quantity: `"ARR"` (covariate-adjusted relative risk, default) or
+  `"RR"` (relative risk).
 
 ## Value
 

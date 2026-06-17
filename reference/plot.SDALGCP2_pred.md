@@ -1,15 +1,23 @@
 # Map a fitted SDALGCP2 prediction
 
-Maps a relative-risk surface (and its uncertainty) from
-[`predict.SDALGCP2`](https://olatunjijohnson.github.io/SDALGCP2/reference/predict.SDALGCP2.md).
-Region-level predictions are drawn as choropleths; continuous
-predictions as a raster, optionally masked to a boundary.
+Maps any of the four predicted quantities from
+[`predict.SDALGCP2`](https://olatunjijohnson.github.io/SDALGCP2/reference/predict.SDALGCP2.md)
+– relative risk `"RR"`, covariate-adjusted relative risk `"ARR"`, or
+their standard errors `"RR_se"`/`"ARR_se"` – for either discrete
+(choropleth) or continuous (raster) predictions.
 
 ## Usage
 
 ``` r
 # S3 method for class 'SDALGCP2_pred'
-plot(x, variable = "RR", bound = NULL, midpoint = NULL, title = NULL, ...)
+plot(
+  x,
+  variable = c("RR", "ARR", "RR_se", "ARR_se"),
+  bound = NULL,
+  midpoint = NULL,
+  title = NULL,
+  ...
+)
 ```
 
 ## Arguments
@@ -20,8 +28,7 @@ plot(x, variable = "RR", bound = NULL, midpoint = NULL, title = NULL, ...)
 
 - variable:
 
-  for discrete: one of `"RR"`, `"SE_RR"`, `"ARR"`, `"SE_ARR"`; for
-  continuous: `"RR"` or `"SE_RR"`.
+  one of `"RR"`, `"ARR"`, `"RR_se"`, `"ARR_se"`.
 
 - bound:
 
@@ -30,8 +37,8 @@ plot(x, variable = "RR", bound = NULL, midpoint = NULL, title = NULL, ...)
 
 - midpoint:
 
-  optional value to centre a diverging colour scale (e.g. 1 for relative
-  risk); if `NULL` a sequential viridis scale is used.
+  optional value to centre a diverging colour scale (defaults to 1 for
+  `"RR"`/`"ARR"`, none for the standard errors).
 
 - title:
 

@@ -103,11 +103,20 @@ approximation, no MCMC).</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>for <code>type = "discrete"</code>, an <code>sf</code> object augmented with
-  posterior mean/SD of incidence relative risk (<code>pMean_RR</code>/<code>pSD_RR</code>)
-  and covariate-adjusted relative risk (<code>pMean_ARR</code>/<code>pSD_ARR</code>); for
-  <code>type = "continuous"</code>, a list with the prediction grid and posterior
-  summaries. Result carries class <code>"SDALGCP2_pred"</code>.</p>
+    <p>an object of class <code>"SDALGCP2_pred"</code>. For both <code>type</code>s it
+  carries, for every location (region or grid cell), the posterior mean and
+  standard error of two quantities:</p><dl><dt><code>RR</code> (relative risk)</dt>
+<dd><p>\(\exp(\eta)=\exp(d'\beta+S)\) – the full
+      relative risk, including the covariate effect.</p></dd>
+
+    <dt><code>ARR</code> (covariate-adjusted relative risk)</dt>
+<dd><p>\(\exp(S)\) – the
+      residual spatial relative risk after adjusting for covariates.</p></dd>
+
+
+</dl><p>stored as <code>RR_mean</code>/<code>RR_se</code>/<code>ARR_mean</code>/<code>ARR_se</code> (and, for
+  discrete fits, as columns of the returned <code>sf</code>). Posterior draws are kept
+  so that <code><a href="exceedance.html">exceedance</a></code> can be computed for either quantity.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

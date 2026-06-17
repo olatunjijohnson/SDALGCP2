@@ -53,7 +53,7 @@ Discretisation and the aggregated correlation assembly.
 - [`predict(`*`<SDALGCP2_ST>`*`)`](https://olatunjijohnson.github.io/SDALGCP2/reference/predict.SDALGCP2_ST.md)
   : Discrete (region x time) prediction for a spatio-temporal fit
 - [`exceedance()`](https://olatunjijohnson.github.io/SDALGCP2/reference/exceedance.md)
-  : Exceedance probabilities P(relative risk \> threshold)
+  : Exceedance probabilities P(risk \> threshold)
 
 ## Visualisation
 
@@ -63,10 +63,12 @@ Maps and post-fit graphics.
   : Map an sdalgcp fit
 - [`plot(`*`<SDALGCP2_pred>`*`)`](https://olatunjijohnson.github.io/SDALGCP2/reference/plot.SDALGCP2_pred.md)
   : Map a fitted SDALGCP2 prediction
+- [`plot(`*`<SDALGCP2_ST_pred>`*`)`](https://olatunjijohnson.github.io/SDALGCP2/reference/plot.SDALGCP2_ST_pred.md)
+  : Map a spatio-temporal prediction for one time
 - [`plot(`*`<SDALGCP2>`*`)`](https://olatunjijohnson.github.io/SDALGCP2/reference/plot.SDALGCP2.md)
   : Plot an SDALGCP2 fit (the phi profile deviance)
 - [`map_exceedance()`](https://olatunjijohnson.github.io/SDALGCP2/reference/map_exceedance.md)
-  : Map exceedance probabilities P(relative risk \> threshold)
+  : Map exceedance probabilities P(risk \> threshold)
 - [`phi_profile()`](https://olatunjijohnson.github.io/SDALGCP2/reference/phi_profile.md)
   : Profile likelihood and confidence interval for the spatial scale phi
 - [`coef_plot()`](https://olatunjijohnson.github.io/SDALGCP2/reference/coef_plot.md)

@@ -56,8 +56,21 @@ predict(
 
 ## Value
 
-for `type = "discrete"`, an `sf` object augmented with posterior mean/SD
-of incidence relative risk (`pMean_RR`/`pSD_RR`) and covariate-adjusted
-relative risk (`pMean_ARR`/`pSD_ARR`); for `type = "continuous"`, a list
-with the prediction grid and posterior summaries. Result carries class
-`"SDALGCP2_pred"`.
+an object of class `"SDALGCP2_pred"`. For both `type`s it carries, for
+every location (region or grid cell), the posterior mean and standard
+error of two quantities:
+
+- `RR` (relative risk):
+
+  \\\exp(\eta)=\exp(d'\beta+S)\\ – the full relative risk, including the
+  covariate effect.
+
+- `ARR` (covariate-adjusted relative risk):
+
+  \\\exp(S)\\ – the residual spatial relative risk after adjusting for
+  covariates.
+
+stored as `RR_mean`/`RR_se`/`ARR_mean`/`ARR_se` (and, for discrete fits,
+as columns of the returned `sf`). Posterior draws are kept so that
+[`exceedance`](https://olatunjijohnson.github.io/SDALGCP2/reference/exceedance.md)
+can be computed for either quantity.

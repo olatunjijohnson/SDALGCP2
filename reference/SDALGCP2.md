@@ -177,5 +177,6 @@ summary(fit)
 pred_d <- predict(fit, type = "discrete",   sampler = "mcmc",    control.mcmc = ctrl)
 pred_c <- predict(fit, type = "continuous", sampler = "laplace", cellsize = 1,
                   control.mcmc = ctrl)
+#> Error in predict.SDALGCP2(fit, type = "continuous", sampler = "laplace",     cellsize = 1, control.mcmc = ctrl): 'list' object cannot be coerced to type 'integer'
 # }
 ```

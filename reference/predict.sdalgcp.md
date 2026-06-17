@@ -1,8 +1,12 @@
 # Predict relative risk from an sdalgcp fit
 
-Returns the fitted region-level relative risk as an `sf` object (for
-spatial fits) so it can be mapped directly, or a long data frame for
-spatio-temporal fits.
+Returns a prediction object carrying, for every location, the posterior
+mean and standard error of the relative risk `RR`
+(\\\exp(\eta)=\exp(d'\beta+S)\\) and the covariate-adjusted relative
+risk `ARR` (\\\exp(S)\\). Map it with
+[`plot()`](https://rdrr.io/r/graphics/plot.default.html) and get hotspot
+probabilities with
+[`exceedance`](https://olatunjijohnson.github.io/SDALGCP2/reference/exceedance.md).
 
 ## Usage
 
@@ -10,8 +14,9 @@ spatio-temporal fits.
 # S3 method for class 'sdalgcp'
 predict(
   object,
-  type = c("risk", "incidence", "exceedance"),
-  threshold = 1,
+  type = c("discrete", "continuous"),
+  sampler = c("mcmc", "laplace"),
+  cellsize = NULL,
   ...
 )
 ```
@@ -24,13 +29,16 @@ predict(
 
 - type:
 
-  `"risk"` for covariate-adjusted relative risk \\\exp(S)\\ (default),
-  `"incidence"` for \\\exp(\mu+S)\\, or `"exceedance"` for
-  \\P(\mathrm{risk} \> \mathrm{threshold})\\.
+  `"discrete"` (region level, default) or `"continuous"` (a grid
+  surface). Ignored for spatio-temporal fits.
 
-- threshold:
+- sampler:
 
-  threshold for `type = "exceedance"`.
+  `"mcmc"` (default) or `"laplace"`.
+
+- cellsize:
+
+  grid spacing for `type = "continuous"`.
 
 - ...:
 
@@ -38,7 +46,6 @@ predict(
 
 ## Value
 
-for spatial fits, the model's `sf` augmented with `relative_risk`,
-`relative_risk_se` (and `incidence`, `exceedance` as requested); for
-spatio-temporal fits, a list with region-by-time matrices and a long
-table.
+an object of class `"SDALGCP2_pred"` (spatial) or `"SDALGCP2_ST_pred"`
+(spatio-temporal). For discrete spatial fits `$my_shp` is an `sf` with
+`RR_mean`, `RR_se`, `ARR_mean`, `ARR_se` columns.

@@ -1,11 +1,11 @@
-# Map exceedance probabilities P(relative risk \> threshold)
+# Map exceedance probabilities P(risk \> threshold)
 
-Map exceedance probabilities P(relative risk \> threshold)
+Map exceedance probabilities P(risk \> threshold)
 
 ## Usage
 
 ``` r
-map_exceedance(x, threshold = 1, bound = NULL, ...)
+map_exceedance(x, threshold = 1, which = c("ARR", "RR"), bound = NULL, ...)
 ```
 
 ## Arguments
@@ -17,6 +17,10 @@ map_exceedance(x, threshold = 1, bound = NULL, ...)
 - threshold:
 
   a single relative-risk threshold.
+
+- which:
+
+  `"ARR"` (covariate-adjusted, default) or `"RR"`.
 
 - bound:
 

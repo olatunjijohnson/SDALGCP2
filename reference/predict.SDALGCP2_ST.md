@@ -27,5 +27,7 @@ predict(object, control.mcmc = NULL, ...)
 
 ## Value
 
-a list with \\N\times T\\ matrices `RR_mean`, `RR_sd`, `ARR_mean`,
-`ARR_sd` and a long data frame `table`.
+an `"SDALGCP2_ST_pred"` object with \\N\times T\\ matrices `RR_mean`,
+`RR_se`, `ARR_mean`, `ARR_se`, a long `table`, and the geometry; map a
+time slice with
+[`plot.SDALGCP2_ST_pred`](https://olatunjijohnson.github.io/SDALGCP2/reference/plot.SDALGCP2_ST_pred.md).
