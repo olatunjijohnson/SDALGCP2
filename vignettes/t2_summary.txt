@@ -1,0 +1,14 @@
+Call: sdalgcp(formula = cases ~ z + offset(log(pop)), data = sh, rasters = r)
+
+Coefficients:
+            Estimate Std.Err z value Pr(>|z|)    
+(Intercept)  -6.0920  0.0890  -68.45   <2e-16 ***
+z             1.0859  0.0297   36.51   <2e-16 ***
+sigma^2       0.1711  0.1840    0.93     0.35    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Spatial scale phi: 2
+Log-likelihood: 14.9397
+MC importance-sampling ESS: 2 / 1000 (0%);  log-lik MC SE: 0.69
+Note: sigma^2 is the variance of the latent Gaussian process.
