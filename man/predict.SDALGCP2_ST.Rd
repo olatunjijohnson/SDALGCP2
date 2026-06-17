@@ -14,8 +14,9 @@
 \item{...}{unused.}
 }
 \value{
-a list with \eqn{N\times T} matrices \code{RR_mean}, \code{RR_sd},
-  \code{ARR_mean}, \code{ARR_sd} and a long data frame \code{table}.
+an \code{"SDALGCP2_ST_pred"} object with \eqn{N\times T} matrices
+  \code{RR_mean}, \code{RR_se}, \code{ARR_mean}, \code{ARR_se}, a long
+  \code{table}, and the geometry; map a time slice with \code{\link{plot.SDALGCP2_ST_pred}}.
 }
 \description{
 Draws the latent field at the fitted optimum and returns posterior mean and SD

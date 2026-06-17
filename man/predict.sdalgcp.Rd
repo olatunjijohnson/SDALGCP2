@@ -6,30 +6,33 @@
 \usage{
 \method{predict}{sdalgcp}(
   object,
-  type = c("risk", "incidence", "exceedance"),
-  threshold = 1,
+  type = c("discrete", "continuous"),
+  sampler = c("mcmc", "laplace"),
+  cellsize = NULL,
   ...
 )
 }
 \arguments{
 \item{object}{an \code{"sdalgcp"} fit.}
 
-\item{type}{\code{"risk"} for covariate-adjusted relative risk
-\eqn{\exp(S)} (default), \code{"incidence"} for \eqn{\exp(\mu+S)}, or
-\code{"exceedance"} for \eqn{P(\mathrm{risk} > \mathrm{threshold})}.}
+\item{type}{\code{"discrete"} (region level, default) or \code{"continuous"}
+(a grid surface). Ignored for spatio-temporal fits.}
 
-\item{threshold}{threshold for \code{type = "exceedance"}.}
+\item{sampler}{\code{"mcmc"} (default) or \code{"laplace"}.}
+
+\item{cellsize}{grid spacing for \code{type = "continuous"}.}
 
 \item{...}{passed to the underlying predictor.}
 }
 \value{
-for spatial fits, the model's \code{sf} augmented with
-  \code{relative_risk}, \code{relative_risk_se} (and \code{incidence},
-  \code{exceedance} as requested); for spatio-temporal fits, a list with
-  region-by-time matrices and a long table.
+an object of class \code{"SDALGCP2_pred"} (spatial) or
+  \code{"SDALGCP2_ST_pred"} (spatio-temporal). For discrete spatial fits
+  \code{$my_shp} is an \code{sf} with \code{RR_mean}, \code{RR_se},
+  \code{ARR_mean}, \code{ARR_se} columns.
 }
 \description{
-Returns the fitted region-level relative risk as an \code{sf} object (for
-spatial fits) so it can be mapped directly, or a long data frame for
-spatio-temporal fits.
+Returns a prediction object carrying, for every location, the posterior mean and
+standard error of the relative risk \code{RR} (\eqn{\exp(\eta)=\exp(d'\beta+S)})
+and the covariate-adjusted relative risk \code{ARR} (\eqn{\exp(S)}). Map it with
+\code{plot()} and get hotspot probabilities with \code{\link{exceedance}}.
 }

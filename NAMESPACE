@@ -3,6 +3,7 @@
 S3method(confint,SDALGCP2)
 S3method(confint,sdalgcp)
 S3method(plot,SDALGCP2)
+S3method(plot,SDALGCP2_ST_pred)
 S3method(plot,SDALGCP2_pred)
 S3method(plot,sdalgcp)
 S3method(predict,SDALGCP2)

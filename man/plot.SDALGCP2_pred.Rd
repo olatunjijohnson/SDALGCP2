@@ -4,19 +4,25 @@
 \alias{plot.SDALGCP2_pred}
 \title{Map a fitted SDALGCP2 prediction}
 \usage{
-\method{plot}{SDALGCP2_pred}(x, variable = "RR", bound = NULL, midpoint = NULL, title = NULL, ...)
+\method{plot}{SDALGCP2_pred}(
+  x,
+  variable = c("RR", "ARR", "RR_se", "ARR_se"),
+  bound = NULL,
+  midpoint = NULL,
+  title = NULL,
+  ...
+)
 }
 \arguments{
 \item{x}{an object of class \code{"SDALGCP2_pred"}.}
 
-\item{variable}{for discrete: one of \code{"RR"}, \code{"SE_RR"}, \code{"ARR"},
-\code{"SE_ARR"}; for continuous: \code{"RR"} or \code{"SE_RR"}.}
+\item{variable}{one of \code{"RR"}, \code{"ARR"}, \code{"RR_se"}, \code{"ARR_se"}.}
 
 \item{bound}{optional \code{sf} boundary; continuous surfaces are masked to it
 and its outline overlaid.}
 
-\item{midpoint}{optional value to centre a diverging colour scale (e.g. 1 for
-relative risk); if \code{NULL} a sequential viridis scale is used.}
+\item{midpoint}{optional value to centre a diverging colour scale (defaults to 1
+for \code{"RR"}/\code{"ARR"}, none for the standard errors).}
 
 \item{title}{optional plot title.}
 
@@ -26,7 +32,8 @@ relative risk); if \code{NULL} a sequential viridis scale is used.}
 a \code{ggplot} object.
 }
 \description{
-Maps a relative-risk surface (and its uncertainty) from
-\code{\link{predict.SDALGCP2}}. Region-level predictions are drawn as choropleths;
-continuous predictions as a raster, optionally masked to a boundary.
+Maps any of the four predicted quantities from \code{\link{predict.SDALGCP2}}
+-- relative risk \code{"RR"}, covariate-adjusted relative risk \code{"ARR"}, or
+their standard errors \code{"RR_se"}/\code{"ARR_se"} -- for either discrete
+(choropleth) or continuous (raster) predictions.
 }

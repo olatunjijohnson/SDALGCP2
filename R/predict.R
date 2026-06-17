@@ -47,11 +47,18 @@
 #'   \code{y}) for continuous prediction.
 #' @param control.mcmc optional MCMC controls; defaults to those used at fitting.
 #' @param ... unused.
-#' @return for \code{type = "discrete"}, an \code{sf} object augmented with
-#'   posterior mean/SD of incidence relative risk (\code{pMean_RR}/\code{pSD_RR})
-#'   and covariate-adjusted relative risk (\code{pMean_ARR}/\code{pSD_ARR}); for
-#'   \code{type = "continuous"}, a list with the prediction grid and posterior
-#'   summaries. Result carries class \code{"SDALGCP2_pred"}.
+#' @return an object of class \code{"SDALGCP2_pred"}. For both \code{type}s it
+#'   carries, for every location (region or grid cell), the posterior mean and
+#'   standard error of two quantities:
+#'   \describe{
+#'     \item{\code{RR} (relative risk)}{\eqn{\exp(\eta)=\exp(d'\beta+S)} -- the full
+#'       relative risk, including the covariate effect.}
+#'     \item{\code{ARR} (covariate-adjusted relative risk)}{\eqn{\exp(S)} -- the
+#'       residual spatial relative risk after adjusting for covariates.}
+#'   }
+#'   stored as \code{RR_mean}/\code{RR_se}/\code{ARR_mean}/\code{ARR_se} (and, for
+#'   discrete fits, as columns of the returned \code{sf}). Posterior draws are kept
+#'   so that \code{\link{exceedance}} can be computed for either quantity.
 #' @method predict SDALGCP2
 #' @export
 predict.SDALGCP2 <- function(object, type = c("discrete", "continuous"),
@@ -59,26 +66,26 @@ predict.SDALGCP2 <- function(object, type = c("discrete", "continuous"),
                              pred.loc = NULL, control.mcmc = NULL, ...) {
   type <- match.arg(type); sampler <- match.arg(sampler)
   mu0 <- object$mu
-  S.sim <- .draw_latent(object, sampler, control.mcmc)
+  S.sim <- .draw_latent(object, sampler, control.mcmc)     # eta draws (nsim x N)
+  shp <- attr(object, "my_shp")
+  if (!is.null(shp) && !inherits(shp, "sf")) shp <- sf::st_as_sf(shp)
 
   if (type == "discrete") {
-    shp <- attr(object, "my_shp")
-    RR  <- exp(S.sim)
-    ARR <- exp(sweep(S.sim, 2, mu0, "-"))
+    RR  <- exp(S.sim)                                      # exp(eta) = relative risk
+    ARR <- exp(sweep(S.sim, 2, mu0, "-"))                  # exp(S)   = covariate-adjusted
+    out <- list(type = "discrete", my_shp = shp, mu = mu0, eta.draw = S.sim,
+                RR_mean = colMeans(RR), RR_se = .colSDs(RR),
+                ARR_mean = colMeans(ARR), ARR_se = .colSDs(ARR))
     if (!is.null(shp)) {
-      shp$pMean_RR  <- colMeans(RR);  shp$pSD_RR  <- .colSDs(RR)
-      shp$pMean_ARR <- colMeans(ARR); shp$pSD_ARR <- .colSDs(ARR)
+      shp$RR_mean <- out$RR_mean; shp$RR_se <- out$RR_se
+      shp$ARR_mean <- out$ARR_mean; shp$ARR_se <- out$ARR_se
+      out$my_shp <- shp
     }
-    out <- list(type = "discrete", my_shp = shp,
-                pMean_RR = colMeans(RR), pSD_RR = .colSDs(RR),
-                pMean_ARR = colMeans(ARR), pSD_ARR = .colSDs(ARR),
-                S.draw = S.sim, mu = mu0)
     class(out) <- "SDALGCP2_pred"
     return(out)
   }
 
-  ## continuous (change of support)
-  shp <- attr(object, "my_shp")
+  ## continuous (change of support): predict the spatial field S(x) on a grid
   weighted <- isTRUE(attr(object, "weighted"))
   kappa <- if (!is.null(object$kappa)) object$kappa else 0.5
   sigma2 <- object$sigma2_opt; phi <- object$phi_opt
@@ -108,22 +115,42 @@ predict.SDALGCP2 <- function(object, type = c("discrete", "continuous"),
   for (i in seq_len(nsim)) {
     Sx[i, ] <- Bmat %*% (S.sim[i, ] - mu0) + K %*% stats::rnorm(npred)
   }
-  out <- list(type = "continuous", pred.loc = pred.loc,
-              RRmean = colMeans(exp(Sx)), RRsd = .colSDs(exp(Sx)),
-              pred.draw = Sx, my_shp = shp)
+
+  # region linear predictor mu(x) at each grid point (for the incidence RR)
+  mu_x <- rep(NA_real_, npred)
+  if (!is.null(shp)) {
+    psf <- sf::st_as_sf(data.frame(x = pl[, 1], y = pl[, 2]), coords = c("x", "y"),
+                        crs = sf::st_crs(shp))
+    reg <- as.integer(suppressMessages(sf::st_intersects(psf, shp)))
+    inside <- !is.na(reg); mu_x[inside] <- mu0[reg[inside]]
+    if (any(!inside)) mu_x[!inside] <- mu0[sf::st_nearest_feature(psf[!inside, ], shp)]
+  } else mu_x <- rep(mean(mu0), npred)
+
+  ARR <- exp(Sx)                                          # exp(S(x))
+  RR  <- exp(sweep(Sx, 2, mu_x, "+"))                     # exp(mu(x) + S(x))
+  out <- list(type = "continuous", pred.loc = pred.loc, my_shp = shp,
+              mu_x = mu_x, pred.draw = Sx,
+              ARR_mean = colMeans(ARR), ARR_se = .colSDs(ARR),
+              RR_mean = colMeans(RR), RR_se = .colSDs(RR))
   class(out) <- "SDALGCP2_pred"
   out
 }
 
-#' Exceedance probabilities P(relative risk > threshold)
+#' Exceedance probabilities P(risk > threshold)
 #'
 #' @param object an \code{"SDALGCP2_pred"} object from \code{\link{predict.SDALGCP2}}.
 #' @param thresholds numeric vector of thresholds.
+#' @param which which quantity: \code{"ARR"} (covariate-adjusted relative risk,
+#'   default) or \code{"RR"} (relative risk).
 #' @return a matrix of exceedance probabilities (locations x thresholds).
 #' @export
-exceedance <- function(object, thresholds) {
+exceedance <- function(object, thresholds, which = c("ARR", "RR")) {
   stopifnot(inherits(object, "SDALGCP2_pred"))
-  draws <- if (object$type == "continuous") exp(object$pred.draw) else
-    exp(sweep(object$S.draw, 2, object$mu, "-"))
+  which <- match.arg(which)
+  draws <- if (object$type == "continuous") {
+    if (which == "ARR") exp(object$pred.draw) else exp(sweep(object$pred.draw, 2, object$mu_x, "+"))
+  } else {
+    if (which == "ARR") exp(sweep(object$eta.draw, 2, object$mu, "-")) else exp(object$eta.draw)
+  }
   sapply(thresholds, function(t) apply(draws, 2, function(x) mean(x > t)))
 }

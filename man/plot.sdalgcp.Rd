@@ -6,18 +6,35 @@
 \usage{
 \method{plot}{sdalgcp}(
   x,
-  type = c("risk", "incidence", "risk_se", "exceedance"),
+  what = c("RR", "ARR", "RR_se", "ARR_se", "exceedance"),
+  type = c("discrete", "continuous"),
+  time = NULL,
   threshold = 1,
+  which = c("ARR", "RR"),
+  cellsize = NULL,
+  sampler = c("mcmc", "laplace"),
   ...
 )
 }
 \arguments{
 \item{x}{an \code{"sdalgcp"} fit.}
 
-\item{type}{\code{"risk"} (default), \code{"incidence"}, \code{"risk_se"} or
+\item{what}{one of \code{"RR"} (relative risk, default), \code{"ARR"}
+(covariate-adjusted relative risk), \code{"RR_se"}, \code{"ARR_se"} or
 \code{"exceedance"}.}
 
-\item{threshold}{threshold for \code{type = "exceedance"}.}
+\item{type}{\code{"discrete"} (default) or \code{"continuous"} (spatial fits).}
+
+\item{time}{for spatio-temporal fits, the time to map (default: first; use
+\code{NULL} to facet all times).}
+
+\item{threshold}{threshold for \code{what = "exceedance"}.}
+
+\item{which}{for exceedance: \code{"ARR"} (default) or \code{"RR"}.}
+
+\item{cellsize}{grid spacing for \code{type = "continuous"}.}
+
+\item{sampler}{\code{"mcmc"} (default) or \code{"laplace"}.}
 
 \item{...}{passed to the mapping layer.}
 }
@@ -25,6 +42,6 @@
 a \code{ggplot} object.
 }
 \description{
-Default visualisation: a choropleth of the covariate-adjusted relative risk
-(spatial fits). Equivalent to \code{plot(predict(object), ...)}.
+Predicts and maps a chosen quantity. Works for spatial fits (discrete or
+continuous) and spatio-temporal fits (select a \code{time}).
 }

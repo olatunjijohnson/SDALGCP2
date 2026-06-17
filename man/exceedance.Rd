@@ -2,18 +2,21 @@
 % Please edit documentation in R/predict.R
 \name{exceedance}
 \alias{exceedance}
-\title{Exceedance probabilities P(relative risk > threshold)}
+\title{Exceedance probabilities P(risk > threshold)}
 \usage{
-exceedance(object, thresholds)
+exceedance(object, thresholds, which = c("ARR", "RR"))
 }
 \arguments{
 \item{object}{an \code{"SDALGCP2_pred"} object from \code{\link{predict.SDALGCP2}}.}
 
 \item{thresholds}{numeric vector of thresholds.}
+
+\item{which}{which quantity: \code{"ARR"} (covariate-adjusted relative risk,
+default) or \code{"RR"} (relative risk).}
 }
 \value{
 a matrix of exceedance probabilities (locations x thresholds).
 }
 \description{
-Exceedance probabilities P(relative risk > threshold)
+Exceedance probabilities P(risk > threshold)
 }

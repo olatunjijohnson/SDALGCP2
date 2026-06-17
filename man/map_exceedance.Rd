@@ -2,14 +2,16 @@
 % Please edit documentation in R/viz.R
 \name{map_exceedance}
 \alias{map_exceedance}
-\title{Map exceedance probabilities P(relative risk > threshold)}
+\title{Map exceedance probabilities P(risk > threshold)}
 \usage{
-map_exceedance(x, threshold = 1, bound = NULL, ...)
+map_exceedance(x, threshold = 1, which = c("ARR", "RR"), bound = NULL, ...)
 }
 \arguments{
 \item{x}{an \code{"SDALGCP2_pred"} object.}
 
 \item{threshold}{a single relative-risk threshold.}
+
+\item{which}{\code{"ARR"} (covariate-adjusted, default) or \code{"RR"}.}
 
 \item{bound}{optional \code{sf} boundary (continuous only).}
 
@@ -19,5 +21,5 @@ map_exceedance(x, threshold = 1, bound = NULL, ...)
 a \code{ggplot} object.
 }
 \description{
-Map exceedance probabilities P(relative risk > threshold)
+Map exceedance probabilities P(risk > threshold)
 }

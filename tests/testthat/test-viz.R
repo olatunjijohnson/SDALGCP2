@@ -23,7 +23,7 @@ test_that("plotting, profile and diagnostics return the right object types", {
 
   pd <- predict(fit, type = "discrete", control.mcmc = ctrl)
   expect_s3_class(plot(pd, "ARR", midpoint = 1), "ggplot")
-  expect_s3_class(plot(pd, "SE_RR"), "ggplot")
+  expect_s3_class(plot(pd, "RR_se"), "ggplot")
   expect_s3_class(map_exceedance(pd, threshold = 1.2), "ggplot")
   expect_s3_class(coef_plot(fit), "ggplot")
 

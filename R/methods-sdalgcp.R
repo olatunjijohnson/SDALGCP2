@@ -30,62 +30,70 @@ summary.sdalgcp <- function(object, ...) summary(.strip_sdalgcp(object), ...)
 
 #' Predict relative risk from an sdalgcp fit
 #'
-#' Returns the fitted region-level relative risk as an \code{sf} object (for
-#' spatial fits) so it can be mapped directly, or a long data frame for
-#' spatio-temporal fits.
+#' Returns a prediction object carrying, for every location, the posterior mean and
+#' standard error of the relative risk \code{RR} (\eqn{\exp(\eta)=\exp(d'\beta+S)})
+#' and the covariate-adjusted relative risk \code{ARR} (\eqn{\exp(S)}). Map it with
+#' \code{plot()} and get hotspot probabilities with \code{\link{exceedance}}.
 #'
 #' @param object an \code{"sdalgcp"} fit.
-#' @param type \code{"risk"} for covariate-adjusted relative risk
-#'   \eqn{\exp(S)} (default), \code{"incidence"} for \eqn{\exp(\mu+S)}, or
-#'   \code{"exceedance"} for \eqn{P(\mathrm{risk} > \mathrm{threshold})}.
-#' @param threshold threshold for \code{type = "exceedance"}.
+#' @param type \code{"discrete"} (region level, default) or \code{"continuous"}
+#'   (a grid surface). Ignored for spatio-temporal fits.
+#' @param sampler \code{"mcmc"} (default) or \code{"laplace"}.
+#' @param cellsize grid spacing for \code{type = "continuous"}.
 #' @param ... passed to the underlying predictor.
-#' @return for spatial fits, the model's \code{sf} augmented with
-#'   \code{relative_risk}, \code{relative_risk_se} (and \code{incidence},
-#'   \code{exceedance} as requested); for spatio-temporal fits, a list with
-#'   region-by-time matrices and a long table.
+#' @return an object of class \code{"SDALGCP2_pred"} (spatial) or
+#'   \code{"SDALGCP2_ST_pred"} (spatio-temporal). For discrete spatial fits
+#'   \code{$my_shp} is an \code{sf} with \code{RR_mean}, \code{RR_se},
+#'   \code{ARR_mean}, \code{ARR_se} columns.
 #' @method predict sdalgcp
 #' @export
-predict.sdalgcp <- function(object, type = c("risk", "incidence", "exceedance"),
-                            threshold = 1, ...) {
-  type <- match.arg(type)
+predict.sdalgcp <- function(object, type = c("discrete", "continuous"),
+                            sampler = c("mcmc", "laplace"), cellsize = NULL, ...) {
   obj <- .strip_sdalgcp(object)
-  if (!is.null(object$T)) return(stats::predict(obj, ...))  # spatio-temporal
-
-  pr <- stats::predict(obj, type = "discrete", ...)
-  shp <- object$data_sf
-  if (!inherits(shp, "sf")) shp <- sf::st_as_sf(shp)
-  shp$relative_risk    <- pr$pMean_ARR
-  shp$relative_risk_se <- pr$pSD_ARR
-  shp$incidence        <- pr$pMean_RR
-  if (type == "exceedance") shp$exceedance <- as.numeric(exceedance(pr, threshold))
-  shp
+  if (!is.null(object$T)) return(stats::predict(obj, ...))   # spatio-temporal
+  type <- match.arg(type); sampler <- match.arg(sampler)
+  stats::predict(obj, type = type, sampler = sampler, cellsize = cellsize, ...)
 }
 
 #' Map an sdalgcp fit
 #'
-#' Default visualisation: a choropleth of the covariate-adjusted relative risk
-#' (spatial fits). Equivalent to \code{plot(predict(object), ...)}.
+#' Predicts and maps a chosen quantity. Works for spatial fits (discrete or
+#' continuous) and spatio-temporal fits (select a \code{time}).
 #'
 #' @param x an \code{"sdalgcp"} fit.
-#' @param type \code{"risk"} (default), \code{"incidence"}, \code{"risk_se"} or
+#' @param what one of \code{"RR"} (relative risk, default), \code{"ARR"}
+#'   (covariate-adjusted relative risk), \code{"RR_se"}, \code{"ARR_se"} or
 #'   \code{"exceedance"}.
-#' @param threshold threshold for \code{type = "exceedance"}.
+#' @param type \code{"discrete"} (default) or \code{"continuous"} (spatial fits).
+#' @param time for spatio-temporal fits, the time to map (default: first; use
+#'   \code{NULL} to facet all times).
+#' @param threshold threshold for \code{what = "exceedance"}.
+#' @param which for exceedance: \code{"ARR"} (default) or \code{"RR"}.
+#' @param cellsize grid spacing for \code{type = "continuous"}.
+#' @param sampler \code{"mcmc"} (default) or \code{"laplace"}.
 #' @param ... passed to the mapping layer.
 #' @return a \code{ggplot} object.
 #' @method plot sdalgcp
 #' @export
-plot.sdalgcp <- function(x, type = c("risk", "incidence", "risk_se", "exceedance"),
-                         threshold = 1, ...) {
-  type <- match.arg(type)
-  if (!is.null(x$T)) stop("Plotting spatio-temporal fits directly is not yet supported; use predict() and map per time slice.")
+plot.sdalgcp <- function(x, what = c("RR", "ARR", "RR_se", "ARR_se", "exceedance"),
+                         type = c("discrete", "continuous"), time = NULL,
+                         threshold = 1, which = c("ARR", "RR"), cellsize = NULL,
+                         sampler = c("mcmc", "laplace"), ...) {
+  what <- match.arg(what); which <- match.arg(which); sampler <- match.arg(sampler)
   obj <- .strip_sdalgcp(x)
-  pr <- stats::predict(obj, type = "discrete")   # pr$my_shp already carries geometry + risk columns
-  if (type == "exceedance") return(map_exceedance(pr, threshold = threshold, ...))
-  var <- switch(type, risk = "ARR", incidence = "RR", risk_se = "SE_ARR")
-  plot(pr, variable = var, midpoint = if (type %in% c("risk", "incidence")) 1 else NULL,
-       title = switch(type, risk = "Covariate-adjusted relative risk",
-                      incidence = "Incidence relative risk", risk_se = "Relative-risk SD"), ...)
+
+  if (!is.null(x$T)) {                                        # spatio-temporal
+    pr <- stats::predict(obj)
+    if (is.null(time)) time <- pr$times[1]
+    return(plot(pr, time = time, what = what, threshold = threshold, which = which))
+  }
+
+  type <- match.arg(type)
+  pr <- stats::predict(obj, type = type, sampler = sampler, cellsize = cellsize)
+  bound <- if (type == "continuous") x$data_sf else NULL
+  if (what == "exceedance")
+    return(map_exceedance(pr, threshold = threshold, which = which, bound = bound))
+  plot(pr, variable = what, bound = bound)
 }
 
 #' @method confint sdalgcp

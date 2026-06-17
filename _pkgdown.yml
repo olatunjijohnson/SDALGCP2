@@ -65,6 +65,7 @@ reference:
   contents:
   - plot.sdalgcp
   - plot.SDALGCP2_pred
+  - plot.SDALGCP2_ST_pred
   - plot.SDALGCP2
   - map_exceedance
   - phi_profile

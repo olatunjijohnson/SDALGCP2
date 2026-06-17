@@ -47,13 +47,13 @@ test_that("prediction (discrete + continuous, both samplers) produces sane outpu
                   phi = sim$phi_grid, method = 3, control.mcmc = ctrl)
 
   pd <- predict(fit, type = "discrete", sampler = "mcmc", control.mcmc = ctrl)
-  expect_length(pd$pMean_RR, sim$N)
-  expect_true(all(pd$pSD_RR >= 0))
+  expect_length(pd$RR_mean, sim$N)
+  expect_true(all(pd$RR_se >= 0))
 
   pc <- predict(fit, type = "continuous", sampler = "laplace", cellsize = 1.5,
                 control.mcmc = ctrl)
   expect_true(nrow(pc$pred.loc) > 0)
-  expect_true(all(pc$RRmean > 0))
+  expect_true(all(pc$RR_mean > 0))
 
   ex <- exceedance(pd, thresholds = c(1, 1.5))
   expect_equal(dim(ex), c(sim$N, 2))

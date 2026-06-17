@@ -35,11 +35,18 @@ approximation, no MCMC).}
 \item{...}{unused.}
 }
 \value{
-for \code{type = "discrete"}, an \code{sf} object augmented with
-  posterior mean/SD of incidence relative risk (\code{pMean_RR}/\code{pSD_RR})
-  and covariate-adjusted relative risk (\code{pMean_ARR}/\code{pSD_ARR}); for
-  \code{type = "continuous"}, a list with the prediction grid and posterior
-  summaries. Result carries class \code{"SDALGCP2_pred"}.
+an object of class \code{"SDALGCP2_pred"}. For both \code{type}s it
+  carries, for every location (region or grid cell), the posterior mean and
+  standard error of two quantities:
+  \describe{
+    \item{\code{RR} (relative risk)}{\eqn{\exp(\eta)=\exp(d'\beta+S)} -- the full
+      relative risk, including the covariate effect.}
+    \item{\code{ARR} (covariate-adjusted relative risk)}{\eqn{\exp(S)} -- the
+      residual spatial relative risk after adjusting for covariates.}
+  }
+  stored as \code{RR_mean}/\code{RR_se}/\code{ARR_mean}/\code{ARR_se} (and, for
+  discrete fits, as columns of the returned \code{sf}). Posterior draws are kept
+  so that \code{\link{exceedance}} can be computed for either quantity.
 }
 \description{
 Predict relative risk from a fitted SDALGCP2 model
