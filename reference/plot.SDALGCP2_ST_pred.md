@@ -1,8 +1,8 @@
 # Map a spatio-temporal prediction for one time
 
-Maps a chosen quantity (`"RR"`, `"ARR"`, `"RR_se"`, `"ARR_se"` or
-`"exceedance"`) for a selected time slice of a spatio-temporal
-prediction.
+Maps a chosen quantity (`"relative_risk"`, `"adjusted_rr"`,
+`"relative_risk_se"`, `"adjusted_rr_se"` or `"exceedance"`) for a
+selected time slice of a spatio-temporal prediction.
 
 ## Usage
 
@@ -11,9 +11,10 @@ prediction.
 plot(
   x,
   time = x$times[1],
-  what = c("RR", "ARR", "RR_se", "ARR_se", "exceedance"),
+  what = c("relative_risk", "adjusted_rr", "relative_risk_se", "adjusted_rr_se",
+    "exceedance"),
   threshold = 1,
-  which = c("ARR", "RR"),
+  which = c("adjusted_rr", "relative_risk"),
   ...
 )
 ```
@@ -33,7 +34,8 @@ plot(
 
 - what:
 
-  one of `"RR"`, `"ARR"`, `"RR_se"`, `"ARR_se"`, `"exceedance"`.
+  one of `"relative_risk"`, `"adjusted_rr"`, `"relative_risk_se"`,
+  `"adjusted_rr_se"`, `"exceedance"`.
 
 - threshold:
 
@@ -41,7 +43,7 @@ plot(
 
 - which:
 
-  for exceedance: `"ARR"` (default) or `"RR"`.
+  for exceedance: `"adjusted_rr"` (default) or `"relative_risk"`.
 
 - ...:
 

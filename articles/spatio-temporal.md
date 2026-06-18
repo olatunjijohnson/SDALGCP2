@@ -83,16 +83,17 @@ spatial range.
 returns $`N\times T`$ matrices of relative risk and covariate-adjusted
 relative risk (with standard errors). The
 [`plot()`](https://rspatial.github.io/terra/reference/plot.html) method
-selects a **time** and a **quantity** (`"RR"`, `"ARR"`, `"RR_se"`,
-`"ARR_se"`, `"exceedance"`):
+selects a **time** and a **quantity** (`"relative_risk"`,
+`"adjusted_rr"`, `"relative_risk_se"`, `"adjusted_rr_se"`,
+`"exceedance"`):
 
 ``` r
 
 pr <- predict(fit)
 
-plot(pr, time = NULL, what = "ARR")                 # facet all years
-plot(pr, time = 2021, what = "RR")                  # relative risk, 2021 only
-plot(pr, time = 2021, what = "exceedance", threshold = 1.3, which = "ARR")
+plot(pr, time = NULL, what = "adjusted_rr")          # facet all years
+plot(pr, time = 2021, what = "relative_risk")        # relative risk, 2021 only
+plot(pr, time = 2021, what = "exceedance", threshold = 1.3, which = "adjusted_rr")
 ```
 
 Covariate-adjusted relative risk, all years:
@@ -103,9 +104,9 @@ Covariate-adjusted relative risk, all years:
 |:-------------------:|:---------------------------:|
 | ![](t3_rr_2021.png) |    ![](t3_exc_2021.png)     |
 
-You can equally call `plot(fit, time = 2021, what = "RR")` directly on
-the fit, and `pr$table` is a long data frame (region × time) of every
-quantity for further analysis.
+You can equally call `plot(fit, time = 2021, what = "relative_risk")`
+directly on the fit, and `pr$table` is a long data frame (region × time)
+of every quantity for further analysis.
 
 ## Tips
 

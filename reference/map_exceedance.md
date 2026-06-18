@@ -5,7 +5,13 @@ Map exceedance probabilities P(risk \> threshold)
 ## Usage
 
 ``` r
-map_exceedance(x, threshold = 1, which = c("ARR", "RR"), bound = NULL, ...)
+map_exceedance(
+  x,
+  threshold = 1,
+  which = c("adjusted_rr", "relative_risk"),
+  bound = NULL,
+  ...
+)
 ```
 
 ## Arguments
@@ -20,7 +26,7 @@ map_exceedance(x, threshold = 1, which = c("ARR", "RR"), bound = NULL, ...)
 
 - which:
 
-  `"ARR"` (covariate-adjusted, default) or `"RR"`.
+  `"adjusted_rr"` (covariate-adjusted, default) or `"relative_risk"`.
 
 - bound:
 

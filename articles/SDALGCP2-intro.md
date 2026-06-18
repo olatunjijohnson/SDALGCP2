@@ -97,17 +97,18 @@ reliable the Monte Carlo likelihood is.
 
 ``` r
 
-plot(fit, "RR")          # relative risk exp(eta)
-plot(fit, "ARR")         # covariate-adjusted relative risk exp(S)
+plot(fit, "relative_risk")   # relative risk exp(d'beta + S)
+plot(fit, "adjusted_rr")     # covariate-adjusted relative risk exp(S)
 ```
 
-| Relative risk `RR` | Covariate-adjusted `ARR` |
-|:------------------:|:------------------------:|
-|   ![](t1_rr.png)   |     ![](t1_arr.png)      |
+| Relative risk `relative_risk` | Covariate-adjusted `adjusted_rr` |
+|:-----------------------------:|:--------------------------------:|
+|        ![](t1_rr.png)         |         ![](t1_arr.png)          |
 
-`RR` (left) is the overall pattern of risk; `ARR` (right) strips out the
-covariate contribution and shows the *unexplained* spatial signal —
-useful for spotting hotspots that the covariates do not account for.
+`relative_risk` (left) is the overall pattern of risk; `adjusted_rr`
+(right) strips out the covariate contribution and shows the
+*unexplained* spatial signal — useful for spotting hotspots that the
+covariates do not account for.
 
 ## Uncertainty and exceedance
 
@@ -116,7 +117,7 @@ probability that risk exceeds a policy threshold:
 
 ``` r
 
-plot(fit, "ARR_se")                          # standard error of the adjusted RR
+plot(fit, "adjusted_rr_se")                  # standard error of the adjusted RR
 plot(fit, "exceedance", threshold = 1.5)     # P(adjusted RR > 1.5)
 ```
 
@@ -136,14 +137,15 @@ smooth surface instead of a choropleth:
 ``` r
 
 pc <- predict(fit, type = "continuous", sampler = "laplace", cellsize = 0.6)
-plot(pc, "ARR", bound = regions)
+plot(pc, "adjusted_rr", bound = regions)
 ```
 
 ![](t1_cont.png)
 
 [`predict()`](https://rspatial.github.io/terra/reference/predict.html)
-returns all four quantities (`RR`, `ARR` and their `_se`) for both
-`type = "discrete"` and `type = "continuous"`, and
+returns an `sf` with all four quantities (`relative_risk`, `adjusted_rr`
+and their `_se`) for both `type = "discrete"` and `type = "continuous"`,
+and
 [`exceedance()`](https://olatunjijohnson.github.io/SDALGCP2/reference/exceedance.md)
 works on either.
 

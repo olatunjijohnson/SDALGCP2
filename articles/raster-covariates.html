@@ -206,7 +206,7 @@ the two approaches nearly agree, and either is fine.</p>
 relative risk with standard errors and exceedance, both discrete and
 continuous:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"ARR"</span><span class="op">)</span>                         <span class="co"># covariate-adjusted relative risk</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"adjusted_rr"</span><span class="op">)</span>                 <span class="co"># covariate-adjusted relative risk</span></span>
 <span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"exceedance"</span>, threshold <span class="op">=</span> <span class="fl">1.5</span><span class="op">)</span></span></code></pre></div>
 <p><img src="t2_arr.png" style="width:55.0%"></p>
 </div>

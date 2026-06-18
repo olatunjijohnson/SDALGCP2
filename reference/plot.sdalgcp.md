@@ -9,11 +9,12 @@ continuous) and spatio-temporal fits (select a `time`).
 # S3 method for class 'sdalgcp'
 plot(
   x,
-  what = c("RR", "ARR", "RR_se", "ARR_se", "exceedance"),
+  what = c("relative_risk", "adjusted_rr", "relative_risk_se", "adjusted_rr_se",
+    "exceedance"),
   type = c("discrete", "continuous"),
   time = NULL,
   threshold = 1,
-  which = c("ARR", "RR"),
+  which = c("adjusted_rr", "relative_risk"),
   cellsize = NULL,
   sampler = c("mcmc", "laplace"),
   ...
@@ -28,8 +29,9 @@ plot(
 
 - what:
 
-  one of `"RR"` (relative risk, default), `"ARR"` (covariate-adjusted
-  relative risk), `"RR_se"`, `"ARR_se"` or `"exceedance"`.
+  one of `"relative_risk"` (relative risk, default), `"adjusted_rr"`
+  (covariate-adjusted relative risk), `"relative_risk_se"`,
+  `"adjusted_rr_se"` or `"exceedance"`.
 
 - type:
 
@@ -46,7 +48,7 @@ plot(
 
 - which:
 
-  for exceedance: `"ARR"` (default) or `"RR"`.
+  for exceedance: `"adjusted_rr"` (default) or `"relative_risk"`.
 
 - cellsize:
 

@@ -27,7 +27,8 @@ predict(object, control.mcmc = NULL, ...)
 
 ## Value
 
-an `"SDALGCP2_ST_pred"` object with \\N\times T\\ matrices `RR_mean`,
-`RR_se`, `ARR_mean`, `ARR_se`, a long `table`, and the geometry; map a
+an `"SDALGCP2_ST_pred"` object with \\N\times T\\ matrices
+`relative_risk`, `relative_risk_se` (\\\exp(\mu+S)\\) and `adjusted_rr`,
+`adjusted_rr_se` (\\\exp(S)\\), a long `table`, and the geometry; map a
 time slice with
 [`plot.SDALGCP2_ST_pred`](https://olatunjijohnson.github.io/SDALGCP2/reference/plot.SDALGCP2_ST_pred.md).

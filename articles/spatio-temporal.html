@@ -172,14 +172,15 @@ repeated. Here four years on a 6×6 lattice:</p>
 matrices of relative risk and covariate-adjusted relative risk (with
 standard errors). The <code><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot()</a></code> method selects a
 <strong>time</strong> and a <strong>quantity</strong>
-(<code>"RR"</code>, <code>"ARR"</code>, <code>"RR_se"</code>,
-<code>"ARR_se"</code>, <code>"exceedance"</code>):</p>
+(<code>"relative_risk"</code>, <code>"adjusted_rr"</code>,
+<code>"relative_risk_se"</code>, <code>"adjusted_rr_se"</code>,
+<code>"exceedance"</code>):</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pr</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">pr</span>, time <span class="op">=</span> <span class="cn">NULL</span>, what <span class="op">=</span> <span class="st">"ARR"</span><span class="op">)</span>                 <span class="co"># facet all years</span></span>
-<span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">pr</span>, time <span class="op">=</span> <span class="fl">2021</span>, what <span class="op">=</span> <span class="st">"RR"</span><span class="op">)</span>                  <span class="co"># relative risk, 2021 only</span></span>
-<span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">pr</span>, time <span class="op">=</span> <span class="fl">2021</span>, what <span class="op">=</span> <span class="st">"exceedance"</span>, threshold <span class="op">=</span> <span class="fl">1.3</span>, which <span class="op">=</span> <span class="st">"ARR"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">pr</span>, time <span class="op">=</span> <span class="cn">NULL</span>, what <span class="op">=</span> <span class="st">"adjusted_rr"</span><span class="op">)</span>          <span class="co"># facet all years</span></span>
+<span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">pr</span>, time <span class="op">=</span> <span class="fl">2021</span>, what <span class="op">=</span> <span class="st">"relative_risk"</span><span class="op">)</span>        <span class="co"># relative risk, 2021 only</span></span>
+<span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">pr</span>, time <span class="op">=</span> <span class="fl">2021</span>, what <span class="op">=</span> <span class="st">"exceedance"</span>, threshold <span class="op">=</span> <span class="fl">1.3</span>, which <span class="op">=</span> <span class="st">"adjusted_rr"</span><span class="op">)</span></span></code></pre></div>
 <p>Covariate-adjusted relative risk, all years:</p>
 <p><img src="t3_arr_facet.png"></p>
 <table class="table">
@@ -192,9 +193,10 @@ standard errors). The <code><a href="https://rspatial.github.io/terra/reference/
 <td align="center"><img src="t3_exc_2021.png"></td>
 </tr></tbody>
 </table>
-<p>You can equally call <code>plot(fit, time = 2021, what = "RR")</code>
-directly on the fit, and <code>pr$table</code> is a long data frame
-(region × time) of every quantity for further analysis.</p>
+<p>You can equally call
+<code>plot(fit, time = 2021, what = "relative_risk")</code> directly on
+the fit, and <code>pr$table</code> is a long data frame (region × time)
+of every quantity for further analysis.</p>
 </div>
 <div class="section level2">
 <h2 id="tips">Tips<a class="anchor" aria-label="anchor" href="#tips"></a>

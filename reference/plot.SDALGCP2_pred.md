@@ -2,8 +2,9 @@
 
 Maps any of the four predicted quantities from
 [`predict.SDALGCP2`](https://olatunjijohnson.github.io/SDALGCP2/reference/predict.SDALGCP2.md)
-– relative risk `"RR"`, covariate-adjusted relative risk `"ARR"`, or
-their standard errors `"RR_se"`/`"ARR_se"` – for either discrete
+– the relative risk `"relative_risk"`, the covariate-adjusted relative
+risk `"adjusted_rr"`, or their standard errors
+`"relative_risk_se"`/`"adjusted_rr_se"` – for either discrete
 (choropleth) or continuous (raster) predictions.
 
 ## Usage
@@ -12,7 +13,7 @@ their standard errors `"RR_se"`/`"ARR_se"` – for either discrete
 # S3 method for class 'SDALGCP2_pred'
 plot(
   x,
-  variable = c("RR", "ARR", "RR_se", "ARR_se"),
+  variable = c("relative_risk", "adjusted_rr", "relative_risk_se", "adjusted_rr_se"),
   bound = NULL,
   midpoint = NULL,
   title = NULL,
@@ -28,7 +29,8 @@ plot(
 
 - variable:
 
-  one of `"RR"`, `"ARR"`, `"RR_se"`, `"ARR_se"`.
+  one of `"relative_risk"`, `"adjusted_rr"`, `"relative_risk_se"`,
+  `"adjusted_rr_se"`.
 
 - bound:
 
@@ -38,7 +40,7 @@ plot(
 - midpoint:
 
   optional value to centre a diverging colour scale (defaults to 1 for
-  `"RR"`/`"ARR"`, none for the standard errors).
+  the relative-risk columns, none for the standard errors).
 
 - title:
 

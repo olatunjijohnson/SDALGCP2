@@ -103,20 +103,25 @@ approximation, no MCMC).</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>an object of class <code>"SDALGCP2_pred"</code>. For both <code>type</code>s it
-  carries, for every location (region or grid cell), the posterior mean and
-  standard error of two quantities:</p><dl><dt><code>RR</code> (relative risk)</dt>
-<dd><p>\(\exp(\eta)=\exp(d'\beta+S)\) – the full
-      relative risk, including the covariate effect.</p></dd>
+    <p>an <code>sf</code> (class <code>c("SDALGCP2_pred", "sf", "data.frame")</code>) with
+  one row per location – polygons for <code>type = "discrete"</code>, grid-cell
+  points for <code>type = "continuous"</code> – carrying the posterior mean and
+  standard error of two relative-risk quantities:</p><dl><dt><code>relative_risk</code>, <code>relative_risk_se</code></dt>
+<dd><p>the relative risk
+      \(\exp(d'\beta + S)\) – the fitted risk relative to the offset
+      baseline, combining the covariate effect and the residual spatial
+      variation. This is the headline disease-mapping quantity.</p></dd>
 
-    <dt><code>ARR</code> (covariate-adjusted relative risk)</dt>
-<dd><p>\(\exp(S)\) – the
-      residual spatial relative risk after adjusting for covariates.</p></dd>
+    <dt><code>adjusted_rr</code>, <code>adjusted_rr_se</code></dt>
+<dd><p>the covariate-adjusted
+      relative risk \(\exp(S)\) – the purely spatial relative risk that
+      remains after holding the covariates fixed (the spatial signal the
+      covariates do not explain).</p></dd>
 
 
-</dl><p>stored as <code>RR_mean</code>/<code>RR_se</code>/<code>ARR_mean</code>/<code>ARR_se</code> (and, for
-  discrete fits, as columns of the returned <code>sf</code>). Posterior draws are kept
-  so that <code><a href="exceedance.html">exceedance</a></code> can be computed for either quantity.</p>
+</dl><p>The full posterior draws are retained as object attributes so that
+  <code><a href="exceedance.html">exceedance</a></code> and <code><a href="map_exceedance.html">map_exceedance</a></code> can be computed for
+  either quantity. Map a column with <code><a href="plot.SDALGCP2_pred.html">plot.SDALGCP2_pred</a></code>.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

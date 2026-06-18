@@ -31,7 +31,7 @@ library(SDALGCP2)
 fit <- sdalgcp(cases ~ deprivation + offset(log(population)), data = regions)
 
 summary(fit)              # glm-style coefficient table + spatial parameters
-rr  <- predict(fit)       # an sf with relative_risk, relative_risk_se, incidence
+rr  <- predict(fit)       # an sf: relative_risk, relative_risk_se, adjusted_rr, adjusted_rr_se
 plot(fit)                 # relative-risk map
 plot(fit, "exceedance", threshold = 1.5)   # hotspot probabilities
 ```
@@ -58,8 +58,9 @@ call also covers:
   [`glm()`](https://rdrr.io/r/stats/glm.html); sensible defaults so a
   first fit needs no tuning.
 - **Fast:** aggregated correlation assembly, the MALA sampler and the
-  Monte Carlo likelihood run in C++ (RcppArmadillo + OpenMP) — ~8–10×
-  faster end-to-end than the original, returning the same estimates.
+  Monte Carlo likelihood run in C++ (RcppArmadillo + OpenMP) — **8–10×
+  faster end-to-end** than the original, returning the same estimates
+  (see [Performance](#performance)).
 - **Grid-free scale:** the spatial scale `φ` is optimised continuously
   by default (no grid), with a proper standard error — see the
   [derivation
@@ -72,6 +73,26 @@ call also covers:
 - **Honest uncertainty:** re-anchored Monte Carlo likelihood,
   importance-sampling diagnostics, a nugget term, model checking
   (residual Moran’s I).
+
+## Performance
+
+SDALGCP2 vs the original SDALGCP on identical simulated data (same
+candidate points, `phi` grid and MCMC settings), measured with
+[`scripts/benchmark_vs_SDALGCP.R`](https://olatunjijohnson.github.io/SDALGCP2/scripts/benchmark_vs_SDALGCP.R)
+(R 4.5, Linux):
+
+| Stage                             | N regions | SDALGCP | SDALGCP2 |   Speedup |
+|-----------------------------------|----------:|--------:|---------:|----------:|
+| Aggregated correlation build (B1) |        64 |  1.24 s |   0.01 s |  **199×** |
+| Full MCML fit (end-to-end)        |        64 |  8.41 s |   0.84 s | **10.0×** |
+| Aggregated correlation build (B1) |       144 |  6.44 s |   0.01 s |  **687×** |
+| Full MCML fit (end-to-end)        |       144 | 27.58 s |   3.46 s |  **8.0×** |
+
+The fixed-effect estimates match the original to Monte Carlo tolerance
+(e.g. N = 144: `β = (-6.00, 0.41)` from both). The flagship C++/OpenMP
+correlation kernel dominates the original’s pure-R double loop by two to
+three orders of magnitude and scales far better with the number of
+regions.
 
 ## Tutorials
 

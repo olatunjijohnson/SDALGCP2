@@ -4,6 +4,22 @@
 
 First development version — a faster, modernised successor to SDALGCP.
 
+- **Prediction output is now an `sf` with clear public-health column
+  names.**
+  [`predict()`](https://rspatial.github.io/terra/reference/predict.html)
+  returns an `sf` (class `"SDALGCP2_pred"`) you can map or
+  [`st_write()`](https://r-spatial.github.io/sf/reference/st_write.html)
+  directly, with columns `relative_risk`/`relative_risk_se` (the
+  relative risk `exp(d'beta + S)`) and `adjusted_rr`/`adjusted_rr_se`
+  (the covariate-adjusted relative risk `exp(S)`). The previous
+  `RR`/`ARR` names are replaced everywhere
+  ([`plot()`](https://rspatial.github.io/terra/reference/plot.html),
+  [`exceedance()`](https://olatunjijohnson.github.io/SDALGCP2/reference/exceedance.md),
+  [`map_exceedance()`](https://olatunjijohnson.github.io/SDALGCP2/reference/map_exceedance.md),
+  the spatio-temporal predictor) — `ARR` was dropped because it
+  conventionally means *absolute risk reduction* in epidemiology.
+  Posterior draws are retained as object attributes so exceedance
+  probabilities still work for either quantity.
 - **Kronecker-free spatio-temporal model**
   ([`SDALGCP2_ST()`](https://olatunjijohnson.github.io/SDALGCP2/reference/SDALGCP2_ST.md)):
   separable space-time SDA-LGCP for counts over the same regions at

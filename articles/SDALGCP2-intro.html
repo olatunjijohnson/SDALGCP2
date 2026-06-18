@@ -198,13 +198,13 @@ Carlo likelihood is.</p>
 <h2 id="map-the-two-relative-risks">Map the two relative risks<a class="anchor" aria-label="anchor" href="#map-the-two-relative-risks"></a>
 </h2>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"RR"</span><span class="op">)</span>          <span class="co"># relative risk exp(eta)</span></span>
-<span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"ARR"</span><span class="op">)</span>         <span class="co"># covariate-adjusted relative risk exp(S)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"relative_risk"</span><span class="op">)</span>   <span class="co"># relative risk exp(d'beta + S)</span></span>
+<span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"adjusted_rr"</span><span class="op">)</span>     <span class="co"># covariate-adjusted relative risk exp(S)</span></span></code></pre></div>
 <table class="table">
 <thead><tr class="header">
-<th align="center">Relative risk <code>RR</code>
+<th align="center">Relative risk <code>relative_risk</code>
 </th>
-<th align="center">Covariate-adjusted <code>ARR</code>
+<th align="center">Covariate-adjusted <code>adjusted_rr</code>
 </th>
 </tr></thead>
 <tbody><tr class="odd">
@@ -212,10 +212,10 @@ Carlo likelihood is.</p>
 <td align="center"><img src="t1_arr.png"></td>
 </tr></tbody>
 </table>
-<p><code>RR</code> (left) is the overall pattern of risk;
-<code>ARR</code> (right) strips out the covariate contribution and shows
-the <em>unexplained</em> spatial signal — useful for spotting hotspots
-that the covariates do not account for.</p>
+<p><code>relative_risk</code> (left) is the overall pattern of risk;
+<code>adjusted_rr</code> (right) strips out the covariate contribution
+and shows the <em>unexplained</em> spatial signal — useful for spotting
+hotspots that the covariates do not account for.</p>
 </div>
 <div class="section level2">
 <h2 id="uncertainty-and-exceedance">Uncertainty and exceedance<a class="anchor" aria-label="anchor" href="#uncertainty-and-exceedance"></a>
@@ -223,7 +223,7 @@ that the covariates do not account for.</p>
 <p>Every quantity comes with a standard error, and you can ask for the
 probability that risk exceeds a policy threshold:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"ARR_se"</span><span class="op">)</span>                          <span class="co"># standard error of the adjusted RR</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"adjusted_rr_se"</span><span class="op">)</span>                  <span class="co"># standard error of the adjusted RR</span></span>
 <span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">fit</span>, <span class="st">"exceedance"</span>, threshold <span class="op">=</span> <span class="fl">1.5</span><span class="op">)</span>     <span class="co"># P(adjusted RR &gt; 1.5)</span></span></code></pre></div>
 <table class="table">
 <thead><tr class="header">
@@ -246,12 +246,13 @@ chance.</p>
 a smooth surface instead of a choropleth:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rspatial.github.io/terra/reference/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, type <span class="op">=</span> <span class="st">"continuous"</span>, sampler <span class="op">=</span> <span class="st">"laplace"</span>, cellsize <span class="op">=</span> <span class="fl">0.6</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">pc</span>, <span class="st">"ARR"</span>, bound <span class="op">=</span> <span class="va">regions</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">pc</span>, <span class="st">"adjusted_rr"</span>, bound <span class="op">=</span> <span class="va">regions</span><span class="op">)</span></span></code></pre></div>
 <p><img src="t1_cont.png" style="width:55.0%"></p>
-<p><code><a href="https://rspatial.github.io/terra/reference/predict.html" class="external-link">predict()</a></code> returns all four quantities (<code>RR</code>,
-<code>ARR</code> and their <code>_se</code>) for both
-<code>type = "discrete"</code> and <code>type = "continuous"</code>, and
-<code><a href="../reference/exceedance.html">exceedance()</a></code> works on either.</p>
+<p><code><a href="https://rspatial.github.io/terra/reference/predict.html" class="external-link">predict()</a></code> returns an <code>sf</code> with all four
+quantities (<code>relative_risk</code>, <code>adjusted_rr</code> and
+their <code>_se</code>) for both <code>type = "discrete"</code> and
+<code>type = "continuous"</code>, and <code><a href="../reference/exceedance.html">exceedance()</a></code> works on
+either.</p>
 </div>
 <div class="section level2">
 <h2 id="model-checking">Model checking<a class="anchor" aria-label="anchor" href="#model-checking"></a>

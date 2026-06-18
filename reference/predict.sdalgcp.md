@@ -1,9 +1,9 @@
 # Predict relative risk from an sdalgcp fit
 
 Returns a prediction object carrying, for every location, the posterior
-mean and standard error of the relative risk `RR`
+mean and standard error of the relative risk `relative_risk`
 (\\\exp(\eta)=\exp(d'\beta+S)\\) and the covariate-adjusted relative
-risk `ARR` (\\\exp(S)\\). Map it with
+risk `adjusted_rr` (\\\exp(S)\\). Map it with
 [`plot()`](https://rdrr.io/r/graphics/plot.default.html) and get hotspot
 probabilities with
 [`exceedance`](https://olatunjijohnson.github.io/SDALGCP2/reference/exceedance.md).
@@ -46,6 +46,9 @@ predict(
 
 ## Value
 
-an object of class `"SDALGCP2_pred"` (spatial) or `"SDALGCP2_ST_pred"`
-(spatio-temporal). For discrete spatial fits `$my_shp` is an `sf` with
-`RR_mean`, `RR_se`, `ARR_mean`, `ARR_se` columns.
+for a spatial fit, an `sf` of class `"SDALGCP2_pred"` with
+`relative_risk`, `relative_risk_se`, `adjusted_rr` and `adjusted_rr_se`
+columns (polygons for `type = "discrete"`, grid points for
+`"continuous"`); for a spatio-temporal fit, an `"SDALGCP2_ST_pred"`
+object (see
+[`predict.SDALGCP2_ST`](https://olatunjijohnson.github.io/SDALGCP2/reference/predict.SDALGCP2_ST.md)).

@@ -119,7 +119,7 @@ continuous:
 
 ``` r
 
-plot(fit, "ARR")                         # covariate-adjusted relative risk
+plot(fit, "adjusted_rr")                 # covariate-adjusted relative risk
 plot(fit, "exceedance", threshold = 1.5)
 ```
 

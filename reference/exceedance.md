@@ -5,7 +5,7 @@ Exceedance probabilities P(risk \> threshold)
 ## Usage
 
 ``` r
-exceedance(object, thresholds, which = c("ARR", "RR"))
+exceedance(object, thresholds, which = c("adjusted_rr", "relative_risk"))
 ```
 
 ## Arguments
@@ -21,8 +21,9 @@ exceedance(object, thresholds, which = c("ARR", "RR"))
 
 - which:
 
-  which quantity: `"ARR"` (covariate-adjusted relative risk, default) or
-  `"RR"` (relative risk).
+  which quantity: `"adjusted_rr"` (the covariate-adjusted relative risk
+  \\\exp(S)\\, default) or `"relative_risk"` (the relative risk
+  \\\exp(d'\beta + S)\\).
 
 ## Value
 

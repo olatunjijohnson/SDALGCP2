@@ -58,11 +58,12 @@ continuous) and spatio-temporal fits (select a <code>time</code>).</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="co"># S3 method for class 'sdalgcp'</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span></span>
 <span>  <span class="va">x</span>,</span>
-<span>  what <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"RR"</span>, <span class="st">"ARR"</span>, <span class="st">"RR_se"</span>, <span class="st">"ARR_se"</span>, <span class="st">"exceedance"</span><span class="op">)</span>,</span>
+<span>  what <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"relative_risk"</span>, <span class="st">"adjusted_rr"</span>, <span class="st">"relative_risk_se"</span>, <span class="st">"adjusted_rr_se"</span>,</span>
+<span>    <span class="st">"exceedance"</span><span class="op">)</span>,</span>
 <span>  type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"discrete"</span>, <span class="st">"continuous"</span><span class="op">)</span>,</span>
 <span>  time <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  threshold <span class="op">=</span> <span class="fl">1</span>,</span>
-<span>  which <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ARR"</span>, <span class="st">"RR"</span><span class="op">)</span>,</span>
+<span>  which <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"adjusted_rr"</span>, <span class="st">"relative_risk"</span><span class="op">)</span>,</span>
 <span>  cellsize <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  sampler <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"mcmc"</span>, <span class="st">"laplace"</span><span class="op">)</span>,</span>
 <span>  <span class="va">...</span></span>
@@ -78,9 +79,9 @@ continuous) and spatio-temporal fits (select a <code>time</code>).</p>
 
 
 <dt id="arg-what">what<a class="anchor" aria-label="anchor" href="#arg-what"></a></dt>
-<dd><p>one of <code>"RR"</code> (relative risk, default), <code>"ARR"</code>
-(covariate-adjusted relative risk), <code>"RR_se"</code>, <code>"ARR_se"</code> or
-<code>"exceedance"</code>.</p></dd>
+<dd><p>one of <code>"relative_risk"</code> (relative risk, default),
+<code>"adjusted_rr"</code> (covariate-adjusted relative risk),
+<code>"relative_risk_se"</code>, <code>"adjusted_rr_se"</code> or <code>"exceedance"</code>.</p></dd>
 
 
 <dt id="arg-type">type<a class="anchor" aria-label="anchor" href="#arg-type"></a></dt>
@@ -97,7 +98,8 @@ continuous) and spatio-temporal fits (select a <code>time</code>).</p>
 
 
 <dt id="arg-which">which<a class="anchor" aria-label="anchor" href="#arg-which"></a></dt>
-<dd><p>for exceedance: <code>"ARR"</code> (default) or <code>"RR"</code>.</p></dd>
+<dd><p>for exceedance: <code>"adjusted_rr"</code> (default) or
+<code>"relative_risk"</code>.</p></dd>
 
 
 <dt id="arg-cellsize">cellsize<a class="anchor" aria-label="anchor" href="#arg-cellsize"></a></dt>

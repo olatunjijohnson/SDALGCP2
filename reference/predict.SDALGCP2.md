@@ -56,21 +56,26 @@ predict(
 
 ## Value
 
-an object of class `"SDALGCP2_pred"`. For both `type`s it carries, for
-every location (region or grid cell), the posterior mean and standard
-error of two quantities:
+an `sf` (class `c("SDALGCP2_pred", "sf", "data.frame")`) with one row
+per location – polygons for `type = "discrete"`, grid-cell points for
+`type = "continuous"` – carrying the posterior mean and standard error
+of two relative-risk quantities:
 
-- `RR` (relative risk):
+- `relative_risk`, `relative_risk_se`:
 
-  \\\exp(\eta)=\exp(d'\beta+S)\\ – the full relative risk, including the
-  covariate effect.
+  the relative risk \\\exp(d'\beta + S)\\ – the fitted risk relative to
+  the offset baseline, combining the covariate effect and the residual
+  spatial variation. This is the headline disease-mapping quantity.
 
-- `ARR` (covariate-adjusted relative risk):
+- `adjusted_rr`, `adjusted_rr_se`:
 
-  \\\exp(S)\\ – the residual spatial relative risk after adjusting for
-  covariates.
+  the covariate-adjusted relative risk \\\exp(S)\\ – the purely spatial
+  relative risk that remains after holding the covariates fixed (the
+  spatial signal the covariates do not explain).
 
-stored as `RR_mean`/`RR_se`/`ARR_mean`/`ARR_se` (and, for discrete fits,
-as columns of the returned `sf`). Posterior draws are kept so that
+The full posterior draws are retained as object attributes so that
 [`exceedance`](https://olatunjijohnson.github.io/SDALGCP2/reference/exceedance.md)
-can be computed for either quantity.
+and
+[`map_exceedance`](https://olatunjijohnson.github.io/SDALGCP2/reference/map_exceedance.md)
+can be computed for either quantity. Map a column with
+[`plot.SDALGCP2_pred`](https://olatunjijohnson.github.io/SDALGCP2/reference/plot.SDALGCP2_pred.md).
