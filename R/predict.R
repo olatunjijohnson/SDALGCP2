@@ -33,6 +33,24 @@
   }
 }
 
+# Build the public prediction object: an sf (or a bare data.frame when the fit
+# carries no geometry) holding the four prediction columns, with the posterior
+# draws and metadata stashed in attributes so exceedance()/plot() can recover
+# them without bloating the printed table.
+.new_pred <- function(base, cols, pred_type, draws, ...) {
+  out <- if (!is.null(base)) {
+    for (nm in names(cols)) base[[nm]] <- cols[[nm]]
+    base
+  } else as.data.frame(cols)
+  attr(out, "pred_type")  <- pred_type
+  attr(out, "pred_draws") <- draws
+  extra <- list(...)
+  for (nm in names(extra)) attr(out, nm) <- extra[[nm]]
+  cl <- class(out)
+  class(out) <- c("SDALGCP2_pred", cl[cl != "SDALGCP2_pred"])
+  out
+}
+
 #' Predict relative risk from a fitted SDALGCP2 model
 #'
 #' @param object an object of class \code{"SDALGCP2"} from \code{\link{SDALGCP2}}
@@ -47,18 +65,23 @@
 #'   \code{y}) for continuous prediction.
 #' @param control.mcmc optional MCMC controls; defaults to those used at fitting.
 #' @param ... unused.
-#' @return an object of class \code{"SDALGCP2_pred"}. For both \code{type}s it
-#'   carries, for every location (region or grid cell), the posterior mean and
-#'   standard error of two quantities:
+#' @return an \code{sf} (class \code{c("SDALGCP2_pred", "sf", "data.frame")}) with
+#'   one row per location -- polygons for \code{type = "discrete"}, grid-cell
+#'   points for \code{type = "continuous"} -- carrying the posterior mean and
+#'   standard error of two relative-risk quantities:
 #'   \describe{
-#'     \item{\code{RR} (relative risk)}{\eqn{\exp(\eta)=\exp(d'\beta+S)} -- the full
-#'       relative risk, including the covariate effect.}
-#'     \item{\code{ARR} (covariate-adjusted relative risk)}{\eqn{\exp(S)} -- the
-#'       residual spatial relative risk after adjusting for covariates.}
+#'     \item{\code{relative_risk}, \code{relative_risk_se}}{the relative risk
+#'       \eqn{\exp(d'\beta + S)} -- the fitted risk relative to the offset
+#'       baseline, combining the covariate effect and the residual spatial
+#'       variation. This is the headline disease-mapping quantity.}
+#'     \item{\code{adjusted_rr}, \code{adjusted_rr_se}}{the covariate-adjusted
+#'       relative risk \eqn{\exp(S)} -- the purely spatial relative risk that
+#'       remains after holding the covariates fixed (the spatial signal the
+#'       covariates do not explain).}
 #'   }
-#'   stored as \code{RR_mean}/\code{RR_se}/\code{ARR_mean}/\code{ARR_se} (and, for
-#'   discrete fits, as columns of the returned \code{sf}). Posterior draws are kept
-#'   so that \code{\link{exceedance}} can be computed for either quantity.
+#'   The full posterior draws are retained as object attributes so that
+#'   \code{\link{exceedance}} and \code{\link{map_exceedance}} can be computed for
+#'   either quantity. Map a column with \code{\link{plot.SDALGCP2_pred}}.
 #' @method predict SDALGCP2
 #' @export
 predict.SDALGCP2 <- function(object, type = c("discrete", "continuous"),
@@ -72,17 +95,10 @@ predict.SDALGCP2 <- function(object, type = c("discrete", "continuous"),
 
   if (type == "discrete") {
     RR  <- exp(S.sim)                                      # exp(eta) = relative risk
-    ARR <- exp(sweep(S.sim, 2, mu0, "-"))                  # exp(S)   = covariate-adjusted
-    out <- list(type = "discrete", my_shp = shp, mu = mu0, eta.draw = S.sim,
-                RR_mean = colMeans(RR), RR_se = .colSDs(RR),
-                ARR_mean = colMeans(ARR), ARR_se = .colSDs(ARR))
-    if (!is.null(shp)) {
-      shp$RR_mean <- out$RR_mean; shp$RR_se <- out$RR_se
-      shp$ARR_mean <- out$ARR_mean; shp$ARR_se <- out$ARR_se
-      out$my_shp <- shp
-    }
-    class(out) <- "SDALGCP2_pred"
-    return(out)
+    ARR <- exp(sweep(S.sim, 2, mu0, "-"))                  # exp(S)   = covariate-adjusted RR
+    cols <- list(relative_risk    = colMeans(RR), relative_risk_se = .colSDs(RR),
+                 adjusted_rr      = colMeans(ARR), adjusted_rr_se   = .colSDs(ARR))
+    return(.new_pred(shp, cols, "discrete", draws = list(eta = S.sim, mu = mu0)))
   }
 
   ## continuous (change of support): predict the spatial field S(x) on a grid
@@ -121,36 +137,43 @@ predict.SDALGCP2 <- function(object, type = c("discrete", "continuous"),
   if (!is.null(shp)) {
     psf <- sf::st_as_sf(data.frame(x = pl[, 1], y = pl[, 2]), coords = c("x", "y"),
                         crs = sf::st_crs(shp))
-    reg <- as.integer(suppressMessages(sf::st_intersects(psf, shp)))
+    # First containing region per point; a point on a shared boundary intersects
+    # several polygons (so the sgbp element has length > 1) -- take the first, and
+    # fall back to the nearest region for points outside every polygon (length 0).
+    ix <- suppressMessages(sf::st_intersects(psf, shp))
+    reg <- vapply(ix, function(z) if (length(z)) z[1] else NA_integer_, integer(1))
     inside <- !is.na(reg); mu_x[inside] <- mu0[reg[inside]]
     if (any(!inside)) mu_x[!inside] <- mu0[sf::st_nearest_feature(psf[!inside, ], shp)]
   } else mu_x <- rep(mean(mu0), npred)
 
   ARR <- exp(Sx)                                          # exp(S(x))
   RR  <- exp(sweep(Sx, 2, mu_x, "+"))                     # exp(mu(x) + S(x))
-  out <- list(type = "continuous", pred.loc = pred.loc, my_shp = shp,
-              mu_x = mu_x, pred.draw = Sx,
-              ARR_mean = colMeans(ARR), ARR_se = .colSDs(ARR),
-              RR_mean = colMeans(RR), RR_se = .colSDs(RR))
-  class(out) <- "SDALGCP2_pred"
-  out
+  cols <- list(relative_risk    = colMeans(RR), relative_risk_se = .colSDs(RR),
+               adjusted_rr      = colMeans(ARR), adjusted_rr_se   = .colSDs(ARR))
+  crs <- if (!is.null(shp)) sf::st_crs(shp) else sf::NA_crs_
+  geom <- sf::st_geometry(sf::st_as_sf(data.frame(x = pl[, 1], y = pl[, 2]),
+                                       coords = c("x", "y"), crs = crs))
+  .new_pred(sf::st_sf(geometry = geom), cols, "continuous",
+            draws = list(field = Sx, mu_x = mu_x), pred_loc = pred.loc, bound = shp)
 }
 
 #' Exceedance probabilities P(risk > threshold)
 #'
 #' @param object an \code{"SDALGCP2_pred"} object from \code{\link{predict.SDALGCP2}}.
 #' @param thresholds numeric vector of thresholds.
-#' @param which which quantity: \code{"ARR"} (covariate-adjusted relative risk,
-#'   default) or \code{"RR"} (relative risk).
+#' @param which which quantity: \code{"adjusted_rr"} (the covariate-adjusted
+#'   relative risk \eqn{\exp(S)}, default) or \code{"relative_risk"} (the relative
+#'   risk \eqn{\exp(d'\beta + S)}).
 #' @return a matrix of exceedance probabilities (locations x thresholds).
 #' @export
-exceedance <- function(object, thresholds, which = c("ARR", "RR")) {
+exceedance <- function(object, thresholds, which = c("adjusted_rr", "relative_risk")) {
   stopifnot(inherits(object, "SDALGCP2_pred"))
   which <- match.arg(which)
-  draws <- if (object$type == "continuous") {
-    if (which == "ARR") exp(object$pred.draw) else exp(sweep(object$pred.draw, 2, object$mu_x, "+"))
+  d <- attr(object, "pred_draws")
+  draws <- if (attr(object, "pred_type") == "continuous") {
+    if (which == "adjusted_rr") exp(d$field) else exp(sweep(d$field, 2, d$mu_x, "+"))
   } else {
-    if (which == "ARR") exp(sweep(object$eta.draw, 2, object$mu, "-")) else exp(object$eta.draw)
+    if (which == "adjusted_rr") exp(sweep(d$eta, 2, d$mu, "-")) else exp(d$eta)
   }
   sapply(thresholds, function(t) apply(draws, 2, function(x) mean(x > t)))
 }

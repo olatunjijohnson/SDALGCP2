@@ -24,13 +24,13 @@ fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data=regions, control=ctrl)
 sink("vignettes/t1_summary.txt"); print(summary(fit)); sink()
 ## ---- predictions: discrete RR/ARR/SE/exceedance ----
 pd <- predict(fit, type="discrete")
-ggsave("vignettes/t1_rr.png",  plot(pd,"RR")  + th + labs(title="Relative risk  exp(eta)"), width=4.6,height=4,dpi=120)
-ggsave("vignettes/t1_arr.png", plot(pd,"ARR") + th + labs(title="Covariate-adjusted RR  exp(S)"), width=4.6,height=4,dpi=120)
-ggsave("vignettes/t1_arr_se.png", plot(pd,"ARR_se") + th + labs(title="SE of adjusted RR"), width=4.6,height=4,dpi=120)
-ggsave("vignettes/t1_exc.png", map_exceedance(pd, threshold=1.5, which="ARR") + th + labs(title="P(adjusted RR > 1.5)"), width=4.6,height=4,dpi=120)
+ggsave("vignettes/t1_rr.png",  plot(pd,"relative_risk")  + th + labs(title="Relative risk  exp(eta)"), width=4.6,height=4,dpi=120)
+ggsave("vignettes/t1_arr.png", plot(pd,"adjusted_rr") + th + labs(title="Covariate-adjusted RR  exp(S)"), width=4.6,height=4,dpi=120)
+ggsave("vignettes/t1_arr_se.png", plot(pd,"adjusted_rr_se") + th + labs(title="SE of adjusted RR"), width=4.6,height=4,dpi=120)
+ggsave("vignettes/t1_exc.png", map_exceedance(pd, threshold=1.5, which="adjusted_rr") + th + labs(title="P(adjusted RR > 1.5)"), width=4.6,height=4,dpi=120)
 ## ---- continuous ----
 pc <- predict(fit, type="continuous", sampler="laplace", cellsize=0.6)
-ggsave("vignettes/t1_cont.png", plot(pc,"ARR", bound=regions) + th + labs(title="Continuous adjusted relative risk"), width=4.6,height=4,dpi=120)
+ggsave("vignettes/t1_cont.png", plot(pc,"adjusted_rr", bound=regions) + th + labs(title="Continuous adjusted relative risk"), width=4.6,height=4,dpi=120)
 ## ---- model checking ----
 png("vignettes/t1_modelcheck.png", width=520, height=420, res=110)
 mc <- model_check(fit, pd); dev.off()

@@ -16,8 +16,8 @@ fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data=dat, time="year",
                control=sdalgcp_control(reanchor=2, n_sim=5000, burnin=1500, thin=5))
 pred <- predict(fit)
 map_sf <- do.call(rbind, lapply(seq_len(T), function(t)
-  { g <- shp; g$ARR <- pred$ARR_mean[,t]; g$year <- times[t]; g }))
-gst <- ggplot(map_sf) + geom_sf(aes(fill=ARR), color="grey70", linewidth=0.1) +
+  { g <- shp; g$adjusted_rr <- pred$adjusted_rr[,t]; g$year <- times[t]; g }))
+gst <- ggplot(map_sf) + geom_sf(aes(fill=adjusted_rr), color="grey70", linewidth=0.1) +
   facet_wrap(~year, nrow=1) +
   scale_fill_gradient2(name="Relative\nrisk", midpoint=1, low="#2166AC", mid="grey95", high="#B2182B") +
   th + labs(title="Spatio-temporal relative risk by year")

@@ -45,5 +45,5 @@ ggsave("vignettes/t2_bias.png", g3, width=5, height=4, dpi=120)
 
 ## Fig 4: result maps
 pd <- predict(fit, type="discrete")
-ggsave("vignettes/t2_arr.png", plot(pd,"ARR")+th+labs(title="Covariate-adjusted relative risk"), width=4.6,height=4,dpi=120)
+ggsave("vignettes/t2_arr.png", plot(pd,"adjusted_rr")+th+labs(title="Covariate-adjusted relative risk"), width=4.6,height=4,dpi=120)
 cat(sprintf("T2 done: naive=%.2f intensity=%.2f (true 1.0)\n", coef(naive)["zbar"], fit$beta_opt["z"]))

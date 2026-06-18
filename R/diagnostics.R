@@ -49,7 +49,7 @@ model_check <- function(object, pred = NULL, nsim = 999, plot = TRUE) {
   if (!inherits(shp, "sf")) shp <- sf::st_as_sf(shp)
 
   y <- object$y
-  fitted <- object$m * pred$RR_mean             # Poisson mean = pop * exp(eta)
+  fitted <- object$m * pred$relative_risk       # Poisson mean = pop * exp(eta)
   resid <- (y - fitted) / sqrt(fitted)
   mI <- .moran(resid, shp, nsim = nsim)
 
@@ -134,8 +134,8 @@ mc_diagnostics <- function(object, warn_frac = 0.1) {
 report <- function(object, pred = NULL, threshold = 1.5, ...) {
   if (is.null(pred)) pred <- predict(object, type = "discrete", ...)
   list(
-    relative_risk = plot(pred, variable = "ARR", title = "Covariate-adjusted relative risk"),
-    uncertainty   = plot(pred, variable = "ARR_se", title = "Uncertainty (SE)"),
+    relative_risk = plot(pred, variable = "adjusted_rr", title = "Covariate-adjusted relative risk"),
+    uncertainty   = plot(pred, variable = "adjusted_rr_se", title = "Uncertainty (SE)"),
     exceedance    = map_exceedance(pred, threshold = threshold),
     coefficients  = coef_plot(object),
     phi_profile   = phi_profile(object, plot = FALSE)

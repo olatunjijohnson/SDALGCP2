@@ -22,8 +22,8 @@ fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data=dat, time="year",
 sink("vignettes/t3_summary.txt"); print(summary(fit)); sink()
 ## predict + maps with the new API
 pr <- predict(fit)
-ggsave("vignettes/t3_arr_facet.png", plot(pr, time=NULL, what="ARR")+th+labs(title="Covariate-adjusted relative risk by year"),
+ggsave("vignettes/t3_arr_facet.png", plot(pr, time=NULL, what="adjusted_rr")+th+labs(title="Covariate-adjusted relative risk by year"),
        width=8, height=2.6, dpi=120)
-ggsave("vignettes/t3_rr_2021.png", plot(pr, time=2021, what="RR")+th, width=4.4, height=4, dpi=120)
-ggsave("vignettes/t3_exc_2021.png", plot(pr, time=2021, what="exceedance", threshold=1.3, which="ARR")+th, width=4.4, height=4, dpi=120)
+ggsave("vignettes/t3_rr_2021.png", plot(pr, time=2021, what="relative_risk")+th, width=4.4, height=4, dpi=120)
+ggsave("vignettes/t3_exc_2021.png", plot(pr, time=2021, what="exceedance", threshold=1.3, which="adjusted_rr")+th, width=4.4, height=4, dpi=120)
 cat(sprintf("T3 done: x1=%.3f phi=%.2f nu=%.2f\n", fit$beta_opt["x1"], fit$phi_opt, fit$nu_opt))

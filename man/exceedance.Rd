@@ -4,15 +4,16 @@
 \alias{exceedance}
 \title{Exceedance probabilities P(risk > threshold)}
 \usage{
-exceedance(object, thresholds, which = c("ARR", "RR"))
+exceedance(object, thresholds, which = c("adjusted_rr", "relative_risk"))
 }
 \arguments{
 \item{object}{an \code{"SDALGCP2_pred"} object from \code{\link{predict.SDALGCP2}}.}
 
 \item{thresholds}{numeric vector of thresholds.}
 
-\item{which}{which quantity: \code{"ARR"} (covariate-adjusted relative risk,
-default) or \code{"RR"} (relative risk).}
+\item{which}{which quantity: \code{"adjusted_rr"} (the covariate-adjusted
+relative risk \eqn{\exp(S)}, default) or \code{"relative_risk"} (the relative
+risk \eqn{\exp(d'\beta + S)}).}
 }
 \value{
 a matrix of exceedance probabilities (locations x thresholds).

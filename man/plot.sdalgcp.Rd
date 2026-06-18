@@ -6,11 +6,12 @@
 \usage{
 \method{plot}{sdalgcp}(
   x,
-  what = c("RR", "ARR", "RR_se", "ARR_se", "exceedance"),
+  what = c("relative_risk", "adjusted_rr", "relative_risk_se", "adjusted_rr_se",
+    "exceedance"),
   type = c("discrete", "continuous"),
   time = NULL,
   threshold = 1,
-  which = c("ARR", "RR"),
+  which = c("adjusted_rr", "relative_risk"),
   cellsize = NULL,
   sampler = c("mcmc", "laplace"),
   ...
@@ -19,9 +20,9 @@
 \arguments{
 \item{x}{an \code{"sdalgcp"} fit.}
 
-\item{what}{one of \code{"RR"} (relative risk, default), \code{"ARR"}
-(covariate-adjusted relative risk), \code{"RR_se"}, \code{"ARR_se"} or
-\code{"exceedance"}.}
+\item{what}{one of \code{"relative_risk"} (relative risk, default),
+\code{"adjusted_rr"} (covariate-adjusted relative risk),
+\code{"relative_risk_se"}, \code{"adjusted_rr_se"} or \code{"exceedance"}.}
 
 \item{type}{\code{"discrete"} (default) or \code{"continuous"} (spatial fits).}
 
@@ -30,7 +31,8 @@
 
 \item{threshold}{threshold for \code{what = "exceedance"}.}
 
-\item{which}{for exceedance: \code{"ARR"} (default) or \code{"RR"}.}
+\item{which}{for exceedance: \code{"adjusted_rr"} (default) or
+\code{"relative_risk"}.}
 
 \item{cellsize}{grid spacing for \code{type = "continuous"}.}
 

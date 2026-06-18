@@ -7,9 +7,10 @@
 \method{plot}{SDALGCP2_ST_pred}(
   x,
   time = x$times[1],
-  what = c("RR", "ARR", "RR_se", "ARR_se", "exceedance"),
+  what = c("relative_risk", "adjusted_rr", "relative_risk_se", "adjusted_rr_se",
+    "exceedance"),
   threshold = 1,
-  which = c("ARR", "RR"),
+  which = c("adjusted_rr", "relative_risk"),
   ...
 )
 }
@@ -20,12 +21,13 @@
 \item{time}{the time to map (one of the fitted \code{times}); defaults to the
 first. Use \code{NULL} to facet all times.}
 
-\item{what}{one of \code{"RR"}, \code{"ARR"}, \code{"RR_se"}, \code{"ARR_se"},
-\code{"exceedance"}.}
+\item{what}{one of \code{"relative_risk"}, \code{"adjusted_rr"},
+\code{"relative_risk_se"}, \code{"adjusted_rr_se"}, \code{"exceedance"}.}
 
 \item{threshold}{threshold for \code{what = "exceedance"}.}
 
-\item{which}{for exceedance: \code{"ARR"} (default) or \code{"RR"}.}
+\item{which}{for exceedance: \code{"adjusted_rr"} (default) or
+\code{"relative_risk"}.}
 
 \item{...}{unused.}
 }
@@ -33,7 +35,7 @@ first. Use \code{NULL} to facet all times.}
 a \code{ggplot} object.
 }
 \description{
-Maps a chosen quantity (\code{"RR"}, \code{"ARR"}, \code{"RR_se"},
-\code{"ARR_se"} or \code{"exceedance"}) for a selected time slice of a
-spatio-temporal prediction.
+Maps a chosen quantity (\code{"relative_risk"}, \code{"adjusted_rr"},
+\code{"relative_risk_se"}, \code{"adjusted_rr_se"} or \code{"exceedance"}) for a
+selected time slice of a spatio-temporal prediction.
 }

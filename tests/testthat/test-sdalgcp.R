@@ -35,7 +35,9 @@ test_that("the minimal sdalgcp() call fits and predict() returns an sf", {
 
   rr <- predict(fit)
   expect_s3_class(rr, "sf")
-  expect_true(all(c("relative_risk", "relative_risk_se", "incidence") %in% names(rr)))
+  expect_s3_class(rr, "SDALGCP2_pred")
+  expect_true(all(c("relative_risk", "relative_risk_se", "adjusted_rr", "adjusted_rr_se")
+                  %in% names(rr)))
   expect_true(all(rr$relative_risk > 0))
 
   p <- plot(fit)

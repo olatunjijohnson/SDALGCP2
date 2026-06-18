@@ -205,7 +205,8 @@ SDALGCP2_ST <- function(formula, data, my_shp, times, delta, phi = NULL,
 #' @param control.mcmc optional MCMC controls (defaults to the fitting ones).
 #' @param ... unused.
 #' @return an \code{"SDALGCP2_ST_pred"} object with \eqn{N\times T} matrices
-#'   \code{RR_mean}, \code{RR_se}, \code{ARR_mean}, \code{ARR_se}, a long
+#'   \code{relative_risk}, \code{relative_risk_se} (\eqn{\exp(\mu+S)}) and
+#'   \code{adjusted_rr}, \code{adjusted_rr_se} (\eqn{\exp(S)}), a long
 #'   \code{table}, and the geometry; map a time slice with \code{\link{plot.SDALGCP2_ST_pred}}.
 #' @method predict SDALGCP2_ST
 #' @export
@@ -221,11 +222,11 @@ predict.SDALGCP2_ST <- function(object, control.mcmc = NULL, ...) {
   S.sim <- laplace_sampling(object$mu, Sigma, object$y, object$m, control.mcmc)$samples
   RR <- exp(S.sim); ARR <- exp(sweep(S.sim, 2, object$mu, "-"))
   toM <- function(v) matrix(v, N, T)
-  out <- list(RR_mean = toM(colMeans(RR)), RR_se = toM(.colSDs(RR)),
-              ARR_mean = toM(colMeans(ARR)), ARR_se = toM(.colSDs(ARR)),
+  out <- list(relative_risk = toM(colMeans(RR)), relative_risk_se = toM(.colSDs(RR)),
+              adjusted_rr = toM(colMeans(ARR)), adjusted_rr_se = toM(.colSDs(ARR)),
               table = data.frame(region = rep(seq_len(N), T), time = rep(object$times, each = N),
-                                 RR_mean = colMeans(RR), RR_se = .colSDs(RR),
-                                 ARR_mean = colMeans(ARR), ARR_se = .colSDs(ARR)),
+                                 relative_risk = colMeans(RR), relative_risk_se = .colSDs(RR),
+                                 adjusted_rr = colMeans(ARR), adjusted_rr_se = .colSDs(ARR)),
               eta.draw = S.sim, mu = object$mu, N = N, T = T, times = object$times,
               my_shp = attr(object, "my_shp"))
   class(out) <- "SDALGCP2_ST_pred"
@@ -234,25 +235,27 @@ predict.SDALGCP2_ST <- function(object, control.mcmc = NULL, ...) {
 
 #' Map a spatio-temporal prediction for one time
 #'
-#' Maps a chosen quantity (\code{"RR"}, \code{"ARR"}, \code{"RR_se"},
-#' \code{"ARR_se"} or \code{"exceedance"}) for a selected time slice of a
-#' spatio-temporal prediction.
+#' Maps a chosen quantity (\code{"relative_risk"}, \code{"adjusted_rr"},
+#' \code{"relative_risk_se"}, \code{"adjusted_rr_se"} or \code{"exceedance"}) for a
+#' selected time slice of a spatio-temporal prediction.
 #'
 #' @param x an \code{"SDALGCP2_ST_pred"} object from \code{predict()} on an
 #'   \code{"SDALGCP2_ST"} fit.
 #' @param time the time to map (one of the fitted \code{times}); defaults to the
 #'   first. Use \code{NULL} to facet all times.
-#' @param what one of \code{"RR"}, \code{"ARR"}, \code{"RR_se"}, \code{"ARR_se"},
-#'   \code{"exceedance"}.
+#' @param what one of \code{"relative_risk"}, \code{"adjusted_rr"},
+#'   \code{"relative_risk_se"}, \code{"adjusted_rr_se"}, \code{"exceedance"}.
 #' @param threshold threshold for \code{what = "exceedance"}.
-#' @param which for exceedance: \code{"ARR"} (default) or \code{"RR"}.
+#' @param which for exceedance: \code{"adjusted_rr"} (default) or
+#'   \code{"relative_risk"}.
 #' @param ... unused.
 #' @return a \code{ggplot} object.
 #' @method plot SDALGCP2_ST_pred
 #' @export
 plot.SDALGCP2_ST_pred <- function(x, time = x$times[1],
-                                  what = c("RR", "ARR", "RR_se", "ARR_se", "exceedance"),
-                                  threshold = 1, which = c("ARR", "RR"), ...) {
+                                  what = c("relative_risk", "adjusted_rr",
+                                           "relative_risk_se", "adjusted_rr_se", "exceedance"),
+                                  threshold = 1, which = c("adjusted_rr", "relative_risk"), ...) {
   what <- match.arg(what); which <- match.arg(which)
   shp <- x$my_shp
   if (is.null(shp)) stop("Prediction has no polygon geometry to map.")
@@ -262,18 +265,19 @@ plot.SDALGCP2_ST_pred <- function(x, time = x$times[1],
   if (anyNA(cols)) stop("'time' must be among the fitted times: ", paste(x$times, collapse = ", "))
 
   excd <- function(tcol) {
-    d <- if (which == "ARR") exp(sweep(x$eta.draw, 2, x$mu, "-")) else exp(x$eta.draw)
+    d <- if (which == "adjusted_rr") exp(sweep(x$eta.draw, 2, x$mu, "-")) else exp(x$eta.draw)
     idx <- ((tcol - 1) * x$N + 1):(tcol * x$N)
     apply(d[, idx, drop = FALSE], 2, function(v) mean(v > threshold))
   }
   getvals <- function(tcol) switch(what,
-    RR = x$RR_mean[, tcol], ARR = x$ARR_mean[, tcol],
-    RR_se = x$RR_se[, tcol], ARR_se = x$ARR_se[, tcol], exceedance = excd(tcol))
+    relative_risk = x$relative_risk[, tcol], adjusted_rr = x$adjusted_rr[, tcol],
+    relative_risk_se = x$relative_risk_se[, tcol], adjusted_rr_se = x$adjusted_rr_se[, tcol],
+    exceedance = excd(tcol))
 
   maps <- do.call(rbind, lapply(cols, function(tc) {
     g <- shp; g$fillvalue <- getvals(tc); g$.time <- x$times[tc]; g }))
-  lab <- if (what == "exceedance") sprintf("P(%s > %g)", which, threshold) else .var_label(what)
-  mid <- if (what %in% c("RR", "ARR")) 1 else NULL
+  lab <- if (what == "exceedance") sprintf("P(%s > %g)", .which_label(which), threshold) else .var_label(what)
+  mid <- if (what %in% c("relative_risk", "adjusted_rr")) 1 else NULL
   p <- ggplot2::ggplot(maps) +
     ggplot2::geom_sf(ggplot2::aes(fill = .data$fillvalue), color = "grey70", linewidth = 0.1)
   if (length(cols) > 1) p <- p + ggplot2::facet_wrap(~ .time)

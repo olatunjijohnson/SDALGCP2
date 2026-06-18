@@ -22,8 +22,8 @@ test_that("plotting, profile and diagnostics return the right object types", {
                   phi = phi_grid, method = 3, control.mcmc = ctrl)
 
   pd <- predict(fit, type = "discrete", control.mcmc = ctrl)
-  expect_s3_class(plot(pd, "ARR", midpoint = 1), "ggplot")
-  expect_s3_class(plot(pd, "RR_se"), "ggplot")
+  expect_s3_class(plot(pd, "adjusted_rr", midpoint = 1), "ggplot")
+  expect_s3_class(plot(pd, "relative_risk_se"), "ggplot")
   expect_s3_class(map_exceedance(pd, threshold = 1.2), "ggplot")
   expect_s3_class(coef_plot(fit), "ggplot")
 

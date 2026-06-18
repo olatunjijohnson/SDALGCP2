@@ -4,14 +4,21 @@
 \alias{map_exceedance}
 \title{Map exceedance probabilities P(risk > threshold)}
 \usage{
-map_exceedance(x, threshold = 1, which = c("ARR", "RR"), bound = NULL, ...)
+map_exceedance(
+  x,
+  threshold = 1,
+  which = c("adjusted_rr", "relative_risk"),
+  bound = NULL,
+  ...
+)
 }
 \arguments{
 \item{x}{an \code{"SDALGCP2_pred"} object.}
 
 \item{threshold}{a single relative-risk threshold.}
 
-\item{which}{\code{"ARR"} (covariate-adjusted, default) or \code{"RR"}.}
+\item{which}{\code{"adjusted_rr"} (covariate-adjusted, default) or
+\code{"relative_risk"}.}
 
 \item{bound}{optional \code{sf} boundary (continuous only).}
 

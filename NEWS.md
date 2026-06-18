@@ -2,6 +2,15 @@
 
 First development version — a faster, modernised successor to SDALGCP.
 
+* **Prediction output is now an `sf` with clear public-health column names.**
+  `predict()` returns an `sf` (class `"SDALGCP2_pred"`) you can map or `st_write()`
+  directly, with columns `relative_risk`/`relative_risk_se` (the relative risk
+  `exp(d'beta + S)`) and `adjusted_rr`/`adjusted_rr_se` (the covariate-adjusted
+  relative risk `exp(S)`). The previous `RR`/`ARR` names are replaced everywhere
+  (`plot()`, `exceedance()`, `map_exceedance()`, the spatio-temporal predictor) —
+  `ARR` was dropped because it conventionally means *absolute risk reduction* in
+  epidemiology. Posterior draws are retained as object attributes so exceedance
+  probabilities still work for either quantity.
 * **Kronecker-free spatio-temporal model** (`SDALGCP2_ST()`): separable space-time
   SDA-LGCP for counts over the same regions at several times. The likelihood never
   forms the `(N*T)x(N*T)` covariance, using `tr(Rs^-1 M Rt^-1 M')` for the

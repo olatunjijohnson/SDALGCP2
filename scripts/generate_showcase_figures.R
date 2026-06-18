@@ -26,6 +26,6 @@ ggsave("man/figures/showcase_exceedance.png", g3, width=5, height=4.2, dpi=120)
 
 ## continuous surface
 pc <- predict(SDALGCP2:::.strip_sdalgcp(fit), type="continuous", sampler="laplace", cellsize=0.6)
-g4 <- plot(pc, "RR", bound=regions) + th + labs(title="Continuous relative-risk surface")
+g4 <- plot(pc, "relative_risk", bound=regions) + th + labs(title="Continuous relative-risk surface")
 ggsave("man/figures/showcase_continuous.png", g4, width=5, height=4.2, dpi=120)
 cat("figures written\n")

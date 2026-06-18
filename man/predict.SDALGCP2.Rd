@@ -35,18 +35,23 @@ approximation, no MCMC).}
 \item{...}{unused.}
 }
 \value{
-an object of class \code{"SDALGCP2_pred"}. For both \code{type}s it
-  carries, for every location (region or grid cell), the posterior mean and
-  standard error of two quantities:
+an \code{sf} (class \code{c("SDALGCP2_pred", "sf", "data.frame")}) with
+  one row per location -- polygons for \code{type = "discrete"}, grid-cell
+  points for \code{type = "continuous"} -- carrying the posterior mean and
+  standard error of two relative-risk quantities:
   \describe{
-    \item{\code{RR} (relative risk)}{\eqn{\exp(\eta)=\exp(d'\beta+S)} -- the full
-      relative risk, including the covariate effect.}
-    \item{\code{ARR} (covariate-adjusted relative risk)}{\eqn{\exp(S)} -- the
-      residual spatial relative risk after adjusting for covariates.}
+    \item{\code{relative_risk}, \code{relative_risk_se}}{the relative risk
+      \eqn{\exp(d'\beta + S)} -- the fitted risk relative to the offset
+      baseline, combining the covariate effect and the residual spatial
+      variation. This is the headline disease-mapping quantity.}
+    \item{\code{adjusted_rr}, \code{adjusted_rr_se}}{the covariate-adjusted
+      relative risk \eqn{\exp(S)} -- the purely spatial relative risk that
+      remains after holding the covariates fixed (the spatial signal the
+      covariates do not explain).}
   }
-  stored as \code{RR_mean}/\code{RR_se}/\code{ARR_mean}/\code{ARR_se} (and, for
-  discrete fits, as columns of the returned \code{sf}). Posterior draws are kept
-  so that \code{\link{exceedance}} can be computed for either quantity.
+  The full posterior draws are retained as object attributes so that
+  \code{\link{exceedance}} and \code{\link{map_exceedance}} can be computed for
+  either quantity. Map a column with \code{\link{plot.SDALGCP2_pred}}.
 }
 \description{
 Predict relative risk from a fitted SDALGCP2 model

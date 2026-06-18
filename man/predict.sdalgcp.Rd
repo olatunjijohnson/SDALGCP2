@@ -25,14 +25,16 @@
 \item{...}{passed to the underlying predictor.}
 }
 \value{
-an object of class \code{"SDALGCP2_pred"} (spatial) or
-  \code{"SDALGCP2_ST_pred"} (spatio-temporal). For discrete spatial fits
-  \code{$my_shp} is an \code{sf} with \code{RR_mean}, \code{RR_se},
-  \code{ARR_mean}, \code{ARR_se} columns.
+for a spatial fit, an \code{sf} of class \code{"SDALGCP2_pred"} with
+  \code{relative_risk}, \code{relative_risk_se}, \code{adjusted_rr} and
+  \code{adjusted_rr_se} columns (polygons for \code{type = "discrete"}, grid
+  points for \code{"continuous"}); for a spatio-temporal fit, an
+  \code{"SDALGCP2_ST_pred"} object (see \code{\link{predict.SDALGCP2_ST}}).
 }
 \description{
 Returns a prediction object carrying, for every location, the posterior mean and
-standard error of the relative risk \code{RR} (\eqn{\exp(\eta)=\exp(d'\beta+S)})
-and the covariate-adjusted relative risk \code{ARR} (\eqn{\exp(S)}). Map it with
-\code{plot()} and get hotspot probabilities with \code{\link{exceedance}}.
+standard error of the relative risk \code{relative_risk}
+(\eqn{\exp(\eta)=\exp(d'\beta+S)}) and the covariate-adjusted relative risk
+\code{adjusted_rr} (\eqn{\exp(S)}). Map it with \code{plot()} and get hotspot
+probabilities with \code{\link{exceedance}}.
 }

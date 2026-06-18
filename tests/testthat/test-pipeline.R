@@ -47,13 +47,19 @@ test_that("prediction (discrete + continuous, both samplers) produces sane outpu
                   phi = sim$phi_grid, method = 3, control.mcmc = ctrl)
 
   pd <- predict(fit, type = "discrete", sampler = "mcmc", control.mcmc = ctrl)
-  expect_length(pd$RR_mean, sim$N)
-  expect_true(all(pd$RR_se >= 0))
+  expect_s3_class(pd, "sf")
+  expect_length(pd$relative_risk, sim$N)
+  expect_true(all(pd$relative_risk_se >= 0))
 
-  pc <- predict(fit, type = "continuous", sampler = "laplace", cellsize = 1.5,
+  # cellsize = 2 puts grid centres at x = 3, 9, 15 -- exactly on the 6x6 region
+  # boundaries (18/6 = 3), so those points intersect two polygons; regression
+  # guard for the change-of-support region lookup (must not error on such points).
+  pc <- predict(fit, type = "continuous", sampler = "laplace", cellsize = 2,
                 control.mcmc = ctrl)
-  expect_true(nrow(pc$pred.loc) > 0)
-  expect_true(all(pc$RR_mean > 0))
+  expect_s3_class(pc, "sf")
+  expect_true(nrow(pc) > 0)
+  expect_true(all(pc$relative_risk > 0))
+  expect_false(anyNA(pc$relative_risk))
 
   ex <- exceedance(pd, thresholds = c(1, 1.5))
   expect_equal(dim(ex), c(sim$N, 2))

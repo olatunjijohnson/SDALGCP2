@@ -6,7 +6,7 @@
 \usage{
 \method{plot}{SDALGCP2_pred}(
   x,
-  variable = c("RR", "ARR", "RR_se", "ARR_se"),
+  variable = c("relative_risk", "adjusted_rr", "relative_risk_se", "adjusted_rr_se"),
   bound = NULL,
   midpoint = NULL,
   title = NULL,
@@ -16,13 +16,14 @@
 \arguments{
 \item{x}{an object of class \code{"SDALGCP2_pred"}.}
 
-\item{variable}{one of \code{"RR"}, \code{"ARR"}, \code{"RR_se"}, \code{"ARR_se"}.}
+\item{variable}{one of \code{"relative_risk"}, \code{"adjusted_rr"},
+\code{"relative_risk_se"}, \code{"adjusted_rr_se"}.}
 
 \item{bound}{optional \code{sf} boundary; continuous surfaces are masked to it
 and its outline overlaid.}
 
 \item{midpoint}{optional value to centre a diverging colour scale (defaults to 1
-for \code{"RR"}/\code{"ARR"}, none for the standard errors).}
+for the relative-risk columns, none for the standard errors).}
 
 \item{title}{optional plot title.}
 
@@ -33,7 +34,8 @@ a \code{ggplot} object.
 }
 \description{
 Maps any of the four predicted quantities from \code{\link{predict.SDALGCP2}}
--- relative risk \code{"RR"}, covariate-adjusted relative risk \code{"ARR"}, or
-their standard errors \code{"RR_se"}/\code{"ARR_se"} -- for either discrete
+-- the relative risk \code{"relative_risk"}, the covariate-adjusted relative
+risk \code{"adjusted_rr"}, or their standard errors
+\code{"relative_risk_se"}/\code{"adjusted_rr_se"} -- for either discrete
 (choropleth) or continuous (raster) predictions.
 }

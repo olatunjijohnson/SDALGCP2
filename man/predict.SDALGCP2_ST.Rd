@@ -15,7 +15,8 @@
 }
 \value{
 an \code{"SDALGCP2_ST_pred"} object with \eqn{N\times T} matrices
-  \code{RR_mean}, \code{RR_se}, \code{ARR_mean}, \code{ARR_se}, a long
+  \code{relative_risk}, \code{relative_risk_se} (\eqn{\exp(\mu+S)}) and
+  \code{adjusted_rr}, \code{adjusted_rr_se} (\eqn{\exp(S)}), a long
   \code{table}, and the geometry; map a time slice with \code{\link{plot.SDALGCP2_ST_pred}}.
 }
 \description{

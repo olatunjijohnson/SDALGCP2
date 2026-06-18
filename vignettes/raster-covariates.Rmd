@@ -121,7 +121,7 @@ As in Tutorial 1, the fit yields relative risk and covariate-adjusted relative r
 with standard errors and exceedance, both discrete and continuous:
 
 ```{r}
-plot(fit, "ARR")                         # covariate-adjusted relative risk
+plot(fit, "adjusted_rr")                 # covariate-adjusted relative risk
 plot(fit, "exceedance", threshold = 1.5)
 ```
 

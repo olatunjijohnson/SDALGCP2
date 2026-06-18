@@ -2,47 +2,59 @@
 # after fitting an SDA-LGCP model. ggplot2-based; works for both region-level
 # (discrete) and continuous predictions.
 
-.pred_values <- function(x, variable) switch(variable,
-  RR = x$RR_mean, ARR = x$ARR_mean, RR_se = x$RR_se, ARR_se = x$ARR_se,
-  stop("variable must be one of 'RR', 'ARR', 'RR_se', 'ARR_se'."))
+.pred_columns <- c("relative_risk", "adjusted_rr", "relative_risk_se", "adjusted_rr_se")
+
+.pred_values <- function(x, variable) {
+  v <- x[[variable]]
+  if (is.null(v))
+    stop("variable must be one of ", paste0("'", .pred_columns, "'", collapse = ", "), ".")
+  as.numeric(v)
+}
 
 .var_label <- function(v) switch(v,
-  RR = "Relative risk", ARR = "Covariate-adjusted\nrelative risk",
-  RR_se = "SE\n(relative risk)", ARR_se = "SE\n(adjusted RR)", v)
+  relative_risk    = "Relative risk", adjusted_rr      = "Covariate-adjusted\nrelative risk",
+  relative_risk_se = "SE\n(relative risk)", adjusted_rr_se = "SE\n(adjusted RR)", v)
+
+# Short, human-readable label for the exceedance quantity (column tokens are ugly).
+.which_label <- function(w) switch(w,
+  adjusted_rr = "adjusted RR", relative_risk = "RR", w)
 
 #' Map a fitted SDALGCP2 prediction
 #'
 #' Maps any of the four predicted quantities from \code{\link{predict.SDALGCP2}}
-#' -- relative risk \code{"RR"}, covariate-adjusted relative risk \code{"ARR"}, or
-#' their standard errors \code{"RR_se"}/\code{"ARR_se"} -- for either discrete
+#' -- the relative risk \code{"relative_risk"}, the covariate-adjusted relative
+#' risk \code{"adjusted_rr"}, or their standard errors
+#' \code{"relative_risk_se"}/\code{"adjusted_rr_se"} -- for either discrete
 #' (choropleth) or continuous (raster) predictions.
 #'
 #' @param x an object of class \code{"SDALGCP2_pred"}.
-#' @param variable one of \code{"RR"}, \code{"ARR"}, \code{"RR_se"}, \code{"ARR_se"}.
+#' @param variable one of \code{"relative_risk"}, \code{"adjusted_rr"},
+#'   \code{"relative_risk_se"}, \code{"adjusted_rr_se"}.
 #' @param bound optional \code{sf} boundary; continuous surfaces are masked to it
 #'   and its outline overlaid.
 #' @param midpoint optional value to centre a diverging colour scale (defaults to 1
-#'   for \code{"RR"}/\code{"ARR"}, none for the standard errors).
+#'   for the relative-risk columns, none for the standard errors).
 #' @param title optional plot title.
 #' @param ... unused.
 #' @return a \code{ggplot} object.
 #' @method plot SDALGCP2_pred
 #' @export
-plot.SDALGCP2_pred <- function(x, variable = c("RR", "ARR", "RR_se", "ARR_se"),
+plot.SDALGCP2_pred <- function(x, variable = c("relative_risk", "adjusted_rr",
+                                               "relative_risk_se", "adjusted_rr_se"),
                                bound = NULL, midpoint = NULL, title = NULL, ...) {
   variable <- match.arg(variable)
   lab <- .var_label(variable); vals <- .pred_values(x, variable)
-  if (is.null(midpoint) && variable %in% c("RR", "ARR")) midpoint <- 1
+  if (is.null(midpoint) && variable %in% c("relative_risk", "adjusted_rr")) midpoint <- 1
 
-  if (x$type == "discrete") {
-    shp <- x$my_shp
-    if (is.null(shp)) stop("This prediction has no polygon geometry to map.")
-    if (!inherits(shp, "sf")) shp <- sf::st_as_sf(shp)
+  if (identical(attr(x, "pred_type"), "discrete")) {
+    if (!inherits(x, "sf")) stop("This prediction has no polygon geometry to map.")
+    shp <- x
     shp$fillvalue <- vals
     p <- ggplot2::ggplot(shp) +
       ggplot2::geom_sf(ggplot2::aes(fill = .data$fillvalue), color = "grey60", linewidth = 0.1)
   } else {
-    df <- data.frame(x = x$pred.loc[, 1], y = x$pred.loc[, 2], fillvalue = vals)
+    pl <- attr(x, "pred_loc")
+    df <- data.frame(x = pl[, 1], y = pl[, 2], fillvalue = vals)
     if (!is.null(bound)) {
       if (!inherits(bound, "sf")) bound <- sf::st_as_sf(bound)
       pts <- sf::st_as_sf(df, coords = c("x", "y"), crs = sf::st_crs(bound))
@@ -69,25 +81,28 @@ plot.SDALGCP2_pred <- function(x, variable = c("RR", "ARR", "RR_se", "ARR_se"),
 #'
 #' @param x an \code{"SDALGCP2_pred"} object.
 #' @param threshold a single relative-risk threshold.
-#' @param which \code{"ARR"} (covariate-adjusted, default) or \code{"RR"}.
+#' @param which \code{"adjusted_rr"} (covariate-adjusted, default) or
+#'   \code{"relative_risk"}.
 #' @param bound optional \code{sf} boundary (continuous only).
 #' @param ... unused.
 #' @return a \code{ggplot} object.
 #' @export
-map_exceedance <- function(x, threshold = 1, which = c("ARR", "RR"), bound = NULL, ...) {
+map_exceedance <- function(x, threshold = 1, which = c("adjusted_rr", "relative_risk"),
+                           bound = NULL, ...) {
   stopifnot(inherits(x, "SDALGCP2_pred"))
   which <- match.arg(which)
   ex <- as.numeric(exceedance(x, threshold, which = which))
-  lab <- sprintf("P(%s > %g)", which, threshold)
-  if (x$type == "discrete") {
-    shp <- x$my_shp; if (!inherits(shp, "sf")) shp <- sf::st_as_sf(shp)
-    shp$fillvalue <- ex
+  lab <- sprintf("P(%s > %g)", .which_label(which), threshold)
+  if (identical(attr(x, "pred_type"), "discrete")) {
+    if (!inherits(x, "sf")) stop("This prediction has no polygon geometry to map.")
+    shp <- x; shp$fillvalue <- ex
     ggplot2::ggplot(shp) +
       ggplot2::geom_sf(ggplot2::aes(fill = .data$fillvalue), color = "grey60", linewidth = 0.1) +
       ggplot2::scale_fill_viridis_c(name = lab, limits = c(0, 1), option = "magma") +
       ggplot2::theme_minimal() + ggplot2::labs(x = NULL, y = NULL)
   } else {
-    df <- data.frame(x = x$pred.loc[, 1], y = x$pred.loc[, 2], fillvalue = ex)
+    pl <- attr(x, "pred_loc")
+    df <- data.frame(x = pl[, 1], y = pl[, 2], fillvalue = ex)
     if (!is.null(bound)) {
       if (!inherits(bound, "sf")) bound <- sf::st_as_sf(bound)
       pts <- sf::st_as_sf(df, coords = c("x", "y"), crs = sf::st_crs(bound))
