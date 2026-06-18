@@ -35,6 +35,12 @@
 #'   covariate-tilted correlation (see \code{\link{SDALGCP2_raster}}).
 #' @param nthreads OpenMP threads for the correlation assembly (0 = default).
 #' @return a list of control settings.
+#' @seealso \code{\link{sdalgcp}}
+#' @examples
+#' ## defaults, then a faster grid-based fit with a nugget term
+#' str(sdalgcp_control())
+#' ctrl <- sdalgcp_control(scale = "grid", nugget = FALSE, n_sim = 4000,
+#'                         burnin = 1000, thin = 6)
 #' @export
 sdalgcp_control <- function(delta = NULL, points_per_region = 16,
                             point_method = c("regular", "uniform", "ssi"),

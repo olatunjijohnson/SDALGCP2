@@ -87,6 +87,17 @@
 #' @param messages logical; print optimiser progress.
 #' @return an object of class \code{"SDALGCP2"} (estimates, covariance, profile,
 #'   latent samples and metadata).
+#' @seealso \code{\link{SDALGCP2}} (the end-to-end wrapper), \code{\link{precompute_corr}}
+#' @examples
+#' \donttest{
+#' data(sdalgcp_data)
+#' df  <- sf::st_drop_geometry(sdalgcp_data)
+#' pts <- sda_points(sdalgcp_data, delta = 1.2, method = 3)
+#' cc  <- precompute_corr(pts, phi = seq(2, 8, length.out = 6))
+#' fit <- mcml_fit(cases ~ x1 + offset(log(pop)), df, cc,
+#'                 control.mcmc = control_mcmc(n.sim = 2000, burnin = 500, thin = 5))
+#' summary(fit)
+#' }
 #' @export
 mcml_fit <- function(formula, data, corr, par0 = NULL, control.mcmc = NULL,
                      phi_method = c("grid", "direct"), nugget = FALSE,

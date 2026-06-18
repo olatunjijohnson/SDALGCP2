@@ -25,3 +25,13 @@ and tests them for residual spatial autocorrelation with Moran's I. A
 non-significant Moran's I indicates the spatial random effect has absorbed the
 spatial structure.
 }
+\examples{
+\donttest{
+data(sdalgcp_data)
+fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = sdalgcp_data,
+               control = sdalgcp_control(n_sim = 2000, burnin = 500, thin = 5,
+                                         reanchor = 0))
+chk <- model_check(fit, plot = FALSE)
+chk$moran            # residual Moran's I and its permutation p-value
+}
+}

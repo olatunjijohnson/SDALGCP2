@@ -56,3 +56,19 @@ an \code{sf} (class \code{c("SDALGCP2_pred", "sf", "data.frame")}) with
 \description{
 Predict relative risk from a fitted SDALGCP2 model
 }
+\examples{
+\donttest{
+data(sdalgcp_data)
+fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = sdalgcp_data,
+               control = sdalgcp_control(n_sim = 2000, burnin = 500, thin = 5,
+                                         reanchor = 0))
+
+## region-level (discrete) prediction: an sf you can map or st_write()
+pr <- predict(fit, type = "discrete")
+head(pr)                       # relative_risk / adjusted_rr (+ standard errors)
+plot(pr, variable = "relative_risk")
+
+## continuous surface on a grid
+pr_c <- predict(fit, type = "continuous", cellsize = 1)
+}
+}

@@ -6,6 +6,10 @@
 #' @param h initial Langevin step size; if missing, \code{1.65 / d^(1/6)} is used.
 #' @param c1.h,c2.h step-size adaptation constants.
 #' @return a named list consumed by \code{\link{laplace_sampling}} / the fit.
+#' @examples
+#' ## 1000 retained draws (5000 iterations, 2000 burn-in, thin every 3)
+#' ctrl <- control_mcmc(n.sim = 5000, burnin = 2000, thin = 3)
+#' str(ctrl)
 #' @export
 control_mcmc <- function(n.sim = 10000, burnin = 2000, thin = 8,
                          h = NULL, c1.h = 0.01, c2.h = 1e-4) {
@@ -28,6 +32,18 @@ control_mcmc <- function(n.sim = 10000, burnin = 2000, thin = 8,
 #' @param units.m offset vector.
 #' @param control.mcmc list from \code{\link{control_mcmc}}.
 #' @return list with \code{samples} (kept x n matrix) and \code{h} (step sizes).
+#' @examples
+#' \donttest{
+#' ## sample [S | Y] for a tiny 10-unit Poisson example
+#' set.seed(1)
+#' n <- 10
+#' D <- as.matrix(dist(cbind(runif(n), runif(n))))
+#' Sigma <- 0.4 * exp(-D / 0.3)
+#' mu <- rep(log(2), n); m <- rep(100, n)
+#' y <- rpois(n, m * exp(mu + as.numeric(t(chol(Sigma)) %*% rnorm(n))))
+#' out <- laplace_sampling(mu, Sigma, y, m, control_mcmc(n.sim = 2000, burnin = 500, thin = 3))
+#' dim(out$samples)     # (retained draws) x n
+#' }
 #' @export
 laplace_sampling <- function(mu, Sigma, y, units.m, control.mcmc) {
   mu <- as.numeric(mu); y <- as.numeric(y); units.m <- as.numeric(units.m)

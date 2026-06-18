@@ -17,3 +17,12 @@ invisibly, the profile (see \code{\link{phi_profile}}).
 \description{
 Plot an SDALGCP2 fit (the phi profile deviance)
 }
+\examples{
+\donttest{
+data(sdalgcp_data)
+fit <- SDALGCP2(cases ~ x1 + offset(log(pop)),
+                sf::st_drop_geometry(sdalgcp_data), sdalgcp_data, delta = 1.2,
+                control.mcmc = control_mcmc(n.sim = 2000, burnin = 500, thin = 5))
+plot(fit)   # profile deviance for the spatial scale phi
+}
+}

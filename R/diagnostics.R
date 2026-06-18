@@ -40,6 +40,15 @@
 #' @param nsim permutations for the Moran's I p-value.
 #' @param plot logical; draw the observed-vs-fitted scatter.
 #' @return invisibly, a list with \code{fitted}, \code{residuals} and \code{moran}.
+#' @examples
+#' \donttest{
+#' data(sdalgcp_data)
+#' fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = sdalgcp_data,
+#'                control = sdalgcp_control(n_sim = 2000, burnin = 500, thin = 5,
+#'                                          reanchor = 0))
+#' chk <- model_check(fit, plot = FALSE)
+#' chk$moran            # residual Moran's I and its permutation p-value
+#' }
 #' @export
 model_check <- function(object, pred = NULL, nsim = 999, plot = TRUE) {
   stopifnot(inherits(object, "SDALGCP2"))
@@ -80,6 +89,15 @@ model_check <- function(object, pred = NULL, nsim = 999, plot = TRUE) {
 #' @param warn_frac warn if the ESS falls below this fraction of \eqn{B}.
 #' @return invisibly, a list with \code{B}, \code{ESS}, \code{ESS_frac} and
 #'   \code{se_loglik}.
+#' @examples
+#' \donttest{
+#' data(sdalgcp_data)
+#' fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = sdalgcp_data,
+#'                control = sdalgcp_control(n_sim = 2000, burnin = 500, thin = 5,
+#'                                          reanchor = 0))
+#' d <- mc_diagnostics(fit)
+#' d$ESS_frac           # importance-sampling ESS as a fraction of the draws
+#' }
 #' @export
 mc_diagnostics <- function(object, warn_frac = 0.1) {
   stopifnot(inherits(object, "SDALGCP2"))
@@ -130,6 +148,16 @@ mc_diagnostics <- function(object, warn_frac = 0.1) {
 #' @param threshold relative-risk threshold for the exceedance map.
 #' @param ... passed to \code{\link{predict.SDALGCP2}} when \code{pred} is computed.
 #' @return a named list of \code{ggplot} objects.
+#' @examples
+#' \donttest{
+#' data(sdalgcp_data)
+#' fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = sdalgcp_data,
+#'                control = sdalgcp_control(n_sim = 2000, burnin = 500, thin = 5,
+#'                                          reanchor = 0))
+#' figs <- report(fit, threshold = 1.5)
+#' names(figs)          # relative_risk, uncertainty, exceedance, coefficients, ...
+#' figs$relative_risk   # print one of the maps
+#' }
 #' @export
 report <- function(object, pred = NULL, threshold = 1.5, ...) {
   if (is.null(pred)) pred <- predict(object, type = "discrete", ...)

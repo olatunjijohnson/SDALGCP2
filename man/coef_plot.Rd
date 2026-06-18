@@ -19,3 +19,12 @@ a \code{ggplot} object.
 \description{
 Coefficient plot of fixed effects (and sigma^2) with confidence intervals
 }
+\examples{
+\donttest{
+data(sdalgcp_data)
+fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = sdalgcp_data,
+               control = sdalgcp_control(n_sim = 2000, burnin = 500, thin = 5,
+                                         reanchor = 0))
+coef_plot(fit)
+}
+}

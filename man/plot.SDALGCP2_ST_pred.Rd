@@ -6,7 +6,7 @@
 \usage{
 \method{plot}{SDALGCP2_ST_pred}(
   x,
-  time = x$times[1],
+  time = attr(x, "times")[1],
   what = c("relative_risk", "adjusted_rr", "relative_risk_se", "adjusted_rr_se",
     "exceedance"),
   threshold = 1,
@@ -38,4 +38,22 @@ a \code{ggplot} object.
 Maps a chosen quantity (\code{"relative_risk"}, \code{"adjusted_rr"},
 \code{"relative_risk_se"}, \code{"adjusted_rr_se"} or \code{"exceedance"}) for a
 selected time slice of a spatio-temporal prediction.
+}
+\examples{
+\donttest{
+data(sdalgcp_data)
+times <- 1:3
+panel <- do.call(rbind, lapply(times, function(t) {
+  d <- sdalgcp_data; d$time <- t
+  d$cases <- rpois(nrow(d), d$pop * exp(-6 + 0.6 * d$x1 + 0.1 * (t - 2)))
+  d
+}))
+fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = panel, time = "time",
+               control = sdalgcp_control(n_sim = 2000, burnin = 500, thin = 5,
+                                         reanchor = 0))
+pr <- predict(fit)
+plot(pr, time = 2)                 # one time slice
+plot(pr, time = NULL)              # facet all times
+plot(pr, what = "exceedance", threshold = 1.2, time = 3)
+}
 }

@@ -30,3 +30,8 @@ a named list consumed by \code{\link{laplace_sampling}} / the fit.
 \description{
 MCMC control settings for the MALA sampler
 }
+\examples{
+## 1000 retained draws (5000 iterations, 2000 burn-in, thin every 3)
+ctrl <- control_mcmc(n.sim = 5000, burnin = 2000, thin = 3)
+str(ctrl)
+}

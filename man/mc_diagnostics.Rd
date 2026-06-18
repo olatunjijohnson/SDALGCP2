@@ -22,3 +22,13 @@ the estimate unreliable. This reports the effective sample size of the
 importance weights at the maximiser and a Monte Carlo standard error for the
 maximised log-likelihood, \eqn{\mathrm{SE}\approx\sqrt{1/\mathrm{ESS}-1/B}}.
 }
+\examples{
+\donttest{
+data(sdalgcp_data)
+fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = sdalgcp_data,
+               control = sdalgcp_control(n_sim = 2000, burnin = 500, thin = 5,
+                                         reanchor = 0))
+d <- mc_diagnostics(fit)
+d$ESS_frac           # importance-sampling ESS as a fraction of the draws
+}
+}

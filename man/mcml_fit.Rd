@@ -52,3 +52,17 @@ Vectorised, Cholesky-based re-implementation of \code{SDALGCP::SDALGCPParaEst()}
 Simulates the latent field at an anchor, then profiles the importance-sampling
 MCML objective over the supplied \code{phi} grid.
 }
+\examples{
+\donttest{
+data(sdalgcp_data)
+df  <- sf::st_drop_geometry(sdalgcp_data)
+pts <- sda_points(sdalgcp_data, delta = 1.2, method = 3)
+cc  <- precompute_corr(pts, phi = seq(2, 8, length.out = 6))
+fit <- mcml_fit(cases ~ x1 + offset(log(pop)), df, cc,
+                control.mcmc = control_mcmc(n.sim = 2000, burnin = 500, thin = 5))
+summary(fit)
+}
+}
+\seealso{
+\code{\link{SDALGCP2}} (the end-to-end wrapper), \code{\link{precompute_corr}}
+}

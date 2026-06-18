@@ -21,3 +21,12 @@ a matrix of lower/upper confidence limits.
 \description{
 Wald confidence intervals for an SDALGCP2 fit
 }
+\examples{
+\donttest{
+data(sdalgcp_data)
+fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = sdalgcp_data,
+               control = sdalgcp_control(n_sim = 2000, burnin = 500, thin = 5,
+                                         reanchor = 0))
+confint(fit)
+}
+}

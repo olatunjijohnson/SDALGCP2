@@ -47,3 +47,13 @@ a \code{ggplot} object.
 Predicts and maps a chosen quantity. Works for spatial fits (discrete or
 continuous) and spatio-temporal fits (select a \code{time}).
 }
+\examples{
+\donttest{
+data(sdalgcp_data)
+fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = sdalgcp_data,
+               control = sdalgcp_control(n_sim = 2000, burnin = 500, thin = 5,
+                                         reanchor = 0))
+plot(fit)                              # relative-risk map (predicts internally)
+plot(fit, what = "exceedance", threshold = 1.5)
+}
+}

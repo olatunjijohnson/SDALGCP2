@@ -47,6 +47,15 @@ summary.sdalgcp <- function(object, ...) summary(.strip_sdalgcp(object), ...)
 #'   \code{adjusted_rr_se} columns (polygons for \code{type = "discrete"}, grid
 #'   points for \code{"continuous"}); for a spatio-temporal fit, an
 #'   \code{"SDALGCP2_ST_pred"} object (see \code{\link{predict.SDALGCP2_ST}}).
+#' @examples
+#' \donttest{
+#' data(sdalgcp_data)
+#' fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = sdalgcp_data,
+#'                control = sdalgcp_control(n_sim = 2000, burnin = 500, thin = 5,
+#'                                          reanchor = 0))
+#' pr <- predict(fit)            # discrete by default; an sf of relative risks
+#' head(pr)
+#' }
 #' @method predict sdalgcp
 #' @export
 predict.sdalgcp <- function(object, type = c("discrete", "continuous"),
@@ -76,6 +85,15 @@ predict.sdalgcp <- function(object, type = c("discrete", "continuous"),
 #' @param sampler \code{"mcmc"} (default) or \code{"laplace"}.
 #' @param ... passed to the mapping layer.
 #' @return a \code{ggplot} object.
+#' @examples
+#' \donttest{
+#' data(sdalgcp_data)
+#' fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = sdalgcp_data,
+#'                control = sdalgcp_control(n_sim = 2000, burnin = 500, thin = 5,
+#'                                          reanchor = 0))
+#' plot(fit)                              # relative-risk map (predicts internally)
+#' plot(fit, what = "exceedance", threshold = 1.5)
+#' }
 #' @method plot sdalgcp
 #' @export
 plot.sdalgcp <- function(x, what = c("relative_risk", "adjusted_rr",
@@ -88,7 +106,7 @@ plot.sdalgcp <- function(x, what = c("relative_risk", "adjusted_rr",
 
   if (!is.null(x$T)) {                                        # spatio-temporal
     pr <- stats::predict(obj)
-    if (is.null(time)) time <- pr$times[1]
+    if (is.null(time)) time <- attr(pr, "times")[1]
     return(plot(pr, time = time, what = what, threshold = threshold, which = which))
   }
 

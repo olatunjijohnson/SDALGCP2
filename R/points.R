@@ -57,6 +57,14 @@
 #' @param giveup SSI rejection limit.
 #' @return a list of length \code{nrow(my_shp)}; each element has \code{xy} and
 #'   \code{weight}. Carries \code{"weighted"} and \code{"my_shp"} attributes.
+#' @seealso \code{\link{precompute_corr}}, which consumes this output.
+#' @examples
+#' \donttest{
+#' data(sdalgcp_data)
+#' pts <- sda_points(sdalgcp_data, delta = 1.2, method = 3)   # regular grid points
+#' length(pts)          # one entry per region
+#' str(pts[[1]])        # $xy candidate coordinates and $weight
+#' }
 #' @export
 sda_points <- function(my_shp, delta, method = 1L, weighted = FALSE,
                        pop_shp = NULL, rho = 0.55, giveup = 1000L) {

@@ -24,3 +24,14 @@ relative-risk and uncertainty maps, an exceedance map, the coefficient plot
 and the phi profile. The pieces are returned as a named list of \code{ggplot}
 objects so they can be arranged or printed individually.
 }
+\examples{
+\donttest{
+data(sdalgcp_data)
+fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = sdalgcp_data,
+               control = sdalgcp_control(n_sim = 2000, burnin = 500, thin = 5,
+                                         reanchor = 0))
+figs <- report(fit, threshold = 1.5)
+names(figs)          # relative_risk, uncertainty, exceedance, coefficients, ...
+figs$relative_risk   # print one of the maps
+}
+}

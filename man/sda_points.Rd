@@ -40,3 +40,14 @@ Lean replacement for \code{SDALGCP::SDALGCPpolygonpoints()}: for every polygon
 feature in \code{my_shp} it produces candidate points and aggregation weights,
 in the list format consumed by \code{\link{precompute_corr}}.
 }
+\examples{
+\donttest{
+data(sdalgcp_data)
+pts <- sda_points(sdalgcp_data, delta = 1.2, method = 3)   # regular grid points
+length(pts)          # one entry per region
+str(pts[[1]])        # $xy candidate coordinates and $weight
+}
+}
+\seealso{
+\code{\link{precompute_corr}}, which consumes this output.
+}

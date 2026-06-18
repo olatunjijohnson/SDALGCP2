@@ -21,3 +21,18 @@ a matrix of exceedance probabilities (locations x thresholds).
 \description{
 Exceedance probabilities P(risk > threshold)
 }
+\examples{
+\donttest{
+data(sdalgcp_data)
+fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = sdalgcp_data,
+               control = sdalgcp_control(n_sim = 2000, burnin = 500, thin = 5,
+                                         reanchor = 0))
+pr <- predict(fit, type = "discrete")
+## P(adjusted relative risk > 1) and > 1.5 for every region
+ex <- exceedance(pr, thresholds = c(1, 1.5), which = "adjusted_rr")
+head(ex)
+}
+}
+\seealso{
+\code{\link{map_exceedance}} to map them.
+}

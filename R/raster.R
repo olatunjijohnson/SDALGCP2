@@ -82,6 +82,19 @@
 #' @return an object of class \code{"SDALGCP2"} (as \code{\link{mcml_fit}}) with
 #'   extra fields \code{raster = TRUE} and \code{n_iter}.
 #' @seealso \code{\link{SDALGCP2}}, \code{\link{mcml_fit}}
+#' @examples
+#' \donttest{
+#' data(sdalgcp_data)
+#' ## a spatially continuous covariate supplied as a raster layer named "z"
+#' r <- terra::rast(terra::ext(0, 20, 0, 20), resolution = 0.5)
+#' terra::values(r) <- as.numeric(scale(terra::crds(r)[, 1]))   # west-east gradient
+#' names(r) <- "z"
+#' df <- sf::st_drop_geometry(sdalgcp_data)
+#' fit <- SDALGCP2_raster(cases ~ z + offset(log(pop)), df, sdalgcp_data,
+#'                        delta = 1.5, rasters = r,
+#'                        control.mcmc = control_mcmc(n.sim = 2000, burnin = 500, thin = 5))
+#' summary(fit)
+#' }
 #' @export
 SDALGCP2_raster <- function(formula, data, my_shp, delta, rasters, phi = NULL,
                             method = 3L, weighted = FALSE, pop_shp = NULL,

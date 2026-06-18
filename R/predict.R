@@ -82,6 +82,21 @@
 #'   The full posterior draws are retained as object attributes so that
 #'   \code{\link{exceedance}} and \code{\link{map_exceedance}} can be computed for
 #'   either quantity. Map a column with \code{\link{plot.SDALGCP2_pred}}.
+#' @examples
+#' \donttest{
+#' data(sdalgcp_data)
+#' fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = sdalgcp_data,
+#'                control = sdalgcp_control(n_sim = 2000, burnin = 500, thin = 5,
+#'                                          reanchor = 0))
+#'
+#' ## region-level (discrete) prediction: an sf you can map or st_write()
+#' pr <- predict(fit, type = "discrete")
+#' head(pr)                       # relative_risk / adjusted_rr (+ standard errors)
+#' plot(pr, variable = "relative_risk")
+#'
+#' ## continuous surface on a grid
+#' pr_c <- predict(fit, type = "continuous", cellsize = 1)
+#' }
 #' @method predict SDALGCP2
 #' @export
 predict.SDALGCP2 <- function(object, type = c("discrete", "continuous"),
@@ -165,6 +180,18 @@ predict.SDALGCP2 <- function(object, type = c("discrete", "continuous"),
 #'   relative risk \eqn{\exp(S)}, default) or \code{"relative_risk"} (the relative
 #'   risk \eqn{\exp(d'\beta + S)}).
 #' @return a matrix of exceedance probabilities (locations x thresholds).
+#' @seealso \code{\link{map_exceedance}} to map them.
+#' @examples
+#' \donttest{
+#' data(sdalgcp_data)
+#' fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = sdalgcp_data,
+#'                control = sdalgcp_control(n_sim = 2000, burnin = 500, thin = 5,
+#'                                          reanchor = 0))
+#' pr <- predict(fit, type = "discrete")
+#' ## P(adjusted relative risk > 1) and > 1.5 for every region
+#' ex <- exceedance(pr, thresholds = c(1, 1.5), which = "adjusted_rr")
+#' head(ex)
+#' }
 #' @export
 exceedance <- function(object, thresholds, which = c("adjusted_rr", "relative_risk")) {
   stopifnot(inherits(object, "SDALGCP2_pred"))

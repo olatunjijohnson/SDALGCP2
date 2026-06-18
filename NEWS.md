@@ -2,6 +2,15 @@
 
 First development version — a faster, modernised successor to SDALGCP.
 
+* **Spatio-temporal prediction now returns a long `sf` too.** `predict()` on an
+  `SDALGCP2_ST` fit returns a one-row-per-region-time `sf` (class
+  `"SDALGCP2_ST_pred"`) with the same `relative_risk`/`adjusted_rr` columns as the
+  spatial predictor, so both can be mapped or `st_write()`-en the same way;
+  posterior draws are kept as attributes.
+* **Bundled example dataset `sdalgcp_data`** — a small simulated `sf` of 64
+  regions (`cases`, `x1`, `pop`) used by the help-page examples; see
+  `data-raw/sdalgcp_data.R` for the generator.
+* **Runnable examples on the exported functions**, all using `sdalgcp_data`.
 * **Prediction output is now an `sf` with clear public-health column names.**
   `predict()` returns an `sf` (class `"SDALGCP2_pred"`) you can map or `st_write()`
   directly, with columns `relative_risk`/`relative_risk_se` (the relative risk

@@ -89,7 +89,15 @@ test_that("SDALGCP2_ST fits end-to-end and recovers the slope", {
                       phi = phi_grid, control.mcmc = ctrl, reanchor = 2)
   expect_true(fit2$n_reanchor >= 1)
   pred <- predict(fit2)
-  expect_equal(dim(pred$relative_risk), c(N, T))
+  # prediction is a long sf (region x time), mirroring the spatial predictor
+  expect_s3_class(pred, "SDALGCP2_ST_pred")
+  expect_s3_class(pred, "sf")
+  expect_equal(nrow(pred), N * T)
+  expect_true(all(c("region", "time", "relative_risk", "adjusted_rr") %in% names(pred)))
+  expect_true(all(pred$relative_risk > 0))
   expect_true(all(pred$adjusted_rr > 0))
-  expect_equal(nrow(pred$table), N * T)
+  expect_equal(attr(pred, "N"), N)
+  expect_equal(attr(pred, "T"), T)
+  # a time slice maps without error
+  expect_s3_class(plot(pred, time = times[1]), "ggplot")
 })

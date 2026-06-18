@@ -38,3 +38,13 @@ standard error of the relative risk \code{relative_risk}
 \code{adjusted_rr} (\eqn{\exp(S)}). Map it with \code{plot()} and get hotspot
 probabilities with \code{\link{exceedance}}.
 }
+\examples{
+\donttest{
+data(sdalgcp_data)
+fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = sdalgcp_data,
+               control = sdalgcp_control(n_sim = 2000, burnin = 500, thin = 5,
+                                         reanchor = 0))
+pr <- predict(fit)            # discrete by default; an sf of relative risks
+head(pr)
+}
+}

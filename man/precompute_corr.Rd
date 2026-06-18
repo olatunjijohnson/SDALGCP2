@@ -36,3 +36,14 @@ correlations used by the SDA-LGCP model, where
 heavy reduction runs in C++ (OpenMP-parallel over region pairs); this is the
 modern, fast replacement for \code{SDALGCP::precomputeCorrMatrix()}.
 }
+\examples{
+\donttest{
+data(sdalgcp_data)
+pts <- sda_points(sdalgcp_data, delta = 1.2, method = 3)
+cc  <- precompute_corr(pts, phi = c(2, 4, 6))
+dim(cc$R)            # N x N x length(phi)
+}
+}
+\seealso{
+\code{\link{sda_points}}, \code{\link{mcml_fit}}
+}

@@ -69,3 +69,12 @@ a list of control settings.
 \description{
 Bundles the technical knobs so that a default fit needs none of them.
 }
+\examples{
+## defaults, then a faster grid-based fit with a nugget term
+str(sdalgcp_control())
+ctrl <- sdalgcp_control(scale = "grid", nugget = FALSE, n_sim = 4000,
+                        burnin = 1000, thin = 6)
+}
+\seealso{
+\code{\link{sdalgcp}}
+}

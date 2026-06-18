@@ -14,13 +14,36 @@
 \item{...}{unused.}
 }
 \value{
-an \code{"SDALGCP2_ST_pred"} object with \eqn{N\times T} matrices
-  \code{relative_risk}, \code{relative_risk_se} (\eqn{\exp(\mu+S)}) and
-  \code{adjusted_rr}, \code{adjusted_rr_se} (\eqn{\exp(S)}), a long
-  \code{table}, and the geometry; map a time slice with \code{\link{plot.SDALGCP2_ST_pred}}.
+a long \code{\link[sf]{sf}} of class
+  \code{c("SDALGCP2_ST_pred", "sf", "data.frame")} with one row per region and
+  time (ordered region-fastest within each time block) and columns
+  \code{region}, \code{time}, \code{relative_risk}, \code{relative_risk_se}
+  (\eqn{\exp(\mu+S)}), \code{adjusted_rr} and \code{adjusted_rr_se}
+  (\eqn{\exp(S)}) -- the same column names as the spatial
+  \code{\link{predict.SDALGCP2}}. The posterior draws are kept in object
+  attributes (for exceedance); map a time slice with
+  \code{\link{plot.SDALGCP2_ST_pred}}.
 }
 \description{
 Draws the latent field at the fitted optimum and returns posterior mean and SD
 of the incidence relative risk \eqn{\exp(\mu+S)} and covariate-adjusted relative
 risk \eqn{\exp(S)} for every region and time.
+}
+\examples{
+\donttest{
+data(sdalgcp_data)
+## stack the spatial example into a 3-time panel with a mild temporal trend
+times <- 1:3
+panel <- do.call(rbind, lapply(times, function(t) {
+  d <- sdalgcp_data; d$time <- t
+  d$cases <- rpois(nrow(d), d$pop * exp(-6 + 0.6 * d$x1 + 0.1 * (t - 2)))
+  d
+}))
+fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = panel, time = "time",
+               control = sdalgcp_control(n_sim = 2000, burnin = 500, thin = 5,
+                                         reanchor = 0))
+pr <- predict(fit)        # a long sf: region x time
+head(pr)
+plot(pr, time = 2)        # map the relative risk at time 2
+}
 }

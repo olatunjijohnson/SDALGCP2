@@ -26,3 +26,16 @@ non-nested case: the Laplace mode (Newton) and the adaptive MALA loop both run
 in C++. Given the same mode/covariance and seed it reproduces the original R
 sampler bit-for-bit.
 }
+\examples{
+\donttest{
+## sample [S | Y] for a tiny 10-unit Poisson example
+set.seed(1)
+n <- 10
+D <- as.matrix(dist(cbind(runif(n), runif(n))))
+Sigma <- 0.4 * exp(-D / 0.3)
+mu <- rep(log(2), n); m <- rep(100, n)
+y <- rpois(n, m * exp(mu + as.numeric(t(chol(Sigma)) \%*\% rnorm(n))))
+out <- laplace_sampling(mu, Sigma, y, m, control_mcmc(n.sim = 2000, burnin = 500, thin = 3))
+dim(out$samples)     # (retained draws) x n
+}
+}

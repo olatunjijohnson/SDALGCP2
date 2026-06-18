@@ -68,6 +68,14 @@ print.summary.SDALGCP2 <- function(x, ...) {
 #' @param level confidence level.
 #' @param ... unused.
 #' @return a matrix of lower/upper confidence limits.
+#' @examples
+#' \donttest{
+#' data(sdalgcp_data)
+#' fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = sdalgcp_data,
+#'                control = sdalgcp_control(n_sim = 2000, burnin = 500, thin = 5,
+#'                                          reanchor = 0))
+#' confint(fit)
+#' }
 #' @export
 confint.SDALGCP2 <- function(object, parm, level = 0.95, ...) {
   est <- .sda_estimates(object)

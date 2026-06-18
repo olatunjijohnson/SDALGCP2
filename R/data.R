@@ -1,0 +1,23 @@
+#' Simulated aggregated disease-count data
+#'
+#' A small, self-contained example dataset used throughout the help pages and
+#' vignettes. It is simulated from the model the package fits: an 8x8 lattice of
+#' regions, a spatially structured covariate, a latent Gaussian spatial field
+#' with exponential covariance, and Poisson counts with a population offset. The
+#' true fixed effects are \code{(Intercept) = -6} and \code{x1 = 0.6}; the latent
+#' field has variance \eqn{\sigma^2 = 0.3} and exponential scale \eqn{\phi = 4}.
+#'
+#' @format An \code{\link[sf]{sf}} object of 64 \code{POLYGON} regions with columns:
+#' \describe{
+#'   \item{region}{integer region identifier (1-64).}
+#'   \item{cases}{observed disease count in the region.}
+#'   \item{x1}{a standardised, spatially structured covariate.}
+#'   \item{pop}{population at risk (the offset; use \code{offset(log(pop))}).}
+#'   \item{geometry}{the region polygon.}
+#' }
+#' @source Simulated; see \code{data-raw/sdalgcp_data.R} in the package sources.
+#' @examples
+#' data(sdalgcp_data)
+#' summary(sdalgcp_data$cases)
+#' plot(sdalgcp_data["cases"])
+"sdalgcp_data"

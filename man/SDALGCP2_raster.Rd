@@ -68,6 +68,20 @@ correct alternative to averaging the predictor over each polygon. Estimation is
 a Gauss-Newton fixed point that reuses \code{\link{mcml_fit}} with the
 intensity-tilted effective design.
 }
+\examples{
+\donttest{
+data(sdalgcp_data)
+## a spatially continuous covariate supplied as a raster layer named "z"
+r <- terra::rast(terra::ext(0, 20, 0, 20), resolution = 0.5)
+terra::values(r) <- as.numeric(scale(terra::crds(r)[, 1]))   # west-east gradient
+names(r) <- "z"
+df <- sf::st_drop_geometry(sdalgcp_data)
+fit <- SDALGCP2_raster(cases ~ z + offset(log(pop)), df, sdalgcp_data,
+                       delta = 1.5, rasters = r,
+                       control.mcmc = control_mcmc(n.sim = 2000, burnin = 500, thin = 5))
+summary(fit)
+}
+}
 \seealso{
 \code{\link{SDALGCP2}}, \code{\link{mcml_fit}}
 }

@@ -120,6 +120,19 @@
 #' @param messages logical; print progress.
 #' @return an object of class \code{"SDALGCP2"} with \code{misaligned = TRUE}.
 #' @seealso \code{\link{SDALGCP2_raster}}, \code{\link{sdalgcp}}
+#' @examples
+#' \donttest{
+#' data(sdalgcp_data)
+#' set.seed(1)
+#' ## a covariate z observed only at 40 scattered monitor points (a different support)
+#' mon <- sf::st_as_sf(data.frame(x = runif(40, 0, 20), y = runif(40, 0, 20)),
+#'                     coords = c("x", "y"))
+#' mon$z <- scale(sf::st_coordinates(mon)[, 1])[, 1]
+#' fit <- SDALGCP2_misaligned(cases ~ z + offset(log(pop)), sdalgcp_data, delta = 1.5,
+#'                            covariates = list(z = mon),
+#'                            control.mcmc = control_mcmc(n.sim = 2000, burnin = 500, thin = 5))
+#' summary(fit)
+#' }
 #' @export
 SDALGCP2_misaligned <- function(formula, data, delta, covariates, phi = NULL,
                                 method = 3L, weighted = FALSE, pop_shp = NULL,

@@ -106,6 +106,23 @@
 #' @param messages logical; print progress.
 #' @return an object of class \code{c("SDALGCP2_ST","SDALGCP2")} with \code{phi_opt},
 #'   \code{nu_opt}, coefficient table and covariance.
+#' @seealso \code{\link{sdalgcp}} (friendly wrapper), \code{\link{predict.SDALGCP2_ST}}
+#' @examples
+#' \donttest{
+#' data(sdalgcp_data)
+#' shp <- sdalgcp_data
+#' ## build a 3-time panel (data frame, N*T rows ordered by time then region)
+#' times <- 1:3
+#' dat <- do.call(rbind, lapply(times, function(t) {
+#'   d <- sf::st_drop_geometry(shp); d$time <- t
+#'   d$cases <- rpois(nrow(d), d$pop * exp(-6 + 0.6 * d$x1 + 0.1 * (t - 2)))
+#'   d
+#' }))
+#' fit <- SDALGCP2_ST(cases ~ x1 + offset(log(pop)), dat, shp, times = times,
+#'                    delta = 1.5,
+#'                    control.mcmc = control_mcmc(n.sim = 2000, burnin = 500, thin = 5))
+#' fit$phi_opt; fit$nu_opt
+#' }
 #' @export
 SDALGCP2_ST <- function(formula, data, my_shp, times, delta, phi = NULL,
                         kappa = 0.5, kappa_t = 0.5, method = 3L, weighted = FALSE,
@@ -204,10 +221,32 @@ SDALGCP2_ST <- function(formula, data, my_shp, times, delta, phi = NULL,
 #' @param object an \code{"SDALGCP2_ST"} fit.
 #' @param control.mcmc optional MCMC controls (defaults to the fitting ones).
 #' @param ... unused.
-#' @return an \code{"SDALGCP2_ST_pred"} object with \eqn{N\times T} matrices
-#'   \code{relative_risk}, \code{relative_risk_se} (\eqn{\exp(\mu+S)}) and
-#'   \code{adjusted_rr}, \code{adjusted_rr_se} (\eqn{\exp(S)}), a long
-#'   \code{table}, and the geometry; map a time slice with \code{\link{plot.SDALGCP2_ST_pred}}.
+#' @return a long \code{\link[sf]{sf}} of class
+#'   \code{c("SDALGCP2_ST_pred", "sf", "data.frame")} with one row per region and
+#'   time (ordered region-fastest within each time block) and columns
+#'   \code{region}, \code{time}, \code{relative_risk}, \code{relative_risk_se}
+#'   (\eqn{\exp(\mu+S)}), \code{adjusted_rr} and \code{adjusted_rr_se}
+#'   (\eqn{\exp(S)}) -- the same column names as the spatial
+#'   \code{\link{predict.SDALGCP2}}. The posterior draws are kept in object
+#'   attributes (for exceedance); map a time slice with
+#'   \code{\link{plot.SDALGCP2_ST_pred}}.
+#' @examples
+#' \donttest{
+#' data(sdalgcp_data)
+#' ## stack the spatial example into a 3-time panel with a mild temporal trend
+#' times <- 1:3
+#' panel <- do.call(rbind, lapply(times, function(t) {
+#'   d <- sdalgcp_data; d$time <- t
+#'   d$cases <- rpois(nrow(d), d$pop * exp(-6 + 0.6 * d$x1 + 0.1 * (t - 2)))
+#'   d
+#' }))
+#' fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = panel, time = "time",
+#'                control = sdalgcp_control(n_sim = 2000, burnin = 500, thin = 5,
+#'                                          reanchor = 0))
+#' pr <- predict(fit)        # a long sf: region x time
+#' head(pr)
+#' plot(pr, time = 2)        # map the relative risk at time 2
+#' }
 #' @method predict SDALGCP2_ST
 #' @export
 predict.SDALGCP2_ST <- function(object, control.mcmc = NULL, ...) {
@@ -221,15 +260,20 @@ predict.SDALGCP2_ST <- function(object, control.mcmc = NULL, ...) {
   if (is.null(control.mcmc)) control.mcmc <- control_mcmc(h = 1.65 / (N * T)^(1 / 6))
   S.sim <- laplace_sampling(object$mu, Sigma, object$y, object$m, control.mcmc)$samples
   RR <- exp(S.sim); ARR <- exp(sweep(S.sim, 2, object$mu, "-"))
-  toM <- function(v) matrix(v, N, T)
-  out <- list(relative_risk = toM(colMeans(RR)), relative_risk_se = toM(.colSDs(RR)),
-              adjusted_rr = toM(colMeans(ARR)), adjusted_rr_se = toM(.colSDs(ARR)),
-              table = data.frame(region = rep(seq_len(N), T), time = rep(object$times, each = N),
-                                 relative_risk = colMeans(RR), relative_risk_se = .colSDs(RR),
-                                 adjusted_rr = colMeans(ARR), adjusted_rr_se = .colSDs(ARR)),
-              eta.draw = S.sim, mu = object$mu, N = N, T = T, times = object$times,
-              my_shp = attr(object, "my_shp"))
-  class(out) <- "SDALGCP2_ST_pred"
+
+  # Long sf: one row per (region, time), region-fastest within each time block,
+  # matching the column ordering of S.sim (vec of the N x T region-by-time field).
+  shp  <- attr(object, "my_shp")
+  geom <- sf::st_geometry(shp)[rep(seq_len(N), T)]
+  out  <- sf::st_sf(region = rep(seq_len(N), T),
+                    time   = rep(object$times, each = N),
+                    relative_risk    = colMeans(RR), relative_risk_se = .colSDs(RR),
+                    adjusted_rr      = colMeans(ARR), adjusted_rr_se   = .colSDs(ARR),
+                    geometry = geom)
+  attr(out, "pred_type")  <- "spatio-temporal"
+  attr(out, "pred_draws") <- list(eta = S.sim, mu = object$mu)
+  attr(out, "N") <- N; attr(out, "T") <- T; attr(out, "times") <- object$times
+  class(out) <- c("SDALGCP2_ST_pred", class(out))
   out
 }
 
@@ -250,32 +294,52 @@ predict.SDALGCP2_ST <- function(object, control.mcmc = NULL, ...) {
 #'   \code{"relative_risk"}.
 #' @param ... unused.
 #' @return a \code{ggplot} object.
+#' @examples
+#' \donttest{
+#' data(sdalgcp_data)
+#' times <- 1:3
+#' panel <- do.call(rbind, lapply(times, function(t) {
+#'   d <- sdalgcp_data; d$time <- t
+#'   d$cases <- rpois(nrow(d), d$pop * exp(-6 + 0.6 * d$x1 + 0.1 * (t - 2)))
+#'   d
+#' }))
+#' fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = panel, time = "time",
+#'                control = sdalgcp_control(n_sim = 2000, burnin = 500, thin = 5,
+#'                                          reanchor = 0))
+#' pr <- predict(fit)
+#' plot(pr, time = 2)                 # one time slice
+#' plot(pr, time = NULL)              # facet all times
+#' plot(pr, what = "exceedance", threshold = 1.2, time = 3)
+#' }
 #' @method plot SDALGCP2_ST_pred
 #' @export
-plot.SDALGCP2_ST_pred <- function(x, time = x$times[1],
+plot.SDALGCP2_ST_pred <- function(x, time = attr(x, "times")[1],
                                   what = c("relative_risk", "adjusted_rr",
                                            "relative_risk_se", "adjusted_rr_se", "exceedance"),
                                   threshold = 1, which = c("adjusted_rr", "relative_risk"), ...) {
   what <- match.arg(what); which <- match.arg(which)
-  shp <- x$my_shp
-  if (is.null(shp)) stop("Prediction has no polygon geometry to map.")
-  if (!inherits(shp, "sf")) shp <- sf::st_as_sf(shp)
-  times <- if (is.null(time)) x$times else time
-  cols <- match(times, x$times)
-  if (anyNA(cols)) stop("'time' must be among the fitted times: ", paste(x$times, collapse = ", "))
+  N <- attr(x, "N"); times_all <- attr(x, "times"); draws <- attr(x, "pred_draws")
+  times <- if (is.null(time)) times_all else time
+  cols <- match(times, times_all)
+  if (anyNA(cols)) stop("'time' must be among the fitted times: ", paste(times_all, collapse = ", "))
 
   excd <- function(tcol) {
-    d <- if (which == "adjusted_rr") exp(sweep(x$eta.draw, 2, x$mu, "-")) else exp(x$eta.draw)
-    idx <- ((tcol - 1) * x$N + 1):(tcol * x$N)
+    d <- if (which == "adjusted_rr") exp(sweep(draws$eta, 2, draws$mu, "-")) else exp(draws$eta)
+    idx <- ((tcol - 1) * N + 1):(tcol * N)
     apply(d[, idx, drop = FALSE], 2, function(v) mean(v > threshold))
   }
-  getvals <- function(tcol) switch(what,
-    relative_risk = x$relative_risk[, tcol], adjusted_rr = x$adjusted_rr[, tcol],
-    relative_risk_se = x$relative_risk_se[, tcol], adjusted_rr_se = x$adjusted_rr_se[, tcol],
-    exceedance = excd(tcol))
+  getvals <- function(tcol) {
+    rows <- ((tcol - 1) * N + 1):(tcol * N)
+    switch(what,
+      relative_risk = x$relative_risk[rows], adjusted_rr = x$adjusted_rr[rows],
+      relative_risk_se = x$relative_risk_se[rows], adjusted_rr_se = x$adjusted_rr_se[rows],
+      exceedance = excd(tcol))
+  }
 
   maps <- do.call(rbind, lapply(cols, function(tc) {
-    g <- shp; g$fillvalue <- getvals(tc); g$.time <- x$times[tc]; g }))
+    rows <- ((tc - 1) * N + 1):(tc * N)
+    g <- x[rows, ]; g$fillvalue <- getvals(tc); g$.time <- times_all[tc]
+    g[, c("fillvalue", ".time")] }))
   lab <- if (what == "exceedance") sprintf("P(%s > %g)", .which_label(which), threshold) else .var_label(what)
   mid <- if (what %in% c("relative_risk", "adjusted_rr")) 1 else NULL
   p <- ggplot2::ggplot(maps) +

@@ -37,6 +37,16 @@
 #' @param title optional plot title.
 #' @param ... unused.
 #' @return a \code{ggplot} object.
+#' @examples
+#' \donttest{
+#' data(sdalgcp_data)
+#' fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = sdalgcp_data,
+#'                control = sdalgcp_control(n_sim = 2000, burnin = 500, thin = 5,
+#'                                          reanchor = 0))
+#' pr <- predict(fit, type = "discrete")
+#' plot(pr, variable = "relative_risk")          # choropleth of relative risk
+#' plot(pr, variable = "adjusted_rr_se")         # its uncertainty
+#' }
 #' @method plot SDALGCP2_pred
 #' @export
 plot.SDALGCP2_pred <- function(x, variable = c("relative_risk", "adjusted_rr",
@@ -86,6 +96,16 @@ plot.SDALGCP2_pred <- function(x, variable = c("relative_risk", "adjusted_rr",
 #' @param bound optional \code{sf} boundary (continuous only).
 #' @param ... unused.
 #' @return a \code{ggplot} object.
+#' @seealso \code{\link{exceedance}} for the underlying probabilities.
+#' @examples
+#' \donttest{
+#' data(sdalgcp_data)
+#' fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = sdalgcp_data,
+#'                control = sdalgcp_control(n_sim = 2000, burnin = 500, thin = 5,
+#'                                          reanchor = 0))
+#' pr <- predict(fit, type = "discrete")
+#' map_exceedance(pr, threshold = 1.5)           # P(adjusted RR > 1.5)
+#' }
 #' @export
 map_exceedance <- function(x, threshold = 1, which = c("adjusted_rr", "relative_risk"),
                            bound = NULL, ...) {
@@ -129,6 +149,15 @@ map_exceedance <- function(x, threshold = 1, which = c("adjusted_rr", "relative_
 #' @param plot logical; draw the deviance curve.
 #' @return invisibly, a list with the interval and the smoothed profile; a
 #'   \code{ggplot} is drawn when \code{plot = TRUE}.
+#' @examples
+#' \donttest{
+#' data(sdalgcp_data)
+#' ## profile phi on a grid (scale = "grid") so there is a deviance curve to draw
+#' fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = sdalgcp_data,
+#'                control = sdalgcp_control(scale = "grid", n_sim = 2000,
+#'                                          burnin = 500, thin = 5, reanchor = 0))
+#' phi_profile(fit)
+#' }
 #' @export
 phi_profile <- function(object, coverage = 0.95, plot = TRUE) {
   stopifnot(inherits(object, "SDALGCP2"))
@@ -178,6 +207,14 @@ phi_profile <- function(object, coverage = 0.95, plot = TRUE) {
 #' @param level confidence level.
 #' @param intercept logical; include the intercept.
 #' @return a \code{ggplot} object.
+#' @examples
+#' \donttest{
+#' data(sdalgcp_data)
+#' fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = sdalgcp_data,
+#'                control = sdalgcp_control(n_sim = 2000, burnin = 500, thin = 5,
+#'                                          reanchor = 0))
+#' coef_plot(fit)
+#' }
 #' @export
 coef_plot <- function(object, level = 0.95, intercept = FALSE) {
   ci <- confint(object, level = level)
@@ -199,6 +236,14 @@ coef_plot <- function(object, level = 0.95, intercept = FALSE) {
 #' @param x an \code{"SDALGCP2"} object.
 #' @param ... passed to \code{\link{phi_profile}}.
 #' @return invisibly, the profile (see \code{\link{phi_profile}}).
+#' @examples
+#' \donttest{
+#' data(sdalgcp_data)
+#' fit <- SDALGCP2(cases ~ x1 + offset(log(pop)),
+#'                 sf::st_drop_geometry(sdalgcp_data), sdalgcp_data, delta = 1.2,
+#'                 control.mcmc = control_mcmc(n.sim = 2000, burnin = 500, thin = 5))
+#' plot(fit)   # profile deviance for the spatial scale phi
+#' }
 #' @method plot SDALGCP2
 #' @export
 plot.SDALGCP2 <- function(x, ...) phi_profile(x, ...)

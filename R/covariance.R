@@ -26,6 +26,14 @@ NULL
 #'
 #' @return a list with \code{R} (the correlation array) and \code{phi}, carrying
 #'   \code{weighted}, \code{my_shp} and \code{S_coord} attributes on \code{R}.
+#' @seealso \code{\link{sda_points}}, \code{\link{mcml_fit}}
+#' @examples
+#' \donttest{
+#' data(sdalgcp_data)
+#' pts <- sda_points(sdalgcp_data, delta = 1.2, method = 3)
+#' cc  <- precompute_corr(pts, phi = c(2, 4, 6))
+#' dim(cc$R)            # N x N x length(phi)
+#' }
 #' @export
 precompute_corr <- function(points, phi, kappa = 0.5, weighted = NULL,
                             nthreads = 0L) {

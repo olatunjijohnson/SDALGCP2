@@ -30,3 +30,16 @@ a \code{ggplot} object.
 \description{
 Map exceedance probabilities P(risk > threshold)
 }
+\examples{
+\donttest{
+data(sdalgcp_data)
+fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = sdalgcp_data,
+               control = sdalgcp_control(n_sim = 2000, burnin = 500, thin = 5,
+                                         reanchor = 0))
+pr <- predict(fit, type = "discrete")
+map_exceedance(pr, threshold = 1.5)           # P(adjusted RR > 1.5)
+}
+}
+\seealso{
+\code{\link{exceedance}} for the underlying probabilities.
+}

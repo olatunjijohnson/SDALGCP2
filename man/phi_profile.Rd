@@ -22,3 +22,13 @@ Spline-smoothed profile deviance for \code{phi}, with the
 \code{coverage}-level confidence interval where the deviance crosses the
 chi-squared cutoff. Improves on the loess-based interval of \code{SDALGCP}.
 }
+\examples{
+\donttest{
+data(sdalgcp_data)
+## profile phi on a grid (scale = "grid") so there is a deviance curve to draw
+fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = sdalgcp_data,
+               control = sdalgcp_control(scale = "grid", n_sim = 2000,
+                                         burnin = 500, thin = 5, reanchor = 0))
+phi_profile(fit)
+}
+}
