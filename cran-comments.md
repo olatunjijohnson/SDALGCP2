@@ -8,22 +8,24 @@ C++ (RcppArmadillo).
 
 ## Test environments
 
-* local: Ubuntu 24.04, R 4.5.2
-* GitHub Actions (r-lib/actions, `--as-cran`): Ubuntu, Windows, macOS, R release
+* local: Ubuntu 24.04, R 4.5.2 (`R CMD check --as-cran`)
+* win-builder: R-release (R 4.6.0) and R-devel
+* macOS builder (mac.r-project.org): R-release
+* GitHub Actions (r-lib/actions): macOS, Windows, and Ubuntu (R-devel, release, oldrel)
 
 ## R CMD check results
 
-0 errors | 0 warnings | 2 NOTEs
+0 errors | 0 warnings | 1 note
 
 * "New submission." This is the first submission of the package.
 
-* "Compilation used the following non-portable flag(s): `-mno-omit-leaf-frame-pointer`."
-  This flag is injected by the local R installation's `Makeconf`, not by the
-  package's `src/Makevars` (which sets only the OpenMP flags). It does not appear
-  on the standard CRAN build machines.
+The installed size is ~5.9 Mb because the compiled shared library uses
+RcppArmadillo templates (reported as INFO, not a NOTE).
 
-The compiled shared library is reported as ~3.9 Mb (INFO, not a NOTE) because the
-C++ kernels use RcppArmadillo templates; there is no R-level way to reduce it.
+(On the maintainer's local machine a second NOTE about a non-portable compiler
+flag, `-mno-omit-leaf-frame-pointer`, also appears; this flag is injected by the
+local R installation's `Makeconf`, not by the package's `src/Makevars`, and does
+not occur on win-builder or the other test environments.)
 
 ## Reverse dependencies
 
