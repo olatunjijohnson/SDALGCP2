@@ -1,2 +1,0 @@
-Residual Moran's I = -0.114 (E = -0.010), p = 0.974
-MC effective sample size: 208 of 1000 (21%)

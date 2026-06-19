@@ -9,3 +9,4 @@ src/*.dll
 docs/
 *.Rcheck
 Rplots.pdf
+/figure/

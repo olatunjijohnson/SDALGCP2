@@ -8,11 +8,13 @@ vignette: >
 ---
 
 ```{r, include = FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 5,
+                      fig.height = 4.2, fig.align = "center", dpi = 100)
 ```
 
-This tutorial fits a spatial disease-mapping model end to end and is fully
-self-contained: every code block below runs as shown (set a seed and copy-paste).
+This tutorial fits a spatial disease-mapping model end to end. Every code block
+runs as shown, using the bundled example dataset `sdalgcp_data` so you can
+copy-paste and reproduce it exactly.
 
 ## The model
 
@@ -41,76 +43,60 @@ Two quantities are reported for every area:
   the residual spatial relative risk *after* adjusting for covariates (where is
   risk high/low beyond what the covariates explain?) — the `adjusted_rr` column.
 
-## Simulate a data set
+## The data
 
 `sdalgcp()` takes an `sf` object whose columns hold the response, covariates and
-offset. Here we simulate one; in practice this is your shapefile joined to a counts
-table.
+offset. The package ships a small simulated example, `sdalgcp_data`: 64 regions
+with a disease count (`cases`), a covariate (`x1`), and a population offset
+(`pop`). It was generated with a true covariate effect of `0.6` and a baseline
+log-rate of `-6`, so we can check the model recovers them.
 
 ```{r}
 library(SDALGCP2)
 library(sf)
 
-set.seed(2024)
-regions <- st_sf(geometry = st_make_grid(
-  st_as_sfc(st_bbox(c(xmin = 0, ymin = 0, xmax = 20, ymax = 20))), n = c(10, 10)))
-N <- nrow(regions)
+data(sdalgcp_data)
+head(sdalgcp_data)
 
-# a spatial random effect, a covariate, a population offset, and Poisson counts
-pts <- sda_points(regions, delta = 0.9, method = 3)
-S   <- as.numeric(t(chol(0.5 * precompute_corr(pts, 4)$R[, , 1])) %*% rnorm(N))
-regions$x1    <- rnorm(N)
-regions$pop   <- round(runif(N, 800, 5000))
-regions$cases <- rpois(N, regions$pop * exp(-6 + 0.6 * regions$x1 + S))
-regions$SIR   <- regions$cases / (regions$pop * exp(-6))   # crude standardised ratio
+# crude standardised incidence ratio (SIR): observed / expected-at-overall-rate
+rate <- sum(sdalgcp_data$cases) / sum(sdalgcp_data$pop)
+sdalgcp_data$SIR <- sdalgcp_data$cases / (sdalgcp_data$pop * rate)
 ```
 
-The crude standardised incidence ratio (SIR) is noisy and over-fits sparsely
-populated areas — exactly what a model smooths:
+The crude SIR is noisy and over-fits sparsely populated areas — exactly what a
+model smooths:
 
-| Crude SIR (the data) | Covariate `x1` |
-|:---:|:---:|
-| ![](t1_data_sir.png) | ![](t1_data_cov.png) |
+```{r data-maps, fig.width = 7, fig.height = 3.4}
+plot(sdalgcp_data["SIR"], main = "Crude SIR (the data)")
+plot(sdalgcp_data["x1"],  main = "Covariate x1")
+```
 
 ## Fit
 
 One call. Candidate-point spacing, the spatial range and MCMC settings are chosen
-automatically; `reanchor = 3` re-simulates the latent field at the optimum a few
-times for reliable variance estimates.
+automatically; `reanchor` re-simulates the latent field at the optimum a couple of
+times for reliable variance estimates. (We set a seed and a shorter MCMC run here
+so the vignette is quick and reproducible; the defaults are longer.)
 
-```{r}
-fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = regions,
-               control = sdalgcp_control(reanchor = 3))
+```{r fit}
+set.seed(2024)
+fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = sdalgcp_data,
+               control = sdalgcp_control(n_sim = 4000, burnin = 1000, thin = 5,
+                                         reanchor = 1))
 summary(fit)
 ```
 
-```
-#> Coefficients:
-#>             Estimate Std.Err z value Pr(>|z|)
-#> (Intercept)  -6.057   0.130  -46.78  < 2e-16 ***
-#> x1            0.664   0.040   16.49  < 2e-16 ***
-#> sigma^2       0.374   0.507    0.74     0.46
-#> phi           1.839   0.444    4.14  3.5e-05 ***
-#>
-#> Spatial scale phi: 1.84
-#> MC importance-sampling ESS: 208 / 1000 (21%);  log-lik MC SE: 0.062
-```
-
-The covariate effect `x1` is estimated at 0.66 (true value 0.6), the spatial range
-`phi` and variance `sigma^2` describe the residual spatial structure, and the
+The covariate effect `x1` is estimated close to its true value of 0.6, the spatial
+range `phi` and variance `sigma^2` describe the residual spatial structure, and the
 importance-sampling effective sample size reports how reliable the Monte Carlo
 likelihood is.
 
 ## Map the two relative risks
 
-```{r}
+```{r risk-maps}
 plot(fit, "relative_risk")   # relative risk exp(d'beta + S)
 plot(fit, "adjusted_rr")     # covariate-adjusted relative risk exp(S)
 ```
-
-| Relative risk `relative_risk` | Covariate-adjusted `adjusted_rr` |
-|:---:|:---:|
-| ![](t1_rr.png) | ![](t1_arr.png) |
 
 `relative_risk` (left) is the overall pattern of risk; `adjusted_rr` (right) strips
 out the covariate contribution and shows the *unexplained* spatial signal — useful
@@ -121,29 +107,25 @@ for spotting hotspots that the covariates do not account for.
 Every quantity comes with a standard error, and you can ask for the probability
 that risk exceeds a policy threshold:
 
-```{r}
+```{r exceedance-maps}
 plot(fit, "adjusted_rr_se")                  # standard error of the adjusted RR
 plot(fit, "exceedance", threshold = 1.5)     # P(adjusted RR > 1.5)
 ```
 
-| SE of adjusted RR | P(adjusted RR > 1.5) |
-|:---:|:---:|
-| ![](t1_arr_se.png) | ![](t1_exc.png) |
-
 The exceedance map is usually the most decision-relevant output: it flags areas
-that are confidently above the threshold rather than high by chance.
+that are confidently above the threshold rather than high by chance. By default the
+exceedance is computed for the covariate-adjusted relative risk (`which =
+"adjusted_rr"`); pass `which = "relative_risk"` for the full relative risk instead.
 
 ## A continuous surface
 
 Risk can also be predicted on a fine grid (change-of-support), giving a smooth
 surface instead of a choropleth:
 
-```{r}
-pc <- predict(fit, type = "continuous", sampler = "laplace", cellsize = 0.6)
-plot(pc, "adjusted_rr", bound = regions)
+```{r continuous}
+pc <- predict(fit, type = "continuous", sampler = "laplace", cellsize = 1)
+plot(pc, "adjusted_rr", bound = sdalgcp_data)
 ```
-
-![](t1_cont.png){width=55%}
 
 `predict()` returns an `sf` with all four quantities (`relative_risk`,
 `adjusted_rr` and their `_se`) for both `type = "discrete"` and
@@ -154,19 +136,25 @@ plot(pc, "adjusted_rr", bound = regions)
 Finally, check that the spatial term has absorbed the spatial structure: the
 Pearson residuals should show no leftover spatial autocorrelation.
 
-```{r}
-model_check(fit)
+```{r modelcheck}
+chk <- model_check(fit)
+chk$moran   # residual Moran's I and its permutation p-value
 ```
 
-![](t1_modelcheck.png){width=55%}
+A non-significant residual Moran's I indicates the model has captured the spatial
+pattern, and the observed-vs-fitted points lie around the identity line.
 
-```
-#> Residual Moran's I = -0.114 (E = -0.010), p = 0.974
-```
+## Real data
 
-A non-significant residual Moran's I (here \(p\approx0.97\)) indicates the model has
-captured the spatial pattern, and the observed-vs-fitted points lie around the
-identity line.
+`sdalgcp_data` is simulated so we know the truth. For a real example, the package
+also ships `liver` — incident primary biliary cirrhosis counts by LSOA in North
+East England (Johnson et al. 2019), which you can fit the same way:
+
+```{r liver, eval = FALSE}
+data(liver)
+fit_liver <- sdalgcp(cases ~ IMD + offset(log(pop)), data = liver)
+plot(fit_liver, "relative_risk")
+```
 
 ## Next
 
@@ -176,4 +164,3 @@ identity line.
   it is estimated.
 - [Spatial confounding](spatial-confounding.html) and
   [misaligned covariates](misaligned-covariates.html).
-```

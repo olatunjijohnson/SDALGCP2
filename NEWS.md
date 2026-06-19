@@ -1,15 +1,18 @@
-# SDALGCP2 0.0.0.9000 (development)
+# SDALGCP2 0.1.0
 
-First development version — a faster, modernised successor to SDALGCP.
+First public version — a faster, modernised successor to SDALGCP.
 
 * **Spatio-temporal prediction now returns a long `sf` too.** `predict()` on an
   `SDALGCP2_ST` fit returns a one-row-per-region-time `sf` (class
   `"SDALGCP2_ST_pred"`) with the same `relative_risk`/`adjusted_rr` columns as the
   spatial predictor, so both can be mapped or `st_write()`-en the same way;
   posterior draws are kept as attributes.
-* **Bundled example dataset `sdalgcp_data`** — a small simulated `sf` of 64
-  regions (`cases`, `x1`, `pop`) used by the help-page examples; see
-  `data-raw/sdalgcp_data.R` for the generator.
+* **Bundled datasets.** `sdalgcp_data` — a small simulated `sf` of 64 regions
+  (`cases`, `x1`, `pop`) used by the help-page examples and the intro vignette;
+  and `liver` — a real example, incident primary biliary cirrhosis counts by LSOA
+  in North East England (Johnson et al. 2019), for realistic case studies.
+* **The introductory vignette now runs live on `sdalgcp_data`** (no precomputed
+  figures), so it is fully reproducible.
 * **Runnable examples on the exported functions**, all using `sdalgcp_data`.
 * **Prediction output is now an `sf` with clear public-health column names.**
   `predict()` returns an `sf` (class `"SDALGCP2_pred"`) you can map or `st_write()`

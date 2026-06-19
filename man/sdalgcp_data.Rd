@@ -33,4 +33,7 @@ data(sdalgcp_data)
 summary(sdalgcp_data$cases)
 plot(sdalgcp_data["cases"])
 }
+\seealso{
+\code{\link{liver}} for a real disease-count example.
+}
 \keyword{datasets}

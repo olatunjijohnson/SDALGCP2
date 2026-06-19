@@ -16,8 +16,42 @@
 #'   \item{geometry}{the region polygon.}
 #' }
 #' @source Simulated; see \code{data-raw/sdalgcp_data.R} in the package sources.
+#' @seealso \code{\link{liver}} for a real disease-count example.
 #' @examples
 #' data(sdalgcp_data)
 #' summary(sdalgcp_data$cases)
 #' plot(sdalgcp_data["cases"])
 "sdalgcp_data"
+
+#' Primary biliary cirrhosis incidence in North East England
+#'
+#' A real aggregated disease-count dataset: incident primary biliary cirrhosis
+#' (a chronic liver disease) cases by Lower-layer Super Output Area (LSOA) in the
+#' Newcastle and Gateshead area of North East England, with population and area
+#' deprivation covariates. This is the case study of Johnson et al. (2019) and a
+#' realistic test bed for the spatial model: \code{cases ~ deprivation +
+#' offset(log(pop))}.
+#'
+#' @format An \code{\link[sf]{sf}} object of 545 LSOA polygons
+#'   (British National Grid, EPSG:27700) with columns:
+#' \describe{
+#'   \item{lsoa}{LSOA 2004 census code.}
+#'   \item{cases}{observed incident case count in the LSOA.}
+#'   \item{pop}{population at risk (the offset; use \code{offset(log(pop))}).}
+#'   \item{IMD}{Index of Multiple Deprivation score (higher = more deprived).}
+#'   \item{Income}{income-deprivation score.}
+#'   \item{Employment}{employment-deprivation score.}
+#'   \item{geometry}{the LSOA polygon.}
+#' }
+#' @source Derived from \code{PBCshp_sf} in the \pkg{SDALGCP} package (geometry
+#'   trimmed to the modelling columns and tagged with EPSG:27700). Originally from
+#'   Johnson, O., Diggle, P. and Giorgi, E. (2019), "A spatially discrete
+#'   approximation to log-Gaussian Cox processes for modelling aggregated disease
+#'   count data", \emph{Statistics in Medicine}, 38(24), 4871-4884.
+#'   \doi{10.1002/sim.8339}. See \code{data-raw/liver.R} in the package sources.
+#' @seealso \code{\link{sdalgcp_data}} for a small simulated example.
+#' @examples
+#' data(liver)
+#' summary(liver$cases)
+#' plot(liver["IMD"])
+"liver"
