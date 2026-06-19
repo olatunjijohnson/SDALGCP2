@@ -17,6 +17,7 @@ Description: A faster, modernised successor to the 'SDALGCP' package. Implements
 Depends: R (>= 4.2.0)
 License: GPL-2 | GPL-3
 Encoding: UTF-8
+Language: en-GB
 LazyData: true
 LinkingTo:
     Rcpp,

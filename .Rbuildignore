@@ -13,3 +13,5 @@
 ^TODO\.md$
 ^Rplots\.pdf$
 ^LICENSE\.md$
+^cran-comments\.md$
+^figure$
