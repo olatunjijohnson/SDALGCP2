@@ -96,3 +96,32 @@ sdalgcp_control(
 ## Value
 
 a list of control settings.
+
+## See also
+
+[`sdalgcp`](https://olatunjijohnson.github.io/SDALGCP2/reference/sdalgcp.md)
+
+## Examples
+
+``` r
+## defaults, then a faster grid-based fit with a nugget term
+str(sdalgcp_control())
+#> List of 15
+#>  $ delta            : NULL
+#>  $ points_per_region: num 16
+#>  $ point_method     : chr "regular"
+#>  $ scale            : chr "continuous"
+#>  $ phi              : NULL
+#>  $ kappa            : num 0.5
+#>  $ kappa_t          : num 0.5
+#>  $ nugget           : logi FALSE
+#>  $ confounding      : chr "none"
+#>  $ reanchor         : int 2
+#>  $ n_sim            : int 10000
+#>  $ burnin           : int 2000
+#>  $ thin             : int 8
+#>  $ tilt_spatial     : logi FALSE
+#>  $ nthreads         : int 0
+ctrl <- sdalgcp_control(scale = "grid", nugget = FALSE, n_sim = 4000,
+                        burnin = 1000, thin = 6)
+```

@@ -2,9 +2,7 @@
 
 End-to-end user entry point: generates candidate points inside each
 region, assembles the aggregated region-level correlation array (C++),
-and estimates parameters by Monte Carlo maximum likelihood. This is the
-modern, faster equivalent of `SDALGCP::SDALGCPMCML()` for the spatial
-case.
+and estimates parameters by Monte Carlo maximum likelihood.
 
 ## Usage
 

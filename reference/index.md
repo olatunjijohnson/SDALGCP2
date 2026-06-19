@@ -94,3 +94,10 @@ Maps and post-fit graphics.
   : Print an SDALGCP2 fit
 - [`print(`*`<summary.SDALGCP2>`*`)`](https://olatunjijohnson.github.io/SDALGCP2/reference/print.summary.SDALGCP2.md)
   : Print a summary of an SDALGCP2 fit
+
+## Datasets
+
+- [`sdalgcp_data`](https://olatunjijohnson.github.io/SDALGCP2/reference/sdalgcp_data.md)
+  : Simulated aggregated disease-count data
+- [`liver`](https://olatunjijohnson.github.io/SDALGCP2/reference/liver.md)
+  : Primary biliary cirrhosis incidence in North East England

@@ -1,12 +1,13 @@
-# SDALGCP2 — Design & Improvement Proposal
+# SDALGCP2 — Design Notes
 
-A faster, cleaner, statistically richer successor to **SDALGCP**.
+A fast, statistically rich implementation of the spatially discrete
+approximation to a log-Gaussian Cox process.
 
-> SDALGCP fits a *spatially discrete approximation* to a log-Gaussian
+> SDALGCP2 fits a *spatially discrete approximation* to a log-Gaussian
 > Cox process (SDA-LGCP) for spatially aggregated disease counts,
 > estimating parameters by Monte Carlo Maximum Likelihood (MCML) and
-> predicting discrete and continuous relative risk (Johnson, Diggle &
-> Giorgi, 2019, *Stat. Med.* 38:4871–4887).
+> predicting discrete and continuous relative risk (method: Johnson,
+> Diggle & Giorgi, 2019, *Stat. Med.* 38:4871–4887).
 
 This document records (1) what the method does, (2) where the current
 package is slow or statistically weak, and (3) the concrete plan for
@@ -51,7 +52,7 @@ correlation Matérn(`kappa`) with range `nu`.
 
 ------------------------------------------------------------------------
 
-## 2. Where SDALGCP is slow (measured against the algorithm above)
+## 2. Where a naive implementation is slow (measured against the algorithm above)
 
 Ranked by impact.
 
@@ -232,9 +233,9 @@ giving a model that **keeps the fast N-dimensional structure**:
 `A_i`. - The spatial aggregation weights `c_ik(beta)` are themselves
 tilted by the covariate intensity, so high-covariate sub-areas
 contribute more to the region effect — the statistically coherent
-behaviour. - It collapses to the current SDALGCP exactly when covariates
-are region-constant (`c_ik = w_ik`, `b_i = z_i'beta`, `v_i` absorbed
-into the intercept).
+behaviour. - It collapses to the basic region-constant model exactly
+when covariates are region-constant (`c_ik = w_ik`, `b_i = z_i'beta`,
+`v_i` absorbed into the intercept).
 
 **Computational consequence & plan.** `Sigma` and the offset now depend
 on `beta`, so the clean “precompute correlation once, profile cheaply”
@@ -303,9 +304,10 @@ Tracked as task \#6; design fixed here.
   stack: `sf`, `terra`, `stars`, `spatstat.geom`/`spatstat.random`
   (sampling), `Matrix`, `ggplot2`, plus `Rcpp`/`RcppArmadillo` for the
   kernels.
-- **Bugs to fix while porting:**
-  - `class(para_est) != "SDALGCP"` — breaks with multi-class objects;
-    use [`inherits()`](https://rdrr.io/r/base/class.html).
+- **Pitfalls to avoid:**
+  - `class(para_est) != "..."` — exact class comparison breaks with
+    multi-class objects; use
+    [`inherits()`](https://rdrr.io/r/base/class.html).
   - `scale_fill_viridis_c(name = cat(...))` —
     [`cat()`](https://rdrr.io/r/base/cat.html) returns `NULL`; the
     legend title is silently dropped.
@@ -348,15 +350,16 @@ Tracked as task \#6; design fixed here.
       vignettes/
       DESIGN.md              # this file
 
-### Naming / compatibility
+### Naming
 
-Keep user-facing verbs recognisable to existing users but consistent:
+Keep user-facing verbs recognisable and consistent:
 [`SDALGCP2()`](https://olatunjijohnson.github.io/SDALGCP2/reference/SDALGCP2.md)
 (fit), [`predict()`](https://rdrr.io/r/stats/predict.html) S3 method,
-`controlmcmc()`, [`summary()`](https://rdrr.io/r/base/summary.html),
-[`confint()`](https://rdrr.io/r/stats/confint.html), `phi_ci()`,
-`autoplot()`/[`plot()`](https://rdrr.io/r/graphics/plot.default.html).
-Provide a short “migrating from SDALGCP” section in the vignette.
+[`control_mcmc()`](https://olatunjijohnson.github.io/SDALGCP2/reference/control_mcmc.md),
+[`summary()`](https://rdrr.io/r/base/summary.html),
+[`confint()`](https://rdrr.io/r/stats/confint.html),
+[`phi_profile()`](https://olatunjijohnson.github.io/SDALGCP2/reference/phi_profile.md),
+[`plot()`](https://rdrr.io/r/graphics/plot.default.html).
 
 ------------------------------------------------------------------------
 
@@ -381,8 +384,8 @@ Numbers are targets; the test suite gates correctness first, then
     DESIGN.md, `corr_aggregate.cpp` + R wrapper + a
     correctness/benchmark check vs the reference R implementation.
 2.  Vectorised MC likelihood (B3) + Newton Laplace mode (B7).
-3.  C++ MALA (B2), wire spatial fit end-to-end, `testthat` parity vs
-    SDALGCP.
+3.  C++ MALA (B2), wire spatial fit end-to-end, `testthat` correctness
+    checks.
 4.  Prediction (B5) + Laplace fast path (S6).
 5.  Statistical extensions: nugget (S2), Matérn (S1), diagnostics (S3),
     re-anchor (S4).

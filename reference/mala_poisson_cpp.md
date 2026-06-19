@@ -1,9 +1,7 @@
 # Adaptive MALA sampler for \[S \| Y\], Poisson, non-nested (C++)
 
-Reproduces `SDALGCP::Laplace.sampling()` (non-nested Poisson). Draw
-order per iteration is `d` normals then one uniform, so results match
-the R implementation bit-for-bit under a common seed and the same
-mode/Sigma.tilde.
+Draw order per iteration is `d` normals then one uniform, giving
+reproducible results under a common seed and the same mode/Sigma.tilde.
 
 ## Usage
 

@@ -83,3 +83,32 @@ SDALGCP2_ST(
 
 an object of class `c("SDALGCP2_ST","SDALGCP2")` with `phi_opt`,
 `nu_opt`, coefficient table and covariance.
+
+## See also
+
+[`sdalgcp`](https://olatunjijohnson.github.io/SDALGCP2/reference/sdalgcp.md)
+(friendly wrapper),
+[`predict.SDALGCP2_ST`](https://olatunjijohnson.github.io/SDALGCP2/reference/predict.SDALGCP2_ST.md)
+
+## Examples
+
+``` r
+# \donttest{
+data(sdalgcp_data)
+shp <- sdalgcp_data
+## build a 3-time panel (data frame, N*T rows ordered by time then region)
+times <- 1:3
+dat <- do.call(rbind, lapply(times, function(t) {
+  d <- sf::st_drop_geometry(shp); d$time <- t
+  d$cases <- rpois(nrow(d), d$pop * exp(-6 + 0.6 * d$x1 + 0.1 * (t - 2)))
+  d
+}))
+fit <- SDALGCP2_ST(cases ~ x1 + offset(log(pop)), dat, shp, times = times,
+                   delta = 1.5,
+                   control.mcmc = control_mcmc(n.sim = 2000, burnin = 500, thin = 5))
+fit$phi_opt; fit$nu_opt
+#> [1] 2
+#>           
+#> 0.8773136 
+# }
+```

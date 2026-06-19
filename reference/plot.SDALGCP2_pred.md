@@ -53,3 +53,19 @@ plot(
 ## Value
 
 a `ggplot` object.
+
+## Examples
+
+``` r
+# \donttest{
+data(sdalgcp_data)
+fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = sdalgcp_data,
+               control = sdalgcp_control(n_sim = 2000, burnin = 500, thin = 5,
+                                         reanchor = 0))
+pr <- predict(fit, type = "discrete")
+plot(pr, variable = "relative_risk")          # choropleth of relative risk
+
+plot(pr, variable = "adjusted_rr_se")         # its uncertainty
+
+# }
+```

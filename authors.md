@@ -15,13 +15,13 @@ Source:
 
 Johnson O, Giorgi E, Diggle P (2026). *SDALGCP2: Fast Spatially Discrete
 Approximation to Log-Gaussian Cox Processes for Aggregated Disease Count
-Data*. R package version 0.0.0.9000,
+Data*. R package version 0.1.0,
 <https://github.com/olatunjijohnson/SDALGCP2>.
 
     @Manual{,
       title = {SDALGCP2: Fast Spatially Discrete Approximation to Log-Gaussian Cox Processes for Aggregated Disease Count Data},
       author = {Olatunji Johnson and Emanuele Giorgi and Peter Diggle},
       year = {2026},
-      note = {R package version 0.0.0.9000},
+      note = {R package version 0.1.0},
       url = {https://github.com/olatunjijohnson/SDALGCP2},
     }

@@ -40,8 +40,8 @@ regions$cases <- rpois(N, regions$pop * exp(-6 + 0.5 * regions$x1 + S))
 
 ## Grid (profile)
 
-The classic approach (and that of the original `SDALGCP`): evaluate the
-model on a **grid** of $`\phi`$ values and take the profile maximum.
+The classic approach: evaluate the model on a **grid** of $`\phi`$
+values and take the profile maximum.
 
 ``` r
 

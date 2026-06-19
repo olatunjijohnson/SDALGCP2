@@ -26,3 +26,18 @@ mc_diagnostics(object, warn_frac = 0.1)
 ## Value
 
 invisibly, a list with `B`, `ESS`, `ESS_frac` and `se_loglik`.
+
+## Examples
+
+``` r
+# \donttest{
+data(sdalgcp_data)
+fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = sdalgcp_data,
+               control = sdalgcp_control(n_sim = 2000, burnin = 500, thin = 5,
+                                         reanchor = 0))
+d <- mc_diagnostics(fit)
+#> Warning: Low importance-sampling ESS (1 of 300, 0.4%): consider re-anchoring (iterate = TRUE) or a par0 closer to the optimum.
+d$ESS_frac           # importance-sampling ESS as a fraction of the draws
+#> [1] 0.003682337
+# }
+```

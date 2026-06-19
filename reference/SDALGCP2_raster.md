@@ -103,3 +103,36 @@ with extra fields `raster = TRUE` and `n_iter`.
 
 [`SDALGCP2`](https://olatunjijohnson.github.io/SDALGCP2/reference/SDALGCP2.md),
 [`mcml_fit`](https://olatunjijohnson.github.io/SDALGCP2/reference/mcml_fit.md)
+
+## Examples
+
+``` r
+# \donttest{
+data(sdalgcp_data)
+## a spatially continuous covariate supplied as a raster layer named "z"
+r <- terra::rast(terra::ext(0, 20, 0, 20), resolution = 0.5)
+terra::values(r) <- as.numeric(scale(terra::crds(r)[, 1]))   # west-east gradient
+names(r) <- "z"
+df <- sf::st_drop_geometry(sdalgcp_data)
+fit <- SDALGCP2_raster(cases ~ z + offset(log(pop)), df, sdalgcp_data,
+                       delta = 1.5, rasters = r,
+                       control.mcmc = control_mcmc(n.sim = 2000, burnin = 500, thin = 5))
+summary(fit)
+#> Call: SDALGCP2_raster(formula = cases ~ z + offset(log(pop)), data = df, 
+#>     my_shp = sdalgcp_data, delta = 1.5, rasters = r, control.mcmc = control_mcmc(n.sim = 2000, 
+#>         burnin = 500, thin = 5))
+#> 
+#> Coefficients:
+#>             Estimate Std.Err z value Pr(>|z|)    
+#> (Intercept)   -6.187   0.210  -29.51  < 2e-16 ***
+#> z              0.676   0.171    3.95  7.9e-05 ***
+#> sigma^2        0.891   0.209    4.27  2.0e-05 ***
+#> ---
+#> Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+#> 
+#> Spatial scale phi: 2
+#> Log-likelihood: 7.8569
+#> MC importance-sampling ESS: 3 / 300 (1%);  log-lik MC SE: 0.63
+#> Note: sigma^2 is the variance of the latent Gaussian process.
+# }
+```

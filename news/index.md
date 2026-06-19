@@ -1,9 +1,25 @@
 # Changelog
 
-## SDALGCP2 0.0.0.9000 (development)
+## SDALGCP2 0.1.0
 
-First development version — a faster, modernised successor to SDALGCP.
+First public version.
 
+- **Spatio-temporal prediction now returns a long `sf` too.**
+  [`predict()`](https://rspatial.github.io/terra/reference/predict.html)
+  on an `SDALGCP2_ST` fit returns a one-row-per-region-time `sf` (class
+  `"SDALGCP2_ST_pred"`) with the same `relative_risk`/`adjusted_rr`
+  columns as the spatial predictor, so both can be mapped or
+  [`st_write()`](https://r-spatial.github.io/sf/reference/st_write.html)-en
+  the same way; posterior draws are kept as attributes.
+- **Bundled datasets.** `sdalgcp_data` — a small simulated `sf` of 64
+  regions (`cases`, `x1`, `pop`) used by the help-page examples and the
+  intro vignette; and `liver` — a real example, incident primary biliary
+  cirrhosis counts by LSOA in North East England (Johnson et al. 2019),
+  for realistic case studies.
+- **The introductory vignette now runs live on `sdalgcp_data`** (no
+  precomputed figures), so it is fully reproducible.
+- **Runnable examples on the exported functions**, all using
+  `sdalgcp_data`.
 - **Prediction output is now an `sf` with clear public-health column
   names.**
   [`predict()`](https://rspatial.github.io/terra/reference/predict.html)
@@ -85,19 +101,16 @@ First development version — a faster, modernised successor to SDALGCP.
 - C++ (RcppArmadillo + OpenMP) aggregated correlation assembly
   (`precompute_corr`).
 - C++ Newton Laplace mode + adaptive MALA sampler (`laplace_sampling`);
-  bit-identical to `SDALGCP::Laplace.sampling` given the same mode and
-  seed.
+  reproducible given the same mode and seed.
 - Vectorised, Cholesky-based Monte Carlo likelihood with analytic
-  gradient/Hessian (`mcml_fit`); matches the original to ~1e-14 and is
-  ~10x faster on estimation.
+  gradient/Hessian (`mcml_fit`).
 - One-call spatial fit
   [`SDALGCP2()`](https://olatunjijohnson.github.io/SDALGCP2/reference/SDALGCP2.md)
-  (points -\> correlation -\> MCML); reproduces `SDALGCP::SDALGCPMCML`
-  estimates and is ~8x faster end-to-end on a 64-region example.
+  (points -\> correlation -\> MCML).
 - Candidate-point generation
   [`sda_points()`](https://olatunjijohnson.github.io/SDALGCP2/reference/sda_points.md)
   (SSI / uniform / regular; sf + spatstat
-  - terra; drops splancs/sp).
+  - terra).
 - Prediction
   [`predict.SDALGCP2()`](https://olatunjijohnson.github.io/SDALGCP2/reference/predict.SDALGCP2.md)
   (discrete + continuous) with an MCMC or a no-MCMC Laplace fast path;

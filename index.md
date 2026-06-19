@@ -3,9 +3,9 @@
 **Fast, modern disease mapping.** SDALGCP2 fits a spatially discrete
 approximation to a log-Gaussian Cox process (SDA-LGCP) to spatially
 **aggregated disease counts**, with a one-line, `glm`-like interface and
-C++ speed. It is a faster, easier successor to
-[**SDALGCP**](https://github.com/olatunjijohnson/SDALGCP) (Johnson,
-Diggle & Giorgi, 2019).
+C++ speed. The method is described in Johnson, Diggle & Giorgi (2019,
+*Statistics in Medicine*,
+[doi:10.1002/sim.8339](https://doi.org/10.1002/sim.8339)).
 
 ## Installation
 
@@ -73,26 +73,6 @@ call also covers:
 - **Honest uncertainty:** re-anchored Monte Carlo likelihood,
   importance-sampling diagnostics, a nugget term, model checking
   (residual Moran’s I).
-
-## Performance
-
-SDALGCP2 vs the original SDALGCP on identical simulated data (same
-candidate points, `phi` grid and MCMC settings), measured with
-[`scripts/benchmark_vs_SDALGCP.R`](https://olatunjijohnson.github.io/SDALGCP2/scripts/benchmark_vs_SDALGCP.R)
-(R 4.5, Linux):
-
-| Stage                             | N regions | SDALGCP | SDALGCP2 |   Speedup |
-|-----------------------------------|----------:|--------:|---------:|----------:|
-| Aggregated correlation build (B1) |        64 |  1.24 s |   0.01 s |  **199×** |
-| Full MCML fit (end-to-end)        |        64 |  8.41 s |   0.84 s | **10.0×** |
-| Aggregated correlation build (B1) |       144 |  6.44 s |   0.01 s |  **687×** |
-| Full MCML fit (end-to-end)        |       144 | 27.58 s |   3.46 s |  **8.0×** |
-
-The fixed-effect estimates match the original to Monte Carlo tolerance
-(e.g. N = 144: `β = (-6.00, 0.41)` from both). The flagship C++/OpenMP
-correlation kernel dominates the original’s pure-R double loop by two to
-three orders of magnitude and scales far better with the number of
-regions.
 
 ## Tutorials
 

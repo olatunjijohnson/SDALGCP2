@@ -34,3 +34,20 @@ report(object, pred = NULL, threshold = 1.5, ...)
 ## Value
 
 a named list of `ggplot` objects.
+
+## Examples
+
+``` r
+# \donttest{
+data(sdalgcp_data)
+fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = sdalgcp_data,
+               control = sdalgcp_control(n_sim = 2000, burnin = 500, thin = 5,
+                                         reanchor = 0))
+figs <- report(fit, threshold = 1.5)
+names(figs)          # relative_risk, uncertainty, exceedance, coefficients, ...
+#> [1] "relative_risk" "uncertainty"   "exceedance"    "coefficients" 
+#> [5] "phi_profile"  
+figs$relative_risk   # print one of the maps
+
+# }
+```
