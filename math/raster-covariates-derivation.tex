@@ -179,6 +179,46 @@ variance correlates with the region mean (sharp sub-region features); for smooth
 covariates the two approaches nearly agree, as expected from
 $b_i(\bet)\approx\bar z_i^\top\bet+\tfrac12\bet^\top\widehat{\Var}_i(z)\bet$.
 
+\section{Spatio-temporal extension}
+
+When the same regions are observed at times $t=1,\dots,T$, the count $Y_{it}$ is
+conditionally Poisson with mean $m_{it}\,e^{\eta_{it}}$ and a separable space--time
+latent field
+\begin{equation}
+\eta_{it}=b_i(\bet)+S_{it},
+\qquad
+\Cov(\operatorname{vec}\mathbf S)=\sigma^2\,\R_t(\nu)\otimes\R_s(\phi),
+\label{eq:st-mean}
+\end{equation}
+with $\R_s(\phi)$ the aggregated spatial correlation of the previous sections and
+$\R_t(\nu)$ a temporal Mat\'ern correlation (range $\nu$, smoothness $\kappa_t$);
+the likelihood is evaluated without forming the $(NT)\times(NT)$ covariance
+(companion spatio-temporal note).
+
+We take the covariate surface $z(x)$ to be \emph{time-invariant} (genuinely
+time-varying covariates enter instead as ordinary region--time columns of the
+design). Then the log-sum-exp offset $b_i(\bet)$ and the intensity-tilted weights
+$c_{ik}(\bet)$ of \eqref{eq:factor}--\eqref{eq:tilt} are \emph{exactly the spatial
+ones}: they depend on the region $i$, not the time $t$. The only time dependence in
+the aggregated mean \eqref{eq:st-mean} is through the population offset $m_{it}$.
+
+Estimation reuses the Gauss--Newton fixed point of the previous section unchanged,
+with the inner linear fit now the Kronecker-free space--time MCML
+(\texttt{SDALGCP2\_ST}) rather than the spatial one. At iteration $t$ the effective
+design row $\D^c_i(\bet^{(t)})$ of \eqref{eq:effdesign} is replicated across the
+$T$ times and the offset is
+\begin{equation}
+o_{it}^{(t)}=\log m_{it}+b_i(\bet^{(t)})-\D^c_i(\bet^{(t)})^\top\bet^{(t)} .
+\end{equation}
+At a fixed point the same argument as in the spatial case shows $\bet^\star$ solves
+the likelihood equations of the nonlinear space--time model. When $z$ is constant
+within each region the tilting collapses exactly to the region design,
+$\D^c_i=[1,z_i^\top]$ and $b_i=[1,z_i^\top]\bet$, so the fit reduces to the ordinary
+space--time model --- a check used in the package tests. Misaligned covariates are
+handled identically, with the Berkson-corrected offset of the companion note
+(\texttt{SDALGCP2\_ST(..., rasters = )} and \texttt{SDALGCP2\_ST(..., covariates =
+)}).
+
 \paragraph{Reference.}
 Johnson, O., Diggle, P., Giorgi, E. (2019). A spatially discrete approximation to
 log-Gaussian Cox processes for aggregated disease count data. \emph{Statistics in

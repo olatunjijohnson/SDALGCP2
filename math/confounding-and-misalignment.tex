@@ -108,6 +108,29 @@ $\widehat\beta\approx0.44$ (SE $0.07$) -- de-confounded -- while still estimatin
 spatial parameters. Use \texttt{sdalgcp(..., control = sdalgcp\_control(confounding
 = "restricted"))}.
 
+\subsection{Spatio-temporal restricted regression}
+With the same regions observed at times $t=1,\dots,T$, stack the $NT$ region--times
+and let $\D$ ($NT\times p$) be the space--time fixed-effect design and $\K$
+($NT\times(NT-p)$) an orthonormal basis of $\operatorname{null}(\D^\top)$. The
+restricted space--time model keeps \eqref{eq:rsr} but with the \emph{separable}
+space--time covariance,
+\begin{equation}
+\bm\eta=\D\bet+\K\al,\qquad
+\al\sim\N\!\Big(\mathbf 0,\ \sigma^2\,\K^\top\big(\R_t(\nu)\otimes\R_s(\phi)\big)\K\Big),
+\label{eq:rsr-st}
+\end{equation}
+where $\R_s(\phi)$ is the aggregated spatial correlation and $\R_t(\nu)$ a temporal
+Mat\'ern correlation. Because $\K\al\in\operatorname{col}(\D)^\perp$ over all
+region--times, no spatial \emph{or} temporal mode of the random effect can
+reproduce a column of $\D$, so $\bet$ is de-confounded exactly as before.
+Estimation is the same Laplace-approximate marginal likelihood \eqref{eq:laplace}
+with $\Sal=\K^\top(\R_t(\nu)\otimes\R_s(\phi))\K$, profiled over the spatial grid
+$\phi$ and maximised over the temporal range $\nu$ alongside $(\bet,\sigma^2)$. The
+construction reduces \emph{exactly} to the spatial RSR \eqref{eq:rsr} at $T=1$ (then
+$\R_t\equiv1$ and $\nu$ drops out), a check used in the package tests. It forms the
+full $NT\times NT$ covariance, so it is $O\!\big((NT)^3\big)$ and best suited to
+modest $NT$. Use \texttt{SDALGCP2\_ST(..., confounding = "restricted")}.
+
 \section{Part II: covariates on a different support}
 
 \subsection{The problem}
@@ -182,6 +205,13 @@ existing machinery: (i) predict $z$ to the candidate points by (areal) kriging,
 obtaining $\mu_z,v_z$; (ii) feed them into the Berkson-corrected offset
 \eqref{eq:berkson}. The candidate-point grid that already discretises the outcome
 regions doubles as the common support on which outcome and covariate are aligned.
+
+\paragraph{Spatio-temporal misalignment.} When the outcome is observed over several
+times but the covariate support is time-invariant (e.g.\ fixed monitors), the
+covariate is kriged once to the candidate points and the Berkson offset
+\eqref{eq:berkson} feeds the Kronecker-free space--time fit exactly as in the
+spatial case, inside the same Gauss--Newton loop
+(\texttt{SDALGCP2\_ST(..., covariates = )}).
 
 \paragraph{References.}
 Reich, B.J., Hodges, J.S., Zadnik, V. (2006). Effects of residual smoothing on the

@@ -142,6 +142,19 @@
 #'                    delta = 1.5,
 #'                    control.mcmc = control_mcmc(n.sim = 2000, burnin = 500, thin = 5))
 #' fit$phi_opt; fit$nu_opt
+#'
+#' ## restricted spatial regression against space-time confounding
+#' fit_c <- SDALGCP2_ST(cases ~ x1 + offset(log(pop)), dat, shp, times = times,
+#'                      delta = 1.5, phi = c(2, 4, 6), confounding = "restricted")
+#' fit_c$beta_opt
+#'
+#' ## a spatially continuous (raster) covariate, aggregated on the intensity scale
+#' r <- terra::rast(terra::ext(0, 20, 0, 20), resolution = 0.5)
+#' terra::values(r) <- as.numeric(scale(terra::crds(r)[, 1])); names(r) <- "z"
+#' fit_r <- SDALGCP2_ST(cases ~ z + offset(log(pop)), dat, shp, times = times,
+#'                      delta = 1.5, phi = c(2, 4, 6), rasters = r, max_iter = 4,
+#'                      control.mcmc = control_mcmc(n.sim = 2000, burnin = 500, thin = 5))
+#' fit_r$beta_opt
 #' }
 #' @export
 SDALGCP2_ST <- function(formula, data, my_shp, times, delta, phi = NULL,
