@@ -22,6 +22,12 @@ SDALGCP2_ST(
   pop_shp = NULL,
   control.mcmc = NULL,
   reanchor = 0L,
+  rasters = NULL,
+  covariates = NULL,
+  confounding = c("none", "restricted"),
+  berkson = TRUE,
+  max_iter = 10L,
+  tol = 0.001,
   messages = FALSE
 )
 ```
@@ -75,6 +81,37 @@ SDALGCP2_ST(
   number of re-anchoring passes (re-simulate the latent field at the
   current optimum and refit); improves the variance-parameter estimates.
 
+- rasters:
+
+  optional
+  [`terra::SpatRaster`](https://rspatial.github.io/terra/reference/SpatRaster-class.html)
+  of spatially continuous, time-invariant covariates (layers named in
+  `formula`); they enter on the intensity scale as in
+  [`SDALGCP2_raster`](https://olatunjijohnson.github.io/SDALGCP2/reference/SDALGCP2_raster.md),
+  fitted by a Gauss-Newton tilting loop around the space-time
+  likelihood.
+
+- covariates:
+
+  optional named list of `sf` covariate layers measured on a different
+  (time-invariant) support; each is kriged to the candidate points with
+  a Berkson correction as in
+  [`SDALGCP2_misaligned`](https://olatunjijohnson.github.io/SDALGCP2/reference/SDALGCP2_misaligned.md).
+
+- confounding:
+
+  `"none"` (default) or `"restricted"` for restricted spatial regression
+  against space-time confounding (see Details).
+
+- berkson:
+
+  logical; include the Berkson uncertainty correction for `covariates`
+  (default `TRUE`).
+
+- max_iter, tol:
+
+  Gauss-Newton controls for the `rasters`/`covariates` tilting loop.
+
 - messages:
 
   logical; print progress.
@@ -83,6 +120,16 @@ SDALGCP2_ST(
 
 an object of class `c("SDALGCP2_ST","SDALGCP2")` with `phi_opt`,
 `nu_opt`, coefficient table and covariance.
+
+## Details
+
+With `rasters` or `covariates` the covariate surface is taken to be
+constant over time (time-varying covariates can still be supplied as
+ordinary columns of `data`). `confounding = "restricted"` constrains the
+space-time random effect to the orthogonal complement of the
+fixed-effect design and is fitted by an analytic Laplace-marginal
+likelihood; it reduces to the spatial restricted fit when `T = 1` and is
+not currently combined with `rasters`/`covariates`.
 
 ## See also
 

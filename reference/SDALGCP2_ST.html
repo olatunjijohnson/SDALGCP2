@@ -75,6 +75,12 @@ likelihood never forms the \((NT)\times(NT)\) covariance.</p>
 <span>  pop_shp <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  control.mcmc <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  reanchor <span class="op">=</span> <span class="fl">0L</span>,</span>
+<span>  rasters <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  covariates <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  confounding <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"none"</span>, <span class="st">"restricted"</span><span class="op">)</span>,</span>
+<span>  berkson <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  max_iter <span class="op">=</span> <span class="fl">10L</span>,</span>
+<span>  tol <span class="op">=</span> <span class="fl">0.001</span>,</span>
 <span>  messages <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -129,6 +135,34 @@ likelihood never forms the \((NT)\times(NT)\) covariance.</p>
 the current optimum and refit); improves the variance-parameter estimates.</p></dd>
 
 
+<dt id="arg-rasters">rasters<a class="anchor" aria-label="anchor" href="#arg-rasters"></a></dt>
+<dd><p>optional <code><a href="https://rspatial.github.io/terra/reference/SpatRaster-class.html" class="external-link">terra::SpatRaster</a></code> of spatially continuous,
+time-invariant covariates (layers named in <code>formula</code>); they enter on the
+intensity scale as in <code><a href="SDALGCP2_raster.html">SDALGCP2_raster</a></code>, fitted by a Gauss-Newton
+tilting loop around the space-time likelihood.</p></dd>
+
+
+<dt id="arg-covariates">covariates<a class="anchor" aria-label="anchor" href="#arg-covariates"></a></dt>
+<dd><p>optional named list of <code>sf</code> covariate layers measured on
+a different (time-invariant) support; each is kriged to the candidate points
+with a Berkson correction as in <code><a href="SDALGCP2_misaligned.html">SDALGCP2_misaligned</a></code>.</p></dd>
+
+
+<dt id="arg-confounding">confounding<a class="anchor" aria-label="anchor" href="#arg-confounding"></a></dt>
+<dd><p><code>"none"</code> (default) or <code>"restricted"</code> for restricted
+spatial regression against space-time confounding (see Details).</p></dd>
+
+
+<dt id="arg-berkson">berkson<a class="anchor" aria-label="anchor" href="#arg-berkson"></a></dt>
+<dd><p>logical; include the Berkson uncertainty correction for
+<code>covariates</code> (default <code>TRUE</code>).</p></dd>
+
+
+<dt id="arg-max-iter-tol">max_iter, tol<a class="anchor" aria-label="anchor" href="#arg-max-iter-tol"></a></dt>
+<dd><p>Gauss-Newton controls for the <code>rasters</code>/<code>covariates</code>
+tilting loop.</p></dd>
+
+
 <dt id="arg-messages">messages<a class="anchor" aria-label="anchor" href="#arg-messages"></a></dt>
 <dd><p>logical; print progress.</p></dd>
 
@@ -137,6 +171,16 @@ the current optimum and refit); improves the variance-parameter estimates.</p></
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>an object of class <code>c("SDALGCP2_ST","SDALGCP2")</code> with <code>phi_opt</code>,
   <code>nu_opt</code>, coefficient table and covariance.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>With <code>rasters</code> or <code>covariates</code> the covariate surface is taken
+  to be constant over time (time-varying covariates can still be supplied as
+  ordinary columns of <code>data</code>). <code>confounding = "restricted"</code> constrains
+  the space-time random effect to the orthogonal complement of the fixed-effect
+  design and is fitted by an analytic Laplace-marginal likelihood; it reduces to
+  the spatial restricted fit when <code>T = 1</code> and is not currently combined with
+  <code>rasters</code>/<code>covariates</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
