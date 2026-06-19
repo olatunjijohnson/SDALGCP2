@@ -18,7 +18,7 @@ Useful links:
 
 ## Author
 
-**Maintainer**: Olatunji Johnson <teejaystatistics@gmail.com>
+**Maintainer**: Olatunji Johnson <olatunjijohnson21111@gmail.com>
 
 Authors:
 
