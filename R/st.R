@@ -103,9 +103,29 @@
 #' @param control.mcmc list from \code{\link{control_mcmc}}.
 #' @param reanchor number of re-anchoring passes (re-simulate the latent field at
 #'   the current optimum and refit); improves the variance-parameter estimates.
+#' @param rasters optional \code{terra::SpatRaster} of spatially continuous,
+#'   time-invariant covariates (layers named in \code{formula}); they enter on the
+#'   intensity scale as in \code{\link{SDALGCP2_raster}}, fitted by a Gauss-Newton
+#'   tilting loop around the space-time likelihood.
+#' @param covariates optional named list of \code{sf} covariate layers measured on
+#'   a different (time-invariant) support; each is kriged to the candidate points
+#'   with a Berkson correction as in \code{\link{SDALGCP2_misaligned}}.
+#' @param confounding \code{"none"} (default) or \code{"restricted"} for restricted
+#'   spatial regression against space-time confounding (see Details).
+#' @param berkson logical; include the Berkson uncertainty correction for
+#'   \code{covariates} (default \code{TRUE}).
+#' @param max_iter,tol Gauss-Newton controls for the \code{rasters}/\code{covariates}
+#'   tilting loop.
 #' @param messages logical; print progress.
 #' @return an object of class \code{c("SDALGCP2_ST","SDALGCP2")} with \code{phi_opt},
 #'   \code{nu_opt}, coefficient table and covariance.
+#' @details With \code{rasters} or \code{covariates} the covariate surface is taken
+#'   to be constant over time (time-varying covariates can still be supplied as
+#'   ordinary columns of \code{data}). \code{confounding = "restricted"} constrains
+#'   the space-time random effect to the orthogonal complement of the fixed-effect
+#'   design and is fitted by an analytic Laplace-marginal likelihood; it reduces to
+#'   the spatial restricted fit when \code{T = 1} and is not currently combined with
+#'   \code{rasters}/\code{covariates}.
 #' @seealso \code{\link{sdalgcp}} (friendly wrapper), \code{\link{predict.SDALGCP2_ST}}
 #' @examples
 #' \donttest{
@@ -127,9 +147,57 @@
 SDALGCP2_ST <- function(formula, data, my_shp, times, delta, phi = NULL,
                         kappa = 0.5, kappa_t = 0.5, method = 3L, weighted = FALSE,
                         pop_shp = NULL, control.mcmc = NULL, reanchor = 0L,
-                        messages = FALSE) {
+                        rasters = NULL, covariates = NULL,
+                        confounding = c("none", "restricted"), berkson = TRUE,
+                        max_iter = 10L, tol = 1e-3, messages = FALSE) {
   if (!inherits(my_shp, "sf")) my_shp <- sf::st_as_sf(my_shp)
   N <- nrow(my_shp); T <- length(times)
+  confounding <- match.arg(confounding)
+
+  ## ---- restricted spatial regression (space-time confounding) ----
+  if (confounding == "restricted") {
+    if (!is.null(rasters) || !is.null(covariates))
+      stop("confounding = 'restricted' is not currently combined with rasters/covariates.")
+    return(.fit_restricted_st(formula, data, my_shp, times, delta, phi = phi, kappa = kappa,
+                              kappa_t = kappa_t, method = method, weighted = weighted,
+                              pop_shp = pop_shp, messages = messages))
+  }
+
+  ## ---- raster / misaligned covariates (intensity-scale, Gauss-Newton tilting) ----
+  if (!is.null(rasters) || !is.null(covariates)) {
+    if (!is.null(rasters) && !is.null(covariates))
+      stop("supply either 'rasters' or 'covariates', not both.")
+    rhs <- attr(stats::terms(formula), "term.labels"); rhs <- rhs[!grepl("^offset\\(", rhs)]
+    for (nm in rhs) if (!nm %in% names(data)) data[[nm]] <- 0   # placeholders so model.frame parses
+    pts <- sda_points(my_shp, delta, method = method, weighted = weighted, pop_shp = pop_shp)
+    if (!is.null(rasters)) {
+      if (!inherits(rasters, "SpatRaster")) rasters <- terra::rast(rasters)
+      miss <- setdiff(rhs, names(rasters))
+      if (length(miss)) stop("raster layers missing for covariate(s): ", paste(miss, collapse = ", "))
+      Zlist <- .point_covariates(pts, rasters[[rhs]], sf::st_crs(my_shp))
+      Vlist <- NULL; wlist <- lapply(pts, function(p) as.numeric(p$weight))
+      qn <- colnames(Zlist[[1]])
+    } else {
+      miss <- setdiff(rhs, names(covariates))
+      if (length(miss)) stop("no covariate data supplied for: ", paste(miss, collapse = ", "))
+      kc <- .krige_point_covariates(pts, covariates, rhs, berkson = berkson, messages = messages)
+      Zlist <- kc$Zlist; Vlist <- kc$Vlist; wlist <- kc$wlist; qn <- kc$qn
+    }
+    if (is.null(phi)) {
+      areas <- as.numeric(sf::st_area(my_shp)); bb <- sf::st_bbox(my_shp)
+      phi <- seq(sqrt(min(areas)),
+                 min(bb["xmax"] - bb["xmin"], bb["ymax"] - bb["ymin"]) / 10, length.out = 12)
+    }
+    fit <- .fit_st_tilted(formula, data, my_shp, times, Zlist, Vlist, wlist, qn,
+                          delta = delta, phi = phi, kappa = kappa, kappa_t = kappa_t,
+                          method = method, weighted = weighted, pop_shp = pop_shp,
+                          control.mcmc = control.mcmc, reanchor = reanchor,
+                          max_iter = max_iter, tol = tol, messages = messages)
+    fit$raster <- !is.null(rasters); fit$misaligned <- !is.null(covariates)
+    fit$call <- match.call()
+    return(fit)
+  }
+
   mf <- stats::model.frame(formula, data)
   y <- as.numeric(stats::model.response(mf))
   if (length(y) != N * T) stop("data must have N*T rows (N regions, T times).")

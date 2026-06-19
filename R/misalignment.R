@@ -97,6 +97,40 @@
   list(Dc = Dc, b = bvec, c = clist)
 }
 
+# Krige each covariate (from its own point/areal support) to every candidate point
+# of every region, returning the per-region predictive-mean design list Zlist, the
+# Berkson variance list Vlist (zeros if !berkson) and the weight list wlist. Shared
+# by the spatial and spatio-temporal misaligned fitters.
+.krige_point_covariates <- function(pts, covariates, rhs, berkson = TRUE, messages = FALSE) {
+  wlist <- lapply(pts, function(p) as.numeric(p$weight))
+  npt   <- vapply(pts, function(p) nrow(as.matrix(p$xy)), 0L)
+  allxy <- do.call(rbind, lapply(pts, function(p) as.matrix(p$xy)[, 1:2, drop = FALSE]))
+  idx   <- rep(seq_along(pts), npt)
+
+  q <- length(rhs) + 1L
+  MU <- matrix(0, nrow(allxy), q); VAR <- matrix(0, nrow(allxy), q)
+  MU[, 1] <- 1                                       # intercept column (no variance)
+  for (j in seq_along(rhs)) {
+    cv <- covariates[[rhs[j]]]
+    if (!inherits(cv, "sf")) stop("covariate '", rhs[j], "' must be an sf object.")
+    gtype <- as.character(sf::st_geometry_type(cv, by_geometry = FALSE))[1]
+    areal <- grepl("POLYGON", gtype)
+    if (messages) cat(sprintf("  kriging covariate '%s' from %d %s...\n",
+                              rhs[j], nrow(cv), if (areal) "polygons" else "points"))
+    if (areal) {
+      gp <- .gp_areal(cv, rhs[j], kappa = 0.5); kr <- .krige_areal(gp, allxy)
+    } else {
+      gp <- .gp_point(sf::st_coordinates(cv)[, 1:2, drop = FALSE], cv[[rhs[j]]])
+      kr <- .krige_point(gp, allxy)
+    }
+    MU[, j + 1] <- kr$mean; VAR[, j + 1] <- if (berkson) kr$var else 0
+  }
+  Zlist <- lapply(seq_along(pts), function(i) {
+    Z <- MU[idx == i, , drop = FALSE]; colnames(Z) <- c("(Intercept)", rhs); Z })
+  Vlist <- lapply(seq_along(pts), function(i) VAR[idx == i, , drop = FALSE])
+  list(Zlist = Zlist, Vlist = Vlist, wlist = wlist, qn = c("(Intercept)", rhs))
+}
+
 #' Fit an SDA-LGCP with covariates measured on a different support
 #'
 #' Covariates observed on a \emph{different support} from the outcome (e.g. air-
@@ -155,33 +189,9 @@ SDALGCP2_misaligned <- function(formula, data, delta, covariates, phi = NULL,
   }
 
   pts <- sda_points(data, delta, method = method, weighted = weighted, pop_shp = pop_shp)
-  wlist <- lapply(pts, function(p) as.numeric(p$weight))
-  npt <- vapply(pts, function(p) nrow(as.matrix(p$xy)), 0L)
-  allxy <- do.call(rbind, lapply(pts, function(p) as.matrix(p$xy)[, 1:2, drop = FALSE]))
-  idx <- rep(seq_along(pts), npt)
-
-  # krige each covariate from its own support to every candidate point
+  kc <- .krige_point_covariates(pts, covariates, rhs, berkson = berkson, messages = messages)
+  Zlist <- kc$Zlist; Vlist <- kc$Vlist; wlist <- kc$wlist
   q <- length(rhs) + 1L
-  MU <- matrix(0, nrow(allxy), q); VAR <- matrix(0, nrow(allxy), q)
-  MU[, 1] <- 1                                       # intercept column (no variance)
-  for (j in seq_along(rhs)) {
-    cv <- covariates[[rhs[j]]]
-    if (!inherits(cv, "sf")) stop("covariate '", rhs[j], "' must be an sf object.")
-    gtype <- as.character(sf::st_geometry_type(cv, by_geometry = FALSE))[1]
-    areal <- grepl("POLYGON", gtype)
-    if (messages) cat(sprintf("  kriging covariate '%s' from %d %s...\n",
-                              rhs[j], nrow(cv), if (areal) "polygons" else "points"))
-    if (areal) {
-      gp <- .gp_areal(cv, rhs[j], kappa = 0.5); kr <- .krige_areal(gp, allxy)
-    } else {
-      gp <- .gp_point(sf::st_coordinates(cv)[, 1:2, drop = FALSE], cv[[rhs[j]]])
-      kr <- .krige_point(gp, allxy)
-    }
-    MU[, j + 1] <- kr$mean; VAR[, j + 1] <- if (berkson) kr$var else 0
-  }
-  Zlist <- lapply(seq_along(pts), function(i) {
-    Z <- MU[idx == i, , drop = FALSE]; colnames(Z) <- c("(Intercept)", rhs); Z })
-  Vlist <- lapply(seq_along(pts), function(i) VAR[idx == i, , drop = FALSE])
 
   corr <- precompute_corr(pts, phi)
   beta <- stats::setNames(rep(0, q), c("(Intercept)", rhs))

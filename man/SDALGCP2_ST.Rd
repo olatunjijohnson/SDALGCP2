@@ -18,6 +18,12 @@ SDALGCP2_ST(
   pop_shp = NULL,
   control.mcmc = NULL,
   reanchor = 0L,
+  rasters = NULL,
+  covariates = NULL,
+  confounding = c("none", "restricted"),
+  berkson = TRUE,
+  max_iter = 10L,
+  tol = 0.001,
   messages = FALSE
 )
 }
@@ -46,6 +52,24 @@ SDALGCP2_ST(
 \item{reanchor}{number of re-anchoring passes (re-simulate the latent field at
 the current optimum and refit); improves the variance-parameter estimates.}
 
+\item{rasters}{optional \code{terra::SpatRaster} of spatially continuous,
+time-invariant covariates (layers named in \code{formula}); they enter on the
+intensity scale as in \code{\link{SDALGCP2_raster}}, fitted by a Gauss-Newton
+tilting loop around the space-time likelihood.}
+
+\item{covariates}{optional named list of \code{sf} covariate layers measured on
+a different (time-invariant) support; each is kriged to the candidate points
+with a Berkson correction as in \code{\link{SDALGCP2_misaligned}}.}
+
+\item{confounding}{\code{"none"} (default) or \code{"restricted"} for restricted
+spatial regression against space-time confounding (see Details).}
+
+\item{berkson}{logical; include the Berkson uncertainty correction for
+\code{covariates} (default \code{TRUE}).}
+
+\item{max_iter, tol}{Gauss-Newton controls for the \code{rasters}/\code{covariates}
+tilting loop.}
+
 \item{messages}{logical; print progress.}
 }
 \value{
@@ -57,6 +81,15 @@ Separable space-time SDA-LGCP for aggregated counts observed over the same
 \code{N} regions at \code{T} times. The spatial scale \code{phi} is profiled on
 a grid; the temporal Matern range \code{nu} is estimated continuously. The
 likelihood never forms the \eqn{(NT)\times(NT)} covariance.
+}
+\details{
+With \code{rasters} or \code{covariates} the covariate surface is taken
+  to be constant over time (time-varying covariates can still be supplied as
+  ordinary columns of \code{data}). \code{confounding = "restricted"} constrains
+  the space-time random effect to the orthogonal complement of the fixed-effect
+  design and is fitted by an analytic Laplace-marginal likelihood; it reduces to
+  the spatial restricted fit when \code{T = 1} and is not currently combined with
+  \code{rasters}/\code{covariates}.
 }
 \examples{
 \donttest{

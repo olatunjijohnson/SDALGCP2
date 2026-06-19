@@ -101,3 +101,74 @@ test_that("SDALGCP2_ST fits end-to-end and recovers the slope", {
   # a time slice maps without error
   expect_s3_class(plot(pred, time = times[1]), "ggplot")
 })
+
+test_that("ST intensity-tilting reduces exactly to the region design", {
+  # If the point covariate equals the region covariate everywhere, the log-sum-exp
+  # tilting must collapse to the ordinary region design (Dc = [1, x], b = [1,x] beta).
+  set.seed(7)
+  g <- sf::st_make_grid(sf::st_as_sfc(sf::st_bbox(c(xmin = 0, ymin = 0, xmax = 10, ymax = 10))),
+                        n = c(4, 4))
+  shp <- sf::st_sf(geometry = g); N <- nrow(shp)
+  shp$x1 <- as.numeric(scale(sf::st_coordinates(sf::st_centroid(shp))[, 1]))
+  pts <- sda_points(shp, delta = 1.2, method = 3)
+  w   <- lapply(pts, function(p) as.numeric(p$weight))
+  Zex <- lapply(seq_len(N), function(i) {
+    n <- nrow(as.matrix(pts[[i]]$xy)); cbind(`(Intercept)` = 1, x1 = rep(shp$x1[i], n)) })
+  beta <- c(-6, 0.6)
+  tl <- SDALGCP2:::.tilt(Zex, w, beta)
+  expect_equal(unname(tl$Dc), unname(cbind(1, shp$x1)), tolerance = 1e-10)
+  expect_equal(tl$b, as.numeric(cbind(1, shp$x1) %*% beta), tolerance = 1e-10)
+})
+
+test_that("spatio-temporal raster and misaligned fits run and predict", {
+  skip_on_cran()
+  set.seed(3)
+  g <- sf::st_make_grid(sf::st_as_sfc(sf::st_bbox(c(xmin = 0, ymin = 0, xmax = 10, ymax = 10))),
+                        n = c(4, 4))
+  shp <- sf::st_sf(geometry = g); N <- nrow(shp)
+  shp$pop <- round(runif(N, 1000, 3000))
+  zc <- as.numeric(scale(sf::st_coordinates(sf::st_centroid(shp))[, 1]))
+  times <- 1:3
+  dat <- do.call(rbind, lapply(times, function(t) {
+    d <- sf::st_drop_geometry(shp); d$time <- t
+    d$cases <- rpois(N, d$pop * exp(-6 + 0.6 * zc + 0.05 * (t - 2))); d }))
+  ctrl <- control_mcmc(n.sim = 1500, burnin = 400, thin = 5)
+
+  # raster covariate (piecewise-constant surface == region covariate)
+  r <- terra::rast(terra::ext(0, 10, 0, 10), resolution = 0.25)
+  shp2 <- shp; shp2$z <- zc
+  r <- suppressWarnings(terra::rasterize(terra::vect(shp2), r, field = "z")); names(r) <- "z"
+  fr <- SDALGCP2_ST(cases ~ z + offset(log(pop)), dat, shp, times = times, delta = 1.2,
+                    control.mcmc = ctrl, rasters = r, max_iter = 4)
+  expect_true(isTRUE(fr$raster))
+  expect_true(fr$beta_opt["z"] > 0)             # positive effect recovered
+  expect_s3_class(predict(fr), "SDALGCP2_ST_pred")
+
+  # misaligned covariate (kriged from 40 monitor points)
+  mon <- sf::st_as_sf(data.frame(x = runif(40, 0, 10), y = runif(40, 0, 10)), coords = c("x", "y"))
+  mon$z <- as.numeric(scale(sf::st_coordinates(mon)[, 1]))
+  fm <- SDALGCP2_ST(cases ~ z + offset(log(pop)), dat, shp, times = times, delta = 1.2,
+                    control.mcmc = ctrl, covariates = list(z = mon), max_iter = 4)
+  expect_true(isTRUE(fm$misaligned))
+  expect_true(all(is.finite(fm$beta_opt)))
+  expect_equal(nrow(predict(fm)), N * length(times))
+})
+
+test_that("ST restricted regression reduces to the spatial restricted fit at T=1", {
+  skip_on_cran()
+  set.seed(4)
+  g <- sf::st_make_grid(sf::st_as_sfc(sf::st_bbox(c(xmin = 0, ymin = 0, xmax = 8, ymax = 8))),
+                        n = c(4, 4))
+  shp <- sf::st_sf(geometry = g); N <- nrow(shp)
+  shp$x1 <- as.numeric(scale(sf::st_coordinates(sf::st_centroid(shp))[, 1]))
+  shp$pop <- round(runif(N, 1000, 3000))
+  shp$cases <- rpois(N, shp$pop * exp(-6 + 0.5 * shp$x1))
+  df <- sf::st_drop_geometry(shp); phi_grid <- seq(1, 4, length.out = 5)
+  fs <- SDALGCP2(cases ~ x1 + offset(log(pop)), df, shp, delta = 1.0, phi = phi_grid,
+                 method = 3, confounding = "restricted")
+  ft <- SDALGCP2_ST(cases ~ x1 + offset(log(pop)), df, shp, times = 1, delta = 1.0,
+                    phi = phi_grid, method = 3, confounding = "restricted")
+  # the de-confounded fixed effects must match the spatial restricted fit
+  expect_equal(unname(ft$beta_opt), unname(fs$beta_opt), tolerance = 1e-3)
+  expect_equal(ft$confounding, "restricted")
+})

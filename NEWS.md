@@ -2,6 +2,16 @@
 
 First public version.
 
+* **Raster, misaligned, and restricted-regression covariates for the
+  spatio-temporal model.** `SDALGCP2_ST()` (and `sdalgcp(..., time =)`) now accept
+  `rasters =` (intensity-scale continuous covariates), `covariates =` (kriged
+  covariates measured on a different support, with the Berkson correction), and
+  `confounding = "restricted"` (restricted spatial regression against space-time
+  confounding) — the same extensions previously available only for spatial fits.
+  The raster/misaligned fits use a Gauss-Newton tilting loop around the
+  Kronecker-free space-time likelihood; the restricted fit reduces exactly to the
+  spatial restricted fit at `T = 1`.
+
 * **Spatio-temporal prediction now returns a long `sf` too.** `predict()` on an
   `SDALGCP2_ST` fit returns a one-row-per-region-time `sf` (class
   `"SDALGCP2_ST_pred"`) with the same `relative_risk`/`adjusted_rr` columns as the

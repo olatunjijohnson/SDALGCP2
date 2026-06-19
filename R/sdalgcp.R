@@ -141,8 +141,12 @@ sdalgcp <- function(formula, data, time = NULL, rasters = NULL, covariates = NUL
     fit <- SDALGCP2_ST(formula, df, shp, times = times, delta = delta, phi = control$phi,
                        kappa = control$kappa, kappa_t = control$kappa_t, method = pm,
                        weighted = weighted, pop_shp = popden, control.mcmc = ctrl_mcmc,
-                       reanchor = control$reanchor, messages = verbose)
-    fit$mode <- "spatio-temporal"
+                       reanchor = control$reanchor, rasters = rasters, covariates = covariates,
+                       confounding = control$confounding, messages = verbose)
+    fit$mode <- paste0("spatio-temporal",
+                       if (!is.null(rasters)) " (raster covariates)"
+                       else if (!is.null(covariates)) " (misaligned covariates)"
+                       else if (control$confounding == "restricted") " (restricted)" else "")
   } else if (!is.null(covariates)) {
     ## ---- covariates on a different support (kriged + Berkson) ----
     delta <- control$delta %||% .auto_delta(data, control$points_per_region)
