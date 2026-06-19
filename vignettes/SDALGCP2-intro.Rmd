@@ -36,10 +36,10 @@ coefficients \(\beta\), the spatial variance \(\sigma^2\) and the range \(\phi\)
 Two quantities are reported for every area:
 
 * **Relative risk** \(\mathrm{RR}_i=e^{\eta_i}=e^{d_i^\top\beta+S_i}\) — the full
-  relative risk, including the covariate effect;
-* **Covariate-adjusted relative risk** \(\mathrm{ARR}_i=e^{S_i}\) — the residual
-  spatial relative risk *after* adjusting for covariates (where is risk
-  high/low beyond what the covariates explain?).
+  relative risk, including the covariate effect (the `relative_risk` column);
+* **Covariate-adjusted relative risk** \(\mathrm{RR}^{\mathrm{adj}}_i=e^{S_i}\) —
+  the residual spatial relative risk *after* adjusting for covariates (where is
+  risk high/low beyond what the covariates explain?) — the `adjusted_rr` column.
 
 ## Simulate a data set
 
