@@ -142,7 +142,7 @@ map_exceedance <- function(x, threshold = 1, which = c("adjusted_rr", "relative_
 #'
 #' Spline-smoothed profile deviance for \code{phi}, with the
 #' \code{coverage}-level confidence interval where the deviance crosses the
-#' chi-squared cutoff. Improves on the loess-based interval of \code{SDALGCP}.
+#' chi-squared cutoff.
 #'
 #' @param object a fitted \code{"SDALGCP2"} object.
 #' @param coverage confidence level.

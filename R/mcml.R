@@ -1,7 +1,6 @@
-# Vectorised Monte Carlo maximum likelihood for the spatial SDA-LGCP (bottleneck B3).
-# Replaces SDALGCP's Aggregated_poisson_log_MCML()/SDALGCPParaEst() apply/Reduce
-# loops with Cholesky-based matrix operations. Statistically identical: same
-# importance-sampling MCML objective, gradient and Hessian.
+# Vectorised Monte Carlo maximum likelihood for the spatial SDA-LGCP.
+# Cholesky-based matrix operations implement the importance-sampling MCML
+# objective, gradient and Hessian.
 
 # Per-sample log joint density components for a fixed phi (R fixed via Rinv/ldetR).
 # Returns a list of reusable pieces; `data_ll` (sum y*S - m*exp(S)) is independent
@@ -66,9 +65,9 @@
 
 #' Monte Carlo maximum likelihood estimation for the spatial SDA-LGCP
 #'
-#' Vectorised, Cholesky-based re-implementation of \code{SDALGCP::SDALGCPParaEst()}.
-#' Simulates the latent field at an anchor, then profiles the importance-sampling
-#' MCML objective over the supplied \code{phi} grid.
+#' Vectorised, Cholesky-based MCML estimation. Simulates the latent field at an
+#' anchor, then profiles the importance-sampling MCML objective over the supplied
+#' \code{phi} grid.
 #'
 #' @param formula model formula, optionally with an \code{offset()} term.
 #' @param data data frame holding the model variables.

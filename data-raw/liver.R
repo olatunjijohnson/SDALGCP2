@@ -1,22 +1,16 @@
-# Generates data/liver.rda: a real disease-count dataset for the case-study
-# tutorial. Derived from SDALGCP::PBCshp_sf (the primary biliary cirrhosis study
-# of Johnson et al. 2019), trimmed to the columns a disease-mapping analysis
-# needs. Re-run with:
-#   Rscript data-raw/liver.R
+# Generates data/liver.rda from the frozen source in data-raw/liver_source.rds.
+# Re-run with:  Rscript data-raw/liver.R
 #
-# Requires the 'SDALGCP' package (the original implementation) to be installed;
-# it is only needed to build the data, not to use SDALGCP2.
+# liver_source.rds is a one-time, self-contained snapshot of the study data
+# (incident primary biliary cirrhosis counts and area deprivation covariates by
+# LSOA, North East England; Johnson, Diggle and Giorgi 2019); regenerating the
+# dataset does not require any other package.
 
 suppressMessages(library(sf))
 
-stopifnot(requireNamespace("SDALGCP", quietly = TRUE))
-e <- new.env()
-utils::data("PBCshp_sf", package = "SDALGCP", envir = e)
-pbc <- get("PBCshp_sf", envir = e)
+src <- readRDS("data-raw/liver_source.rds")     # sf, EPSG:27700
 
-sf::st_crs(pbc) <- 27700                      # British National Grid (OSGB eastings/northings)
-
-liver <- pbc[, c("LSOA04CD", "pop", "IMD", "Income", "Employment", "X")]
+liver <- src
 names(liver)[names(liver) == "LSOA04CD"] <- "lsoa"
 names(liver)[names(liver) == "X"]        <- "cases"
 liver <- liver[, c("lsoa", "cases", "pop", "IMD", "Income", "Employment")]

@@ -1,6 +1,6 @@
 # SDALGCP2 0.1.0
 
-First public version — a faster, modernised successor to SDALGCP.
+First public version.
 
 * **Spatio-temporal prediction now returns a long `sf` too.** `predict()` on an
   `SDALGCP2_ST` fit returns a one-row-per-region-time `sf` (class
@@ -66,14 +66,13 @@ First public version — a faster, modernised successor to SDALGCP.
   maps, `phi_profile()`, `coef_plot()`, `model_check()` (residual Moran's I),
   `report()`.
 * C++ (RcppArmadillo + OpenMP) aggregated correlation assembly (`precompute_corr`).
-* C++ Newton Laplace mode + adaptive MALA sampler (`laplace_sampling`); bit-identical
-  to `SDALGCP::Laplace.sampling` given the same mode and seed.
+* C++ Newton Laplace mode + adaptive MALA sampler (`laplace_sampling`); reproducible
+  given the same mode and seed.
 * Vectorised, Cholesky-based Monte Carlo likelihood with analytic gradient/Hessian
-  (`mcml_fit`); matches the original to ~1e-14 and is ~10x faster on estimation.
-* One-call spatial fit `SDALGCP2()` (points -> correlation -> MCML); reproduces
-  `SDALGCP::SDALGCPMCML` estimates and is ~8x faster end-to-end on a 64-region example.
+  (`mcml_fit`).
+* One-call spatial fit `SDALGCP2()` (points -> correlation -> MCML).
 * Candidate-point generation `sda_points()` (SSI / uniform / regular; sf + spatstat
-  + terra; drops splancs/sp).
+  + terra).
 * Prediction `predict.SDALGCP2()` (discrete + continuous) with an MCMC or a no-MCMC
   Laplace fast path; `exceedance()` probabilities.
 * Vignette and reproducible benchmark scripts using entirely simulated data.

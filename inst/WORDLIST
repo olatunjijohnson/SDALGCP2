@@ -26,6 +26,7 @@ dy
 Environmetrics
 EPSG
 ESS
+glm
 Haran
 Hoef
 Hoeting
@@ -68,7 +69,6 @@ rVert
 Schliep
 SDA
 sdalgcp
-SDALGCP
 sim
 sp
 spatstat

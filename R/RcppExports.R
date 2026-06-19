@@ -66,9 +66,8 @@ laplace_mode_poisson_cpp <- function(y, m, mu, Sigma, tol = 1e-8, maxit = 100L) 
 
 #' Adaptive MALA sampler for [S | Y], Poisson, non-nested (C++)
 #'
-#' Reproduces \code{SDALGCP::Laplace.sampling()} (non-nested Poisson). Draw order
-#' per iteration is \code{d} normals then one uniform, so results match the R
-#' implementation bit-for-bit under a common seed and the same mode/Sigma.tilde.
+#' Draw order per iteration is \code{d} normals then one uniform, giving
+#' reproducible results under a common seed and the same mode/Sigma.tilde.
 #'
 #' @param y,m,mu,Sigma data and prior as in \code{laplace_mode_poisson_cpp}.
 #' @param mode,Sigma_tilde Laplace mode and covariance (preconditioner).

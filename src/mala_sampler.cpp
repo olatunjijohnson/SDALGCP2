@@ -1,13 +1,12 @@
-// Laplace mode + Langevin-Hastings (MALA) sampler for the SDA-LGCP latent field
-// (bottleneck B2). Poisson, non-nested case — the path SDALGCP's spatial fit uses.
+// Laplace mode + Langevin-Hastings (MALA) sampler for the SDA-LGCP latent field.
+// Poisson, non-nested case — the path the spatial fit uses.
 //
 // Two pieces:
 //   laplace_mode_poisson_cpp(): conditional mode of [S | Y] by damped Newton, plus
 //     the Laplace covariance Sigma.tilde = (Sigma^{-1} + diag(m e^S))^{-1}.
-//   mala_poisson_cpp(): the adaptive MALA loop, written to reproduce
-//     SDALGCP::Laplace.sampling() exactly. Given the same mode/Sigma.tilde and the
-//     same RNG seed it is bit-identical to the R implementation (same draw order:
-//     d normals then one uniform per iteration).
+//   mala_poisson_cpp(): the adaptive MALA loop. Given the same mode/Sigma.tilde
+//     and RNG seed the draws are reproducible (draw order: d normals then one
+//     uniform per iteration).
 
 #include <RcppArmadillo.h>
 // [[Rcpp::depends(RcppArmadillo)]]
@@ -79,9 +78,8 @@ Rcpp::List laplace_mode_poisson_cpp(const arma::vec& y,
 
 //' Adaptive MALA sampler for [S | Y], Poisson, non-nested (C++)
 //'
-//' Reproduces \code{SDALGCP::Laplace.sampling()} (non-nested Poisson). Draw order
-//' per iteration is \code{d} normals then one uniform, so results match the R
-//' implementation bit-for-bit under a common seed and the same mode/Sigma.tilde.
+//' Draw order per iteration is \code{d} normals then one uniform, giving
+//' reproducible results under a common seed and the same mode/Sigma.tilde.
 //'
 //' @param y,m,mu,Sigma data and prior as in \code{laplace_mode_poisson_cpp}.
 //' @param mode,Sigma_tilde Laplace mode and covariance (preconditioner).

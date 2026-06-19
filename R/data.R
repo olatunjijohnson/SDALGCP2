@@ -43,12 +43,12 @@
 #'   \item{Employment}{employment-deprivation score.}
 #'   \item{geometry}{the LSOA polygon.}
 #' }
-#' @source Derived from \code{PBCshp_sf} in the \pkg{SDALGCP} package (geometry
-#'   trimmed to the modelling columns and tagged with EPSG:27700). Originally from
-#'   Johnson, O., Diggle, P. and Giorgi, E. (2019), "A spatially discrete
+#' @source Johnson, O., Diggle, P. and Giorgi, E. (2019), "A spatially discrete
 #'   approximation to log-Gaussian Cox processes for modelling aggregated disease
 #'   count data", \emph{Statistics in Medicine}, 38(24), 4871-4884.
-#'   \doi{10.1002/sim.8339}. See \code{data-raw/liver.R} in the package sources.
+#'   \doi{10.1002/sim.8339}. Population and area-deprivation covariates are from
+#'   the 2004 English indices of deprivation (Lower-layer Super Output Area level).
+#'   See \code{data-raw/liver.R} in the package sources.
 #' @seealso \code{\link{sdalgcp_data}} for a small simulated example.
 #' @examples
 #' data(liver)

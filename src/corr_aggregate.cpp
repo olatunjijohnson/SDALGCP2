@@ -6,10 +6,8 @@
 //
 // (weighted), or the unweighted mean over point pairs. Each pairwise distance is
 // computed once; all phi values are reduced in a tight inner loop with no
-// intermediate 3-D array. Parallelised over region pairs with OpenMP.
-//
-// This mirrors precomputeCorrMatrix() in SDALGCP but avoids R-level outer()/array
-// allocation and the pdist dependency.
+// intermediate 3-D array. Parallelised over region pairs with OpenMP, avoiding
+// R-level outer()/array allocation.
 
 #include <RcppArmadillo.h>
 #ifdef _OPENMP

@@ -21,10 +21,10 @@ laplace_sampling(mu, Sigma, y, units.m, control.mcmc)
 list with \code{samples} (kept x n matrix) and \code{h} (step sizes).
 }
 \description{
-Fast drop-in for \code{SDALGCP::Laplace.sampling()} for the Poisson,
-non-nested case: the Laplace mode (Newton) and the adaptive MALA loop both run
-in C++. Given the same mode/covariance and seed it reproduces the original R
-sampler bit-for-bit.
+Draws posterior samples of the latent Gaussian field for the Poisson,
+non-nested case. The Laplace mode (Newton step) and the adaptive Metropolis-
+adjusted Langevin (MALA) loop both run in C++ for speed, with a fixed-seed path
+for reproducibility.
 }
 \examples{
 \donttest{

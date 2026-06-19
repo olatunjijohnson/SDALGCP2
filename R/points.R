@@ -1,5 +1,5 @@
-# Candidate-point generation for the SDA-LGCP discretisation (lean: sf + spatstat
-# + terra only; drops the legacy splancs/sp paths of SDALGCP).
+# Candidate-point generation for the SDA-LGCP discretisation (sf + spatstat +
+# terra only).
 #
 # For each region we place candidate points (regular grid, uniform random, or
 # Simple Sequential Inhibition) and attach aggregation weights. Unweighted:
@@ -7,7 +7,7 @@
 # the Monte-Carlo / quadrature estimate of the population-weighted average
 # T_i(S) = int_Ai S(x) rho(x) dx / int_Ai rho(x) dx, with rho read from a raster.
 
-# Number of points from area and spacing (matches SDALGCP's packing heuristic).
+# Number of points from area and spacing (packing heuristic).
 .n_from_delta <- function(area, delta, rho = 0.55) {
   max(1L, round((rho * area * 4) / (pi * delta^2)))
 }
@@ -42,9 +42,8 @@
 
 #' Generate candidate sampling points inside each region
 #'
-#' Lean replacement for \code{SDALGCP::SDALGCPpolygonpoints()}: for every polygon
-#' feature in \code{my_shp} it produces candidate points and aggregation weights,
-#' in the list format consumed by \code{\link{precompute_corr}}.
+#' For every polygon feature in \code{my_shp} it produces candidate points and
+#' aggregation weights, in the list format consumed by \code{\link{precompute_corr}}.
 #'
 #' @param my_shp an \code{sf} object of \code{POLYGON}/\code{MULTIPOLYGON} features.
 #' @param delta point spacing (grid step / SSI inhibition distance).

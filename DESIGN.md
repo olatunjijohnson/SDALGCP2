@@ -1,11 +1,12 @@
-# SDALGCP2 — Design & Improvement Proposal
+# SDALGCP2 — Design Notes
 
-A faster, cleaner, statistically richer successor to **SDALGCP**.
+A fast, statistically rich implementation of the spatially discrete approximation
+to a log-Gaussian Cox process.
 
-> SDALGCP fits a *spatially discrete approximation* to a log-Gaussian Cox process
+> SDALGCP2 fits a *spatially discrete approximation* to a log-Gaussian Cox process
 > (SDA-LGCP) for spatially aggregated disease counts, estimating parameters by
 > Monte Carlo Maximum Likelihood (MCML) and predicting discrete and continuous
-> relative risk (Johnson, Diggle & Giorgi, 2019, *Stat. Med.* 38:4871–4887).
+> relative risk (method: Johnson, Diggle & Giorgi, 2019, *Stat. Med.* 38:4871–4887).
 
 This document records (1) what the method does, (2) where the current package is
 slow or statistically weak, and (3) the concrete plan for SDALGCP2.
@@ -54,7 +55,7 @@ Matérn(`kappa`) with range `nu`.
 
 ---
 
-## 2. Where SDALGCP is slow (measured against the algorithm above)
+## 2. Where a naive implementation is slow (measured against the algorithm above)
 
 Ranked by impact.
 
@@ -207,8 +208,8 @@ S* ~ N(0, Sigma(phi, sigma2; beta)),  Sigma built with the tilted weights c_ik.
 - The spatial aggregation weights `c_ik(beta)` are themselves tilted by the
   covariate intensity, so high-covariate sub-areas contribute more to the region
   effect — the statistically coherent behaviour.
-- It collapses to the current SDALGCP exactly when covariates are region-constant
-  (`c_ik = w_ik`, `b_i = z_i'beta`, `v_i` absorbed into the intercept).
+- It collapses to the basic region-constant model exactly when covariates are
+  region-constant (`c_ik = w_ik`, `b_i = z_i'beta`, `v_i` absorbed into the intercept).
 
 **Computational consequence & plan.** `Sigma` and the offset now depend on `beta`,
 so the clean "precompute correlation once, profile cheaply" loop becomes an
@@ -270,8 +271,9 @@ Tracked as task #6; design fixed here.
   `mapview`, `splancs`, `pdist`, `maxLik`. Keep a lean stack: `sf`, `terra`,
   `stars`, `spatstat.geom`/`spatstat.random` (sampling), `Matrix`, `ggplot2`,
   plus `Rcpp`/`RcppArmadillo` for the kernels.
-- **Bugs to fix while porting:**
-  - `class(para_est) != "SDALGCP"` — breaks with multi-class objects; use `inherits()`.
+- **Pitfalls to avoid:**
+  - `class(para_est) != "..."` — exact class comparison breaks with multi-class
+    objects; use `inherits()`.
   - `scale_fill_viridis_c(name = cat(...))` — `cat()` returns `NULL`; the legend
     title is silently dropped.
   - `aes_string()` is deprecated — use tidy-eval `.data[[var]]`.
@@ -311,11 +313,10 @@ SDALGCP2/
   DESIGN.md              # this file
 ```
 
-### Naming / compatibility
-Keep user-facing verbs recognisable to existing users but consistent:
-`SDALGCP2()` (fit), `predict()` S3 method, `controlmcmc()`, `summary()`,
-`confint()`, `phi_ci()`, `autoplot()`/`plot()`. Provide a short "migrating from
-SDALGCP" section in the vignette.
+### Naming
+Keep user-facing verbs recognisable and consistent:
+`SDALGCP2()` (fit), `predict()` S3 method, `control_mcmc()`, `summary()`,
+`confint()`, `phi_profile()`, `plot()`.
 
 ---
 
@@ -340,7 +341,7 @@ confirms the speedups.
    `corr_aggregate.cpp` + R wrapper + a correctness/benchmark check vs the
    reference R implementation.
 2. Vectorised MC likelihood (B3) + Newton Laplace mode (B7).
-3. C++ MALA (B2), wire spatial fit end-to-end, `testthat` parity vs SDALGCP.
+3. C++ MALA (B2), wire spatial fit end-to-end, `testthat` correctness checks.
 4. Prediction (B5) + Laplace fast path (S6).
 5. Statistical extensions: nugget (S2), Matérn (S1), diagnostics (S3), re-anchor (S4).
 6. Spatio-temporal Kronecker-free path (B4).

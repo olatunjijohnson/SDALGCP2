@@ -34,8 +34,7 @@ mala_poisson_cpp(
 list with \code{samples} (kept x d matrix of S draws) and \code{h}.
 }
 \description{
-Reproduces \code{SDALGCP::Laplace.sampling()} (non-nested Poisson). Draw order
-per iteration is \code{d} normals then one uniform, so results match the R
-implementation bit-for-bit under a common seed and the same mode/Sigma.tilde.
+Draw order per iteration is \code{d} normals then one uniform, giving
+reproducible results under a common seed and the same mode/Sigma.tilde.
 }
 \keyword{internal}

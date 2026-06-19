@@ -48,9 +48,9 @@ an object of class \code{"SDALGCP2"} (estimates, covariance, profile,
   latent samples and metadata).
 }
 \description{
-Vectorised, Cholesky-based re-implementation of \code{SDALGCP::SDALGCPParaEst()}.
-Simulates the latent field at an anchor, then profiles the importance-sampling
-MCML objective over the supplied \code{phi} grid.
+Vectorised, Cholesky-based MCML estimation. Simulates the latent field at an
+anchor, then profiles the importance-sampling MCML objective over the supplied
+\code{phi} grid.
 }
 \examples{
 \donttest{

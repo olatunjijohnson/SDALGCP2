@@ -33,7 +33,7 @@ The spatially discrete approximation to a log-Gaussian Cox process (SDA-LGCP)
 replaces the intractable areal integral of an LGCP by a finite sum over candidate
 points inside each region. The spatial \emph{scale} parameter $\phi$ enters the
 model only through a \emph{double integral} of the correlation function over pairs
-of regions. The original \texttt{SDALGCP} discretises $\phi$ on a grid and profiles
+of regions. The classic approach discretises $\phi$ on a grid and profiles
 over it. Here we (i) make explicit the double integral and the quadrature used to
 approximate it, (ii) differentiate \emph{through} the integral so that $\phi$ can
 be estimated \emph{continuously} inside the Monte Carlo maximum likelihood (MCML)
@@ -226,8 +226,8 @@ with $t_2=-\tfrac12\big[\tr(\R^{-1}\Rpp)-\tr(\mathbf{A}^2)\big]$. The
 $(\psi_p,\psi_p)$ entry follows from differentiating \eqref{eq:gphi} once more,
 using $\partial_\phi\tr(\R^{-1}\Rp)=\tr(\R^{-1}\Rpp)-\tr(\mathbf{A}^2)$ and
 $\partial_\phi(\R^{-1}\Rp\R^{-1})=\R^{-1}(\Rpp-2\Rp\R^{-1}\Rp)\R^{-1}$. These match
-exactly the temporal-range derivatives already used in the spatio-temporal code of
-\texttt{SDALGCP}, with $\phi$ in place of the Mat\'ern range. The asymptotic
+exactly the temporal-range derivatives already used in the spatio-temporal code,
+with $\phi$ in place of the Mat\'ern range. The asymptotic
 covariance of $\widehat{\bm\theta}$ is $\big(-\nabla^2\ell_{\mathrm{MC}}\big)^{-1}$
 at the maximiser, so the direct method yields a genuine standard error for $\phi$.
 

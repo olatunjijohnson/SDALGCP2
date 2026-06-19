@@ -21,10 +21,10 @@ control_mcmc <- function(n.sim = 10000, burnin = 2000, thin = 8,
 
 #' Sample the latent field [S | Y] (Poisson, non-nested) via C++ MALA
 #'
-#' Fast drop-in for \code{SDALGCP::Laplace.sampling()} for the Poisson,
-#' non-nested case: the Laplace mode (Newton) and the adaptive MALA loop both run
-#' in C++. Given the same mode/covariance and seed it reproduces the original R
-#' sampler bit-for-bit.
+#' Draws posterior samples of the latent Gaussian field for the Poisson,
+#' non-nested case. The Laplace mode (Newton step) and the adaptive Metropolis-
+#' adjusted Langevin (MALA) loop both run in C++ for speed, with a fixed-seed path
+#' for reproducibility.
 #'
 #' @param mu prior mean vector.
 #' @param Sigma prior covariance matrix.

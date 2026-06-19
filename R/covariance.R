@@ -8,8 +8,7 @@ NULL
 #' correlations used by the SDA-LGCP model, where
 #' \deqn{R(\phi)_{ij} = \sum_{k,l} w_{ik} w_{jl}\, C(\lVert x_{ik}-x_{jl}\rVert; \phi, \kappa)}
 #' (population-weighted) or the unweighted mean over candidate-point pairs. The
-#' heavy reduction runs in C++ (OpenMP-parallel over region pairs); this is the
-#' modern, fast replacement for \code{SDALGCP::precomputeCorrMatrix()}.
+#' heavy reduction runs in C++ (OpenMP-parallel over region pairs).
 #'
 #' @param points a list of length \eqn{N}; each element holds \code{$xy} (an
 #'   \eqn{n_i \times 2} matrix of candidate-point coordinates) and, when

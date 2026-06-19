@@ -18,6 +18,12 @@ the submission.
 
 ## Done
 
+- [x] **Made the package fully independent of SDALGCP**: the `liver` dataset
+  builds from a frozen `data-raw/liver_source.rds` (no SDALGCP needed); removed all
+  comparative framing from DESCRIPTION/roxygen/README/NEWS/vignette/comments/design
+  docs; removed the `*_vs_SDALGCP` scripts. Method paper citations retained.
+  (2026-06-19)
+
 - [x] **CRAN prep**: `.Rinstignore` for the `t2`-`t6` vignette PNGs (clears the
   inst/doc NOTE); `Language: en-GB` + `inst/WORDLIST` (spelling clean);
   `cran-comments.md`; final `--as-cran` run clean. (2026-06-19)

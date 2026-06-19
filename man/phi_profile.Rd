@@ -20,7 +20,7 @@ invisibly, a list with the interval and the smoothed profile; a
 \description{
 Spline-smoothed profile deviance for \code{phi}, with the
 \code{coverage}-level confidence interval where the deviance crosses the
-chi-squared cutoff. Improves on the loess-based interval of \code{SDALGCP}.
+chi-squared cutoff.
 }
 \examples{
 \donttest{

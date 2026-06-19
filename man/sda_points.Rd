@@ -36,9 +36,8 @@ a list of length \code{nrow(my_shp)}; each element has \code{xy} and
   \code{weight}. Carries \code{"weighted"} and \code{"my_shp"} attributes.
 }
 \description{
-Lean replacement for \code{SDALGCP::SDALGCPpolygonpoints()}: for every polygon
-feature in \code{my_shp} it produces candidate points and aggregation weights,
-in the list format consumed by \code{\link{precompute_corr}}.
+For every polygon feature in \code{my_shp} it produces candidate points and
+aggregation weights, in the list format consumed by \code{\link{precompute_corr}}.
 }
 \examples{
 \donttest{

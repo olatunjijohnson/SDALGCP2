@@ -2,9 +2,9 @@
 
 This is the first CRAN submission of SDALGCP2 (version 0.1.0).
 
-SDALGCP2 is a faster, modernised re-implementation and extension of the existing
-CRAN package 'SDALGCP', with the performance-critical steps moved to C++
-(RcppArmadillo).
+SDALGCP2 fits a spatially discrete approximation to a log-Gaussian Cox process for
+aggregated disease count data, with the performance-critical steps implemented in
+C++ (RcppArmadillo).
 
 ## Test environments
 
@@ -29,10 +29,9 @@ C++ kernels use RcppArmadillo templates; there is no R-level way to reduce it.
 
 There are no reverse dependencies (new package).
 
-## Data provenance
+## Data
 
-The bundled `liver` dataset is derived (geometry trimmed to the modelling
-columns) from `PBCshp_sf` in the GPL-licensed 'SDALGCP' package, originally from
-Johnson, Diggle and Giorgi (2019) <doi:10.1002/sim.8339>. Redistribution is
-permitted under the GPL and the source is attributed in the dataset's
+The bundled `liver` dataset is the disease-count study data of Johnson, Diggle
+and Giorgi (2019) <doi:10.1002/sim.8339> (authored by the package maintainer),
+aggregated to LSOA level; the source is attributed in the dataset's
 documentation. The other bundled dataset, `sdalgcp_data`, is simulated.

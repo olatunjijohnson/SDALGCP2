@@ -1,15 +1,15 @@
-# Spatio-temporal SDA-LGCP with a separable, KRONECKER-FREE likelihood (task #13b).
+# Spatio-temporal SDA-LGCP with a separable, KRONECKER-FREE likelihood.
 #
 # Latent field over N regions x T times has separable covariance
 #   Cov(vec M) = sigma2 (R_t(nu) %x% R_s(phi)),   M is N x T (regions x times).
-# The original SDALGCP materialised the (NT)x(NT) Kronecker product and its
-# inverse/log-det on every likelihood evaluation. We never form it, using
+# Rather than materialising the (NT)x(NT) Kronecker product and its inverse/
+# log-det on every likelihood evaluation, we never form it, using
 #   x' (R_t %x% R_s)^{-1} x = tr( R_s^{-1} M R_t^{-1} M' ),
 #   log|R_t %x% R_s|        = N log|R_t| + T log|R_s|
 # (both verified against the brute-force Kronecker computation), turning (NT)^3
 # work into N^3 + T^3. The temporal correlation is Matern with range nu and
 # smoothness kappa_t (estimated continuously); the spatial scale phi is profiled
-# on a grid as in the spatial model. geoR is not used.
+# on a grid as in the spatial model.
 
 # Matern temporal correlation R_t(nu) and its derivative dR_t/dnu, using the same
 # a = sqrt(2 kappa) |t - s| / nu convention as the spatial kernel.

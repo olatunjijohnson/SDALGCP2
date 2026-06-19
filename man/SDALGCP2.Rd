@@ -82,8 +82,7 @@ an object of class \code{"SDALGCP2"}.
 \description{
 End-to-end user entry point: generates candidate points inside each region,
 assembles the aggregated region-level correlation array (C++), and estimates
-parameters by Monte Carlo maximum likelihood. This is the modern, faster
-equivalent of \code{SDALGCP::SDALGCPMCML()} for the spatial case.
+parameters by Monte Carlo maximum likelihood.
 }
 \examples{
 \donttest{
