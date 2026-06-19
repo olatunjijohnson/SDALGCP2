@@ -80,8 +80,11 @@ spatial range.
 ## Predict and map — pick a year and a quantity
 
 [`predict()`](https://rspatial.github.io/terra/reference/predict.html)
-returns $`N\times T`$ matrices of relative risk and covariate-adjusted
-relative risk (with standard errors). The
+returns a long `sf` — one row per region **and** time, with columns
+`relative_risk`, `adjusted_rr` and their standard errors (the same
+column names as the spatial predictor, so you can
+[`st_write()`](https://r-spatial.github.io/sf/reference/st_write.html)
+or map it directly). The
 [`plot()`](https://rspatial.github.io/terra/reference/plot.html) method
 selects a **time** and a **quantity** (`"relative_risk"`,
 `"adjusted_rr"`, `"relative_risk_se"`, `"adjusted_rr_se"`,
@@ -105,8 +108,58 @@ Covariate-adjusted relative risk, all years:
 | ![](t3_rr_2021.png) |    ![](t3_exc_2021.png)     |
 
 You can equally call `plot(fit, time = 2021, what = "relative_risk")`
-directly on the fit, and `pr$table` is a long data frame (region × time)
-of every quantity for further analysis.
+directly on the fit, and `pr` (the returned `sf`) is a long region ×
+time table of every quantity for further analysis or mapping.
+
+## Covariates and confounding
+
+The space–time model supports the same covariate extensions as the
+spatial one. The covariate surface is taken to be **time-invariant** (a
+covariate that genuinely changes over time can always go in as an
+ordinary `data` column); the intensity- scale tilting is then computed
+once per region and reused across the times, fitted by a Gauss–Newton
+loop around the space–time likelihood.
+
+**Raster (intensity-scale) covariates** — a spatially continuous
+covariate supplied as a `terra` raster, aggregated correctly under the
+log link (see the [raster
+tutorial](https://olatunjijohnson.github.io/SDALGCP2/articles/raster-covariates.md)):
+
+``` r
+
+library(terra)
+fit_r <- sdalgcp(cases ~ elevation + offset(log(pop)), data = dat, time = "year",
+                 rasters = elevation_raster)
+```
+
+**Misaligned covariates** — a covariate observed on a different
+(time-invariant) support, e.g. pollution monitors, kriged to the
+candidate points with a Berkson correction (see [misaligned
+covariates](https://olatunjijohnson.github.io/SDALGCP2/articles/misaligned-covariates.md)):
+
+``` r
+
+fit_m <- sdalgcp(cases ~ pm25 + offset(log(pop)), data = dat, time = "year",
+                 covariates = list(pm25 = monitors_sf))
+```
+
+**Spatial confounding** — when a covariate is spatially smooth it can be
+collinear with the random effect; restricted spatial regression
+de-confounds the coefficient (see [spatial
+confounding](https://olatunjijohnson.github.io/SDALGCP2/articles/spatial-confounding.md)).
+It generalises to space–time by constraining the random effect
+orthogonal to the design over all region–times:
+
+``` r
+
+fit_c <- sdalgcp(cases ~ x1 + offset(log(pop)), data = dat, time = "year",
+                 control = sdalgcp_control(confounding = "restricted"))
+```
+
+The restricted space–time fit reduces exactly to the spatial restricted
+fit when there is a single time, and forms the full
+$`(N\!\cdot\!T)\times(N\!\cdot\!T)`$ covariance, so it is best suited to
+modest $`N\!\cdot\!T`$.
 
 ## Tips
 

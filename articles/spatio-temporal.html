@@ -167,11 +167,12 @@ repeated. Here four years on a 6×6 lattice:</p>
 <div class="section level2">
 <h2 id="predict-and-map-pick-a-year-and-a-quantity">Predict and map — pick a year and a quantity<a class="anchor" aria-label="anchor" href="#predict-and-map-pick-a-year-and-a-quantity"></a>
 </h2>
-<p><code><a href="https://rspatial.github.io/terra/reference/predict.html" class="external-link">predict()</a></code> returns
-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi><mo>×</mo><mi>T</mi></mrow><annotation encoding="application/x-tex">N\times T</annotation></semantics></math>
-matrices of relative risk and covariate-adjusted relative risk (with
-standard errors). The <code><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot()</a></code> method selects a
-<strong>time</strong> and a <strong>quantity</strong>
+<p><code><a href="https://rspatial.github.io/terra/reference/predict.html" class="external-link">predict()</a></code> returns a long <code>sf</code> — one row per
+region <strong>and</strong> time, with columns
+<code>relative_risk</code>, <code>adjusted_rr</code> and their standard
+errors (the same column names as the spatial predictor, so you can
+<code><a href="https://r-spatial.github.io/sf/reference/st_write.html" class="external-link">st_write()</a></code> or map it directly). The <code><a href="https://rspatial.github.io/terra/reference/plot.html" class="external-link">plot()</a></code>
+method selects a <strong>time</strong> and a <strong>quantity</strong>
 (<code>"relative_risk"</code>, <code>"adjusted_rr"</code>,
 <code>"relative_risk_se"</code>, <code>"adjusted_rr_se"</code>,
 <code>"exceedance"</code>):</p>
@@ -195,8 +196,46 @@ standard errors). The <code><a href="https://rspatial.github.io/terra/reference/
 </table>
 <p>You can equally call
 <code>plot(fit, time = 2021, what = "relative_risk")</code> directly on
-the fit, and <code>pr$table</code> is a long data frame (region × time)
-of every quantity for further analysis.</p>
+the fit, and <code>pr</code> (the returned <code>sf</code>) is a long
+region × time table of every quantity for further analysis or
+mapping.</p>
+</div>
+<div class="section level2">
+<h2 id="covariates-and-confounding">Covariates and confounding<a class="anchor" aria-label="anchor" href="#covariates-and-confounding"></a>
+</h2>
+<p>The space–time model supports the same covariate extensions as the
+spatial one. The covariate surface is taken to be
+<strong>time-invariant</strong> (a covariate that genuinely changes over
+time can always go in as an ordinary <code>data</code> column); the
+intensity- scale tilting is then computed once per region and reused
+across the times, fitted by a Gauss–Newton loop around the space–time
+likelihood.</p>
+<p><strong>Raster (intensity-scale) covariates</strong> — a spatially
+continuous covariate supplied as a <code>terra</code> raster, aggregated
+correctly under the log link (see the <a href="raster-covariates.html">raster tutorial</a>):</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://rspatial.org/" class="external-link">terra</a></span><span class="op">)</span></span>
+<span><span class="va">fit_r</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sdalgcp.html">sdalgcp</a></span><span class="op">(</span><span class="va">cases</span> <span class="op">~</span> <span class="va">elevation</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/offset.html" class="external-link">offset</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">pop</span><span class="op">)</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dat</span>, time <span class="op">=</span> <span class="st">"year"</span>,</span>
+<span>                 rasters <span class="op">=</span> <span class="va">elevation_raster</span><span class="op">)</span></span></code></pre></div>
+<p><strong>Misaligned covariates</strong> — a covariate observed on a
+different (time-invariant) support, e.g. pollution monitors, kriged to
+the candidate points with a Berkson correction (see <a href="misaligned-covariates.html">misaligned covariates</a>):</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit_m</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sdalgcp.html">sdalgcp</a></span><span class="op">(</span><span class="va">cases</span> <span class="op">~</span> <span class="va">pm25</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/offset.html" class="external-link">offset</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">pop</span><span class="op">)</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dat</span>, time <span class="op">=</span> <span class="st">"year"</span>,</span>
+<span>                 covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>pm25 <span class="op">=</span> <span class="va">monitors_sf</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p><strong>Spatial confounding</strong> — when a covariate is spatially
+smooth it can be collinear with the random effect; restricted spatial
+regression de-confounds the coefficient (see <a href="spatial-confounding.html">spatial confounding</a>). It generalises
+to space–time by constraining the random effect orthogonal to the design
+over all region–times:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">fit_c</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/sdalgcp.html">sdalgcp</a></span><span class="op">(</span><span class="va">cases</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/offset.html" class="external-link">offset</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="va">pop</span><span class="op">)</span><span class="op">)</span>, data <span class="op">=</span> <span class="va">dat</span>, time <span class="op">=</span> <span class="st">"year"</span>,</span>
+<span>                 control <span class="op">=</span> <span class="fu"><a href="../reference/sdalgcp_control.html">sdalgcp_control</a></span><span class="op">(</span>confounding <span class="op">=</span> <span class="st">"restricted"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>The restricted space–time fit reduces exactly to the spatial
+restricted fit when there is a single time, and forms the full
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>N</mi><mspace width="-0.167em"></mspace><mo>⋅</mo><mspace width="-0.167em"></mspace><mi>T</mi><mo stretchy="false" form="postfix">)</mo><mo>×</mo><mo stretchy="false" form="prefix">(</mo><mi>N</mi><mspace width="-0.167em"></mspace><mo>⋅</mo><mspace width="-0.167em"></mspace><mi>T</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(N\!\cdot\!T)\times(N\!\cdot\!T)</annotation></semantics></math>
+covariance, so it is best suited to modest
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi><mspace width="-0.167em"></mspace><mo>⋅</mo><mspace width="-0.167em"></mspace><mi>T</mi></mrow><annotation encoding="application/x-tex">N\!\cdot\!T</annotation></semantics></math>.</p>
 </div>
 <div class="section level2">
 <h2 id="tips">Tips<a class="anchor" aria-label="anchor" href="#tips"></a>

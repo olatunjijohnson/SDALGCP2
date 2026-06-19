@@ -157,5 +157,22 @@ fit$phi_opt; fit$nu_opt
 #> [1] 2
 #>           
 #> 0.8773136 
+
+## restricted spatial regression against space-time confounding
+fit_c <- SDALGCP2_ST(cases ~ x1 + offset(log(pop)), dat, shp, times = times,
+                     delta = 1.5, phi = c(2, 4, 6), confounding = "restricted")
+fit_c$beta_opt
+#> (Intercept)          x1 
+#>  -5.9945200   0.5845133 
+
+## a spatially continuous (raster) covariate, aggregated on the intensity scale
+r <- terra::rast(terra::ext(0, 20, 0, 20), resolution = 0.5)
+terra::values(r) <- as.numeric(scale(terra::crds(r)[, 1])); names(r) <- "z"
+fit_r <- SDALGCP2_ST(cases ~ z + offset(log(pop)), dat, shp, times = times,
+                     delta = 1.5, phi = c(2, 4, 6), rasters = r, max_iter = 4,
+                     control.mcmc = control_mcmc(n.sim = 2000, burnin = 500, thin = 5))
+fit_r$beta_opt
+#> (Intercept)           z 
+#>   -6.005052    0.490473 
 # }
 ```
