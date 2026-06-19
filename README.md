@@ -69,23 +69,6 @@ That is the whole workflow. The same `sdalgcp()` call also covers:
 - **Honest uncertainty:** re-anchored Monte Carlo likelihood, importance-sampling
   diagnostics, a nugget term, model checking (residual Moran's I).
 
-## Performance
-
-The performance-critical steps run in C++ (RcppArmadillo), with the aggregated
-correlation assembly parallelised over region pairs with OpenMP. On simulated
-data (R 4.5, Linux):
-
-| Stage | N regions | Time |
-|---|---:|---:|
-| Aggregated correlation build |  64 | 0.01 s |
-| Full MCML fit (end-to-end)   |  64 | 0.84 s |
-| Aggregated correlation build | 144 | 0.01 s |
-| Full MCML fit (end-to-end)   | 144 | 3.46 s |
-
-The C++/OpenMP correlation kernel avoids forming intermediate 3-D arrays and
-scales well with the number of regions; the spatio-temporal likelihood never
-materialises the `(N*T)x(N*T)` covariance.
-
 ## Tutorials
 
 See the [package website](https://olatunjijohnson.github.io/SDALGCP2/) for

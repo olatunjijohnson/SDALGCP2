@@ -81,6 +81,10 @@ reference:
   - confint.SDALGCP2
   - print.SDALGCP2
   - print.summary.SDALGCP2
+- title: Datasets
+  contents:
+  - sdalgcp_data
+  - liver
 
 articles:
 - title: Tutorials
