@@ -29,7 +29,6 @@ Rcpp::List laplace_mode_poisson_cpp(const arma::vec& y,
                                     const arma::mat& Sigma,
                                     double tol = 1e-8,
                                     int maxit = 100) {
-  const arma::uword n = y.n_elem;
   arma::mat Sigma_inv = arma::inv_sympd(Sigma);
   arma::vec S = mu;
 
