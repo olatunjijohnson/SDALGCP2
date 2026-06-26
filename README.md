@@ -61,10 +61,10 @@ That is the whole workflow. The same `sdalgcp()` call also covers:
   the original, returning the same estimates (see [Performance](#performance)).
 - **Grid-free scale:** the spatial scale `φ` is optimised continuously by default
   (no grid), with a proper standard error — see the
-  [derivation PDF](math/continuous-phi-derivation.pdf).
+  [derivation PDF](https://github.com/olatunjijohnson/SDALGCP2/blob/main/math/continuous-phi-derivation.pdf).
 - **Continuous covariates done right:** rasters enter on the intensity scale
   (log-sum-exp), not by averaging predictors over polygons — see the
-  [raster PDF](math/raster-covariates-derivation.pdf).
+  [raster PDF](https://github.com/olatunjijohnson/SDALGCP2/blob/main/math/raster-covariates-derivation.pdf).
 - **Spatio-temporal** without ever forming the `(N·T)²` covariance.
 - **Honest uncertainty:** re-anchored Monte Carlo likelihood, importance-sampling
   diagnostics, a nugget term, model checking (residual Moran's I).

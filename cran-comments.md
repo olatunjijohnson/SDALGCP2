@@ -1,6 +1,21 @@
 ## Submission
 
-This is the first CRAN submission of SDALGCP2 (version 0.1.0).
+This is a resubmission of the first CRAN submission of SDALGCP2 (version 0.1.0).
+The previous upload was auto-rejected at the incoming pre-test. This version
+addresses the issues raised:
+
+* The two README links to `math/*.pdf` (flagged as invalid file URIs) now use
+  absolute GitHub URLs; those PDFs live in the repository's `math/` directory,
+  which is excluded from the package build via `.Rbuildignore`.
+
+* The test runner (`tests/testthat.R`) now caps OpenMP to two threads before the
+  package is loaded, so test CPU time no longer greatly exceeds elapsed time
+  (the Debian pre-test reported a 5.2x ratio).
+
+* `Matern` is now spelled `Matérn`, and the method acronyms `MALA`/`MCML` are
+  quoted in DESCRIPTION. The remaining words flagged by the spell checker
+  ("et", "al" in the "Johnson et al." citation, and "spatio" from
+  "spatio-temporal") are correct and intentional.
 
 SDALGCP2 fits a spatially discrete approximation to a log-Gaussian Cox process for
 aggregated disease count data, with the performance-critical steps implemented in
