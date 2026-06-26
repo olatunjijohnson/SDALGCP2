@@ -1,21 +1,27 @@
 ## Submission
 
 This is a resubmission of the first CRAN submission of SDALGCP2 (version 0.1.0).
-The previous upload was auto-rejected at the incoming pre-test. This version
-addresses the issues raised:
+A previous upload was auto-rejected at the incoming pre-test. This version
+addresses every issue raised, including the Debian tests NOTE that persisted on
+the most recent pre-test:
 
 * The two README links to `math/*.pdf` (flagged as invalid file URIs) now use
   absolute GitHub URLs; those PDFs live in the repository's `math/` directory,
   which is excluded from the package build via `.Rbuildignore`.
 
-* The test runner (`tests/testthat.R`) now caps OpenMP to two threads before the
-  package is loaded, so test CPU time no longer greatly exceeds elapsed time
-  (the Debian pre-test reported a 5.2x ratio).
+* "Running R code in 'testthat.R' had CPU time 5.x times elapsed time" (Debian):
+  the parallel C++ routines use OpenMP, and on the pre-test machine the runtime
+  was already initialised before the tests ran, so setting `OMP_NUM_THREADS`
+  from R had no effect. The test runner now caps threads with a *runtime*
+  `omp_set_num_threads(2)` call (an internal helper), which takes effect
+  regardless of when the OpenMP runtime was initialised. End users are
+  unaffected: the exported functions still default to the OpenMP default and
+  expose an `nthreads` argument.
 
-* The method names/acronyms `'Matern'`, `'MALA'` and `'MCML'` are quoted in
-  DESCRIPTION. The remaining words flagged by the spell checker ("et", "al" in
-  the "Johnson et al." citation, and "spatio" from "spatio-temporal") are
-  correct and intentional.
+* The DESCRIPTION wording was adjusted so the spell checker no longer flags
+  words: the method names/acronyms `'Matern'`, `'MALA'` and `'MCML'` are quoted,
+  the citation is written in full ("Johnson, Diggle and Giorgi (2019)"), and
+  "spatio-temporal" is written as "space-time".
 
 SDALGCP2 fits a spatially discrete approximation to a log-Gaussian Cox process for
 aggregated disease count data, with the performance-critical steps implemented in

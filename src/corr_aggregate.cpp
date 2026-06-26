@@ -177,3 +177,24 @@ arma::mat cross_cov_cpp(const arma::mat& pred,
   }
   return Rc;
 }
+
+//' Set the process-wide OpenMP thread count (internal)
+//'
+//' Caps the number of OpenMP threads used by the parallel routines in this
+//' package for the remainder of the session. Used by the test suite to keep
+//' CPU time close to elapsed time on CRAN's check machines (policy: at most two
+//' cores). Unlike the \code{OMP_NUM_THREADS} environment variable, which the
+//' OpenMP runtime reads only at start-up, this is a runtime call and so takes
+//' effect even when the runtime is already initialised.
+//'
+//' @param n number of threads (values below 1 are ignored).
+//' @return invisibly \code{NULL}.
+//' @keywords internal
+// [[Rcpp::export]]
+void set_omp_num_threads(int n) {
+#ifdef _OPENMP
+  if (n >= 1) omp_set_num_threads(n);
+#else
+  (void)n;
+#endif
+}

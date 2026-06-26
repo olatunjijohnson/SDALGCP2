@@ -44,6 +44,16 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// set_omp_num_threads
+void set_omp_num_threads(int n);
+RcppExport SEXP _SDALGCP2_set_omp_num_threads(SEXP nSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    set_omp_num_threads(n);
+    return R_NilValue;
+END_RCPP
+}
 // corr_and_grad_cpp
 Rcpp::List corr_and_grad_cpp(const Rcpp::List& coords, const Rcpp::List& weights, double phi, double kappa, bool weighted, int nthreads);
 RcppExport SEXP _SDALGCP2_corr_and_grad_cpp(SEXP coordsSEXP, SEXP weightsSEXP, SEXP phiSEXP, SEXP kappaSEXP, SEXP weightedSEXP, SEXP nthreadsSEXP) {
@@ -102,6 +112,7 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_SDALGCP2_corr_aggregate_cpp", (DL_FUNC) &_SDALGCP2_corr_aggregate_cpp, 6},
     {"_SDALGCP2_cross_cov_cpp", (DL_FUNC) &_SDALGCP2_cross_cov_cpp, 7},
+    {"_SDALGCP2_set_omp_num_threads", (DL_FUNC) &_SDALGCP2_set_omp_num_threads, 1},
     {"_SDALGCP2_corr_and_grad_cpp", (DL_FUNC) &_SDALGCP2_corr_and_grad_cpp, 6},
     {"_SDALGCP2_laplace_mode_poisson_cpp", (DL_FUNC) &_SDALGCP2_laplace_mode_poisson_cpp, 6},
     {"_SDALGCP2_mala_poisson_cpp", (DL_FUNC) &_SDALGCP2_mala_poisson_cpp, 12},
