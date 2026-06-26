@@ -12,7 +12,7 @@ Description: Fits a spatially discrete approximation to a log-Gaussian Cox proce
     (aggregated correlation assembly, 'MALA' sampling, the Monte Carlo likelihood,
     and the Kronecker-structured spatio-temporal likelihood) are implemented in
     C++ via 'RcppArmadillo'. Provides a one-line, 'glm'-like interface and
-    statistical extensions including a nugget term, general Matérn smoothness,
+    statistical extensions including a nugget term, general 'Matern' smoothness,
     raster and misaligned covariates, restricted spatial regression,
     importance-sampling diagnostics and re-anchored 'MCML'.
 Depends: R (>= 4.2.0)

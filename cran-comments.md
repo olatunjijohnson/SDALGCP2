@@ -12,10 +12,10 @@ addresses the issues raised:
   package is loaded, so test CPU time no longer greatly exceeds elapsed time
   (the Debian pre-test reported a 5.2x ratio).
 
-* `Matern` is now spelled `Matérn`, and the method acronyms `MALA`/`MCML` are
-  quoted in DESCRIPTION. The remaining words flagged by the spell checker
-  ("et", "al" in the "Johnson et al." citation, and "spatio" from
-  "spatio-temporal") are correct and intentional.
+* The method names/acronyms `'Matern'`, `'MALA'` and `'MCML'` are quoted in
+  DESCRIPTION. The remaining words flagged by the spell checker ("et", "al" in
+  the "Johnson et al." citation, and "spatio" from "spatio-temporal") are
+  correct and intentional.
 
 SDALGCP2 fits a spatially discrete approximation to a log-Gaussian Cox process for
 aggregated disease count data, with the performance-critical steps implemented in
