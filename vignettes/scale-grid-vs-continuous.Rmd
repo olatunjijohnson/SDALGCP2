@@ -7,7 +7,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r, include = FALSE}
+```{r, include = FALSE, purl = FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
 ```
 
@@ -31,7 +31,7 @@ depends on it. There are two ways to estimate it.
 
 ## Set up an example
 
-```{r}
+```{r, purl = FALSE}
 library(SDALGCP2)
 library(sf)
 
@@ -51,7 +51,7 @@ regions$cases <- rpois(N, regions$pop * exp(-6 + 0.5 * regions$x1 + S))
 The classic approach: evaluate the model on a **grid** of \(\phi\) values and take
 the profile maximum.
 
-```{r}
+```{r, purl = FALSE}
 fit_grid <- sdalgcp(cases ~ x1 + offset(log(pop)), data = regions,
                     control = sdalgcp_control(scale = "grid",
                                               phi = seq(1.5, 6, length.out = 12)))
@@ -68,13 +68,13 @@ parameter — yields a proper **standard error** from the joint Hessian (full
 derivation:
 [`math/continuous-phi-derivation.pdf`](https://github.com/olatunjijohnson/SDALGCP2/blob/main/math/continuous-phi-derivation.pdf)).
 
-```{r}
+```{r, purl = FALSE}
 fit_dir <- sdalgcp(cases ~ x1 + offset(log(pop)), data = regions)  # scale = "continuous"
 ```
 
 ## They agree — and continuous gives a standard error
 
-```{r}
+```{r, purl = FALSE}
 # (timings will vary)
 ```
 

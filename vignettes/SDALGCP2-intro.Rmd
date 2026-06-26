@@ -150,7 +150,7 @@ pattern, and the observed-vs-fitted points lie around the identity line.
 also ships `liver` — incident primary biliary cirrhosis counts by LSOA in North
 East England (Johnson et al. 2019), which you can fit the same way:
 
-```{r liver, eval = FALSE}
+```{r liver, eval = FALSE, purl = FALSE}
 data(liver)
 fit_liver <- sdalgcp(cases ~ IMD + offset(log(pop)), data = liver)
 plot(fit_liver, "relative_risk")

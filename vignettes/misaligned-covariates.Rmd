@@ -7,7 +7,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r, include = FALSE}
+```{r, include = FALSE, purl = FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
 ```
 
@@ -39,7 +39,7 @@ recovers the raster case. Derivation:
 The covariate `z` is observed at 40 scattered monitors (an `sf` of points with a
 `z` column); the outcome is counts over an 8×8 lattice.
 
-```{r}
+```{r, purl = FALSE}
 library(SDALGCP2)
 library(sf)
 
@@ -63,7 +63,7 @@ mon$z <- zf(st_coordinates(mon))
 
 Pass the monitors through `covariates =`; `reg` does not need a `z` column:
 
-```{r}
+```{r, purl = FALSE}
 fit <- sdalgcp(cases ~ z + offset(log(pop)), data = reg, covariates = list(z = mon))
 fit$beta_opt["z"]
 #> 0.89   (true 0.8)
@@ -83,7 +83,7 @@ grid or census tracts), supply those polygons. `SDALGCP2` detects the geometry a
 uses *aggregated areal kriging*, reusing the same C++ kernels that build the outcome
 correlation:
 
-```{r}
+```{r, purl = FALSE}
 # covariate observed as averages over a coarser 4x4 partition
 covpoly <- st_sf(geometry = st_make_grid(
   st_as_sfc(st_bbox(c(xmin = 0, ymin = 0, xmax = 20, ymax = 20))), n = c(4, 4)))

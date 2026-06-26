@@ -7,7 +7,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r, include = FALSE}
+```{r, include = FALSE, purl = FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
 ```
 
@@ -38,7 +38,7 @@ the data, not by the spatial smoothing. `SDALGCP2` fits it by a Laplace-approxim
 marginal likelihood (derivation:
 [`math/confounding-and-misalignment.pdf`](https://github.com/olatunjijohnson/SDALGCP2/blob/main/math/confounding-and-misalignment.pdf)).
 
-```{r}
+```{r, purl = FALSE}
 library(SDALGCP2)
 library(sf)
 

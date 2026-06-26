@@ -7,7 +7,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r, include = FALSE}
+```{r, include = FALSE, purl = FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
 ```
 
@@ -38,7 +38,7 @@ times. The temporal range \(\nu\) is estimated alongside \(\beta,\sigma^2,\phi\)
 One row per region **and** time, with the geometry repeated. Here four years on a
 6×6 lattice:
 
-```{r}
+```{r, purl = FALSE}
 library(SDALGCP2)
 library(sf)
 
@@ -64,7 +64,7 @@ dat <- st_sf(
 
 ## Fit
 
-```{r}
+```{r, purl = FALSE}
 fit <- sdalgcp(cases ~ x1 + offset(log(pop)), data = dat, time = "year",
                control = sdalgcp_control(reanchor = 2))
 summary(fit)
@@ -91,7 +91,7 @@ the spatial predictor, so you can `st_write()` or map it directly). The `plot()`
 method selects a **time** and a **quantity** (`"relative_risk"`, `"adjusted_rr"`,
 `"relative_risk_se"`, `"adjusted_rr_se"`, `"exceedance"`):
 
-```{r}
+```{r, purl = FALSE}
 pr <- predict(fit)
 
 plot(pr, time = NULL, what = "adjusted_rr")          # facet all years
@@ -123,7 +123,7 @@ by a Gauss–Newton loop around the space–time likelihood.
 as a `terra` raster, aggregated correctly under the log link (see the
 [raster tutorial](raster-covariates.html)):
 
-```{r}
+```{r, purl = FALSE}
 library(terra)
 fit_r <- sdalgcp(cases ~ elevation + offset(log(pop)), data = dat, time = "year",
                  rasters = elevation_raster)
@@ -133,7 +133,7 @@ fit_r <- sdalgcp(cases ~ elevation + offset(log(pop)), data = dat, time = "year"
 support, e.g. pollution monitors, kriged to the candidate points with a Berkson
 correction (see [misaligned covariates](misaligned-covariates.html)):
 
-```{r}
+```{r, purl = FALSE}
 fit_m <- sdalgcp(cases ~ pm25 + offset(log(pop)), data = dat, time = "year",
                  covariates = list(pm25 = monitors_sf))
 ```
@@ -143,7 +143,7 @@ with the random effect; restricted spatial regression de-confounds the coefficie
 (see [spatial confounding](spatial-confounding.html)). It generalises to space–time
 by constraining the random effect orthogonal to the design over all region–times:
 
-```{r}
+```{r, purl = FALSE}
 fit_c <- sdalgcp(cases ~ x1 + offset(log(pop)), data = dat, time = "year",
                  control = sdalgcp_control(confounding = "restricted"))
 ```

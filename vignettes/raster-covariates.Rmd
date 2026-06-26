@@ -7,7 +7,7 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r, include = FALSE}
+```{r, include = FALSE, purl = FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
 ```
 
@@ -44,7 +44,7 @@ A covariate `z` with sharp peaks (think pollution sources), supplied as a
 `terra::SpatRaster`, plus outcome counts over an 8×8 lattice. The peaks sit *inside*
 regions, so the region mean loses them:
 
-```{r}
+```{r, purl = FALSE}
 library(SDALGCP2)
 library(sf)
 library(terra)
@@ -81,7 +81,7 @@ The right panel — the region mean — has washed the peaks out.
 
 The naive analysis regresses counts on the areal mean:
 
-```{r}
+```{r, purl = FALSE}
 naive <- glm(cases ~ zbar + offset(log(pop)), poisson, st_drop_geometry(sh))
 coef(naive)["zbar"]
 #> 1.67   <- 67% too large
@@ -90,7 +90,7 @@ coef(naive)["zbar"]
 `SDALGCP2` instead reads `z` from the raster at the candidate points and uses the
 log-sum-exp offset. Pass the raster; `sh` does not even need a `z` column:
 
-```{r}
+```{r, purl = FALSE}
 fit <- sdalgcp(cases ~ z + offset(log(pop)), data = sh, rasters = r)
 coef(naive)["zbar"]; fit$beta_opt["z"]
 ```
@@ -120,7 +120,7 @@ fine.
 As in Tutorial 1, the fit yields relative risk and covariate-adjusted relative risk
 with standard errors and exceedance, both discrete and continuous:
 
-```{r}
+```{r, purl = FALSE}
 plot(fit, "adjusted_rr")                 # covariate-adjusted relative risk
 plot(fit, "exceedance", threshold = 1.5)
 ```
