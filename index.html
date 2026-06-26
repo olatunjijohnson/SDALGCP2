@@ -153,9 +153,9 @@
 <li>
 <strong>Fast:</strong> aggregated correlation assembly, the MALA sampler and the Monte Carlo likelihood run in C++ (RcppArmadillo + OpenMP) — <strong>8–10× faster end-to-end</strong> than the original, returning the same estimates (see <a href="#performance">Performance</a>).</li>
 <li>
-<strong>Grid-free scale:</strong> the spatial scale <code>φ</code> is optimised continuously by default (no grid), with a proper standard error — see the <a href="math/continuous-phi-derivation.pdf">derivation PDF</a>.</li>
+<strong>Grid-free scale:</strong> the spatial scale <code>φ</code> is optimised continuously by default (no grid), with a proper standard error — see the <a href="https://github.com/olatunjijohnson/SDALGCP2/blob/main/math/continuous-phi-derivation.pdf" class="external-link">derivation PDF</a>.</li>
 <li>
-<strong>Continuous covariates done right:</strong> rasters enter on the intensity scale (log-sum-exp), not by averaging predictors over polygons — see the <a href="math/raster-covariates-derivation.pdf">raster PDF</a>.</li>
+<strong>Continuous covariates done right:</strong> rasters enter on the intensity scale (log-sum-exp), not by averaging predictors over polygons — see the <a href="https://github.com/olatunjijohnson/SDALGCP2/blob/main/math/raster-covariates-derivation.pdf" class="external-link">raster PDF</a>.</li>
 <li>
 <strong>Spatio-temporal</strong> without ever forming the <code>(N·T)²</code> covariance.</li>
 <li>

@@ -64,11 +64,11 @@ call also covers:
 - **Grid-free scale:** the spatial scale `φ` is optimised continuously
   by default (no grid), with a proper standard error — see the
   [derivation
-  PDF](https://olatunjijohnson.github.io/SDALGCP2/math/continuous-phi-derivation.pdf).
+  PDF](https://github.com/olatunjijohnson/SDALGCP2/blob/main/math/continuous-phi-derivation.pdf).
 - **Continuous covariates done right:** rasters enter on the intensity
   scale (log-sum-exp), not by averaging predictors over polygons — see
   the [raster
-  PDF](https://olatunjijohnson.github.io/SDALGCP2/math/raster-covariates-derivation.pdf).
+  PDF](https://github.com/olatunjijohnson/SDALGCP2/blob/main/math/raster-covariates-derivation.pdf).
 - **Spatio-temporal** without ever forming the `(N·T)²` covariance.
 - **Honest uncertainty:** re-anchored Monte Carlo likelihood,
   importance-sampling diagnostics, a nugget term, model checking
