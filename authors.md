@@ -11,7 +11,7 @@
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/olatunjijohnson/SDALGCP2/blob/main/DESCRIPTION)
+[`DESCRIPTION`](https://github.com/olatunjijohnson/SDALGCP2/blob/v0.1.0/DESCRIPTION)
 
 Johnson O, Giorgi E, Diggle P (2026). *SDALGCP2: Fast Spatially Discrete
 Approximation to Log-Gaussian Cox Processes for Aggregated Disease Count
